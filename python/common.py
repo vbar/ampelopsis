@@ -9,7 +9,20 @@ def get_volume_path(volume_id):
     
     name = "%d.zip" % (volume_id,)
     return os.path.join(data_dir, name)
-    
+
+def get_loose_path(url_id, hdr=False):
+    tmp_dir = os.path.join(get_parent_directory(), "tmp")
+    middle = str(url_id % 1000)
+    loose_dir = os.path.join(tmp_dir, middle)
+    if not os.path.exists(loose_dir):
+        os.makedirs(loose_dir)
+
+    name = str(url_id)
+    if hdr:
+        name += 'h'
+
+    return os.path.join(loose_dir, name)
+
 def get_parent_directory():
     cur_dir = os.path.dirname(__file__)
     return os.path.dirname(cur_dir)

@@ -19,9 +19,11 @@ returning url""", (url,))
         print("URL %s already registered" % (url,), file=sys.stderr)
 
 def add_work(cur, url, url_id):
-    cur.execute("""insert into download_queue(url_id, priority) values(%s, get_priority(%s))
+    pr = urlparse(url)
+    cur.execute("""insert into download_queue(url_id, priority, host_id)
+values(%s, get_priority(%s), (select id from tops where hostname=%s))
 on conflict do nothing
-returning url_id""", (url_id, url))
+returning url_id""", (url_id, url, pr.netloc))
     if cur.fetchone() is None:
         print("URL %s already in queue" % (url_id,), file=sys.stderr)
     

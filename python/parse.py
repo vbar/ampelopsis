@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 
 from lxml import etree
+import re
 import select
 import sys
 from urllib.parse import quote_plus, urljoin, urlparse, urlunparse
-import zipfile
-from common import get_option, get_volume_path, make_connection
+from common import get_option, get_loose_path, make_connection
+from cursor_wrapper import CursorWrapper
+from volume_holder import VolumeHolder
 
 # www.realhit.cz uses accents in URLs...
 def normalize_url_component(path):
@@ -40,37 +42,75 @@ class PageParser:
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
-                
-class PolyParser:
+
+class MemCache:
+    def __init__(self, high_mark, low_mark):
+        assert high_mark > low_mark
+        assert low_mark > 0
+        self.high_mark = high_mark
+        self.low_mark = low_mark
+        self.cache = {} # url -> count
+        
+    def check(self, url):
+        cnt = self.cache.get(url, 0)
+        self.cache[url] = cnt + 1
+        if not cnt:
+            if len(self.cache) > self.high_mark:
+                self.prune()
+
+            return False
+        else:
+            return True
+
+    def prune(self):
+        cache = {}
+        lst = sorted([ (v, k) for k, v in self.cache.items() ], reverse=True)
+        for v, k in lst[:self.low_mark]:
+            cache[k] = v
+
+        self.cache = cache
+        
+class PolyParser(VolumeHolder, CursorWrapper):
     def __init__(self, single_action, conn, cur):
+        VolumeHolder.__init__(self)
+        CursorWrapper.__init__(self, cur)
+
+        self.mem_cache = MemCache(int(get_option('parse_cache_high_mark', "2000")), int(get_option('parse_cache_low_mark', "1000")))
         self.single_action = single_action
         self.conn = conn
-        self.cur = cur
-        self.volume_id = None
-        self.zp = None
+        self.notification_threshold = int(get_option('parse_notification_threshold', "1000"))
         
         page_limit = get_option("page_limit", None)
         self.page_limit = int(page_limit) if page_limit else None
         self.page_count = 0
+
+        # ignore case flag would be better dynamic, but Python 3.5.2
+        # doesn't support that...
+        url_blacklist_rx = get_option("url_blacklist_rx", "[.](?:jpe?g|pdf|png)$")
+        self.url_blacklist_rx = re.compile(url_blacklist_rx, re.I) if url_blacklist_rx else None
+
+        url_whitelist_rx = get_option("url_whitelist_rx", None)
+        self.url_whitelist_rx = re.compile(url_whitelist_rx, re.I) if url_whitelist_rx else None
         
-        self.host_white = set()
-        cur.execute("""select hostname
+        self.host_white = {}
+        cur.execute("""select id, hostname
 from tops
-order by hostname""")
+order by id""")
         rows = cur.fetchall()
         for row in rows:
-            self.host_white.add(row[0])
+            self.host_white[row[1]] = row[0]
 
     def parse_all(self):
         row = self.pop_work_item()
         while row:
             url_id = row[0]
             
-            subrow = self.get_content_spec(url_id)
-            if not subrow:
+            url = self.get_url(url_id)
+            if not url:
                 print("URL %d not found" % (url_id,), file=sys.stderr)
             else:
-                self.parse(url_id, *subrow)
+                volume_id = self.get_volume_id(url_id)
+                self.parse(url_id, url, volume_id)
                 
             row = self.pop_work_item()
 
@@ -91,31 +131,19 @@ from download_queue""")
         while self.conn.notifies:
             self.conn.notifies.pop()
             
-    def parse(self, url_id, url, volume_id, member_id):
+    def parse(self, url_id, url, volume_id):
         print("parsing " + url + "...", file=sys.stderr)
-        if volume_id != self.volume_id:
-            self.change_volume(volume_id)
-
-        try:
-            info = self.zp.getinfo(str(member_id))
-        except KeyError:
-            info = None
-
-        if info is not None:
-            parser = PageParser(self, url)
-            with self.zp.open(info) as reader:
+        reader = self.open_page(url_id, volume_id)
+        if reader:
+            try:
+                parser = PageParser(self, url)
                 parser.parse_links(reader)
+            finally:
+                reader.close()
         
-        self.cur.execute("""update content
+        self.cur.execute("""update field
 set parsed=localtimestamp
-where url_id=%s""", (url_id,))
-
-    def get_content_spec(self, url_id):
-        self.cur.execute("""select url, volume_id, member_id
-from field
-join content on id=url_id
 where id=%s""", (url_id,))
-        return self.cur.fetchone()
 
     def is_done(self):
         return self.page_limit and (self.page_count >= self.page_limit)
@@ -137,37 +165,38 @@ returning url_id""")
         row = self.cur.fetchone()
         if row:
             self.page_count += 1
-            if not (self.page_count % 1000):
+            if not (self.page_count % self.notification_threshold):
                 self.cond_notify()
                 
         return row
     
     def add_link(self, url):
         pr = urlparse(url.strip())
-        if pr.netloc in self.host_white:
+        host_id = self.host_white.get(pr.netloc)
+        if host_id:
             clean_pr = (pr.scheme, pr.netloc, normalize_url_component(pr.path), pr.params, normalize_url_component(pr.query), '')
             clean_url = urlunparse(clean_pr)
-            self.cur.execute("""insert into field(url) values(%s)
+            
+            skip_msg = None
+            if self.url_whitelist_rx and not self.url_whitelist_rx.search(clean_url):
+                skip_msg = "not whitelisted"
+            elif self.url_blacklist_rx and self.url_blacklist_rx.search(clean_url):
+                skip_msg = "blacklisted"
+            elif len(clean_url) > 512: # should get this from table definition...
+                skip_msg = "too long"
+                
+            if skip_msg:
+                print("skipping %s b/c %s" % (clean_url, skip_msg), file=sys.stderr)
+            elif not self.mem_cache.check(clean_url):
+                self.cur.execute("""insert into field(url) values(%s)
 on conflict do nothing
 returning id""", (clean_url,))
-            row = self.cur.fetchone()
-            if row is not None:
-                self.cur.execute("""insert into download_queue(url_id, priority) values(%s, get_priority(%s))
-on conflict do nothing""", (row[0], clean_url))
+                row = self.cur.fetchone()
+                if row is not None:
+                    self.cur.execute("""insert into download_queue(url_id, priority, host_id) values(%s, get_priority(%s), %s)
+on conflict do nothing""", (row[0], clean_url, host_id))
 
-    def change_volume(self, volume_id):
-        if self.zp is not None:
-            self.zp.close()
 
-        archive_path = get_volume_path(volume_id)
-        self.zp = zipfile.ZipFile(archive_path)
-        self.volume_id = volume_id
-        
-    def close(self):
-        if self.zp is not None:
-            self.zp.close()
-            self.zp = None
-            
 def main():
     single_action = (len(sys.argv) == 2) and (sys.argv[1] == '--single-action')
     
