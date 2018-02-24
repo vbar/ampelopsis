@@ -25,7 +25,8 @@ doesn't yet know what to crawl. That is specified in the ampelopsis
 database tables, and the easiest way to initialize them is by running
 the seed.py script with the top-level URLs (or hostnames) on its
 command line. The crawler follows links only to hostnames passed to
-seed.py .
+seed.py (or, less strictly, to their domains, when the match_domain
+option is set).
 
 Default downloader is in the download.py script - when run, it
 downloads the top-level URLs and waits for more work. More work is

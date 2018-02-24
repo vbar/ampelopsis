@@ -7,7 +7,8 @@ import pycurl
 import re
 import select
 import sys
-from common import get_option, get_loose_path, make_connection
+from urllib.parse import urlparse, urlunparse
+from common import get_loose_path, get_netloc, get_option, make_connection
 from download_base import DownloadBase
 
 class Target:
@@ -229,7 +230,10 @@ from download_queue""")
                     m.remove_handle(c)
                     eff_url = c.getinfo(pycurl.EFFECTIVE_URL)
                     if target.url != eff_url:
-                        if self.add_known_url(target.url_id, eff_url):
+                        pr = urlparse(eff_url)
+                        clean_pr = (pr.scheme, get_netloc(pr), pr.path, pr.params, pr.query, '')
+                        clean_url = urlunparse(clean_pr)
+                        if (target.url != clean_url) and self.add_known_url(target.url_id, clean_url):
                             target.body_buffer = None
 
                     msg = "got " + eff_url

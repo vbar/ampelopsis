@@ -1,5 +1,5 @@
 create table field(id serial primary key,
-	url varchar(512) not null,
+	url varchar not null,
 	checkd timestamp,
 	parsed timestamp,
 	unique(url));

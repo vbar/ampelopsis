@@ -1,81 +1,28 @@
 #!/usr/bin/python3
 
-from lxml import etree
 import re
 import select
 import sys
-from urllib.parse import quote_plus, urljoin, urlparse, urlunparse
-from common import get_option, get_loose_path, make_connection
-from cursor_wrapper import CursorWrapper
+from urllib.parse import urlparse, urlunparse
+from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
+from host_check import HostCheck
+from mem_cache import MemCache
+from page_parser import PageParser
+from preference import BreathPreference, NoveltyPreference
 from volume_holder import VolumeHolder
 
-# www.realhit.cz uses accents in URLs...
-def normalize_url_component(path):
-    return quote_plus(path, safe="/+%&=[]")
-
-class PageParser:
-    def __init__(self, owner, url):
-        self.owner = owner
-        self.base = url
-        self.found_base = False
-                
-    def parse_links(self, fp):
-        # limit memory usage
-        context = etree.iterparse(fp, events=('end',), tag=('a', 'base'), html=True, recover=True)
-        for action, elem in context:
-            if not self.found_base and (elem.tag == 'base'):
-                parent = elem.getparent()[0]
-                if parent and (parent.tag == 'head'):
-                    grandparent = parent.getparent()[0]
-                    if grandparent and (grandparent.tag == 'html'):
-                        self.found_base = True
-                        href = elem.get('href')
-                        if href:
-                            self.base = urljoin(self.base, href)
-            elif elem.tag == 'a':
-                href = elem.get('href')
-                if href:
-                    link = urljoin(self.base, href)
-                    self.owner.add_link(link)
-                
-            # cleanup
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
-
-class MemCache:
-    def __init__(self, high_mark, low_mark):
-        assert high_mark > low_mark
-        assert low_mark > 0
-        self.high_mark = high_mark
-        self.low_mark = low_mark
-        self.cache = {} # url -> count
-        
-    def check(self, url):
-        cnt = self.cache.get(url, 0)
-        self.cache[url] = cnt + 1
-        if not cnt:
-            if len(self.cache) > self.high_mark:
-                self.prune()
-
-            return False
-        else:
-            return True
-
-    def prune(self):
-        cache = {}
-        lst = sorted([ (v, k) for k, v in self.cache.items() ], reverse=True)
-        for v, k in lst[:self.low_mark]:
-            cache[k] = v
-
-        self.cache = cache
-        
-class PolyParser(VolumeHolder, CursorWrapper):
+class PolyParser(VolumeHolder, HostCheck):
     def __init__(self, single_action, conn, cur):
         VolumeHolder.__init__(self)
-        CursorWrapper.__init__(self, cur)
+        HostCheck.__init__(self, cur)
 
         self.mem_cache = MemCache(int(get_option('parse_cache_high_mark', "2000")), int(get_option('parse_cache_low_mark', "1000")))
+
+        if get_option('download_preference', 'novelty') == 'novelty':
+            self.preference = NoveltyPreference(int(get_option('novelty_high_mark', "20000")), int(get_option('novelty_low_mark', "15000")))
+        else:
+            self.preference = BreathPreference()
+            
         self.single_action = single_action
         self.conn = conn
         self.notification_threshold = int(get_option('parse_notification_threshold', "1000"))
@@ -84,6 +31,8 @@ class PolyParser(VolumeHolder, CursorWrapper):
         self.page_limit = int(page_limit) if page_limit else None
         self.page_count = 0
 
+        self.max_url_len = int(get_option("page_limit", "512"))
+        
         # ignore case flag would be better dynamic, but Python 3.5.2
         # doesn't support that...
         url_blacklist_rx = get_option("url_blacklist_rx", "[.](?:jpe?g|pdf|png)$")
@@ -92,14 +41,6 @@ class PolyParser(VolumeHolder, CursorWrapper):
         url_whitelist_rx = get_option("url_whitelist_rx", None)
         self.url_whitelist_rx = re.compile(url_whitelist_rx, re.I) if url_whitelist_rx else None
         
-        self.host_white = {}
-        cur.execute("""select id, hostname
-from tops
-order by id""")
-        rows = cur.fetchall()
-        for row in rows:
-            self.host_white[row[1]] = row[0]
-
     def parse_all(self):
         row = self.pop_work_item()
         while row:
@@ -114,6 +55,8 @@ order by id""")
                 
             row = self.pop_work_item()
 
+        self.preference.mark_batch()
+        
     def cond_notify(self):
         if not self.single_action:
             self.cur.execute("""select count(*)
@@ -172,31 +115,33 @@ returning url_id""")
     
     def add_link(self, url):
         pr = urlparse(url.strip())
-        host_id = self.host_white.get(pr.netloc)
-        if host_id:
-            clean_pr = (pr.scheme, pr.netloc, normalize_url_component(pr.path), pr.params, normalize_url_component(pr.query), '')
-            clean_url = urlunparse(clean_pr)
-            
-            skip_msg = None
-            if self.url_whitelist_rx and not self.url_whitelist_rx.search(clean_url):
-                skip_msg = "not whitelisted"
-            elif self.url_blacklist_rx and self.url_blacklist_rx.search(clean_url):
-                skip_msg = "blacklisted"
-            elif len(clean_url) > 512: # should get this from table definition...
-                skip_msg = "too long"
-                
-            if skip_msg:
-                print("skipping %s b/c %s" % (clean_url, skip_msg), file=sys.stderr)
-            elif not self.mem_cache.check(clean_url):
-                self.cur.execute("""insert into field(url) values(%s)
+        if pr.hostname: # may not exist even for valid links, e.g. mailto:
+            host_id = self.get_host_id(pr.hostname)
+            if host_id:
+                clean_pr = (pr.scheme, get_netloc(pr), normalize_url_component(pr.path), pr.params, normalize_url_component(pr.query), '')
+                clean_url = urlunparse(clean_pr)
+
+                skip_msg = None
+                if self.url_whitelist_rx and not self.url_whitelist_rx.search(clean_url):
+                    skip_msg = "not whitelisted"
+                elif self.url_blacklist_rx and self.url_blacklist_rx.search(clean_url):
+                    skip_msg = "blacklisted"
+                elif len(clean_url) > self.max_url_len:
+                    skip_msg = "too long"
+
+                if skip_msg:
+                    print("skipping %s b/c %s" % (clean_url, skip_msg), file=sys.stderr)
+                elif not self.mem_cache.check(clean_url):
+                    self.cur.execute("""insert into field(url) values(%s)
 on conflict do nothing
 returning id""", (clean_url,))
-                row = self.cur.fetchone()
-                if row is not None:
-                    self.cur.execute("""insert into download_queue(url_id, priority, host_id) values(%s, get_priority(%s), %s)
-on conflict do nothing""", (row[0], clean_url, host_id))
+                    row = self.cur.fetchone()
+                    if row is not None:
+                        self.cur.execute("""insert into download_queue(url_id, priority, host_id)
+values(%s, %s, %s)
+on conflict do nothing""", (row[0], self.preference.prioritize(clean_url), host_id))
 
-
+                    
 def main():
     single_action = (len(sys.argv) == 2) and (sys.argv[1] == '--single-action')
     

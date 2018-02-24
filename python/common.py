@@ -1,6 +1,8 @@
 import configparser
 import os
 import psycopg2
+import re
+from urllib.parse import quote_plus
 
 def get_volume_path(volume_id):
     data_dir = os.path.join(get_parent_directory(), "data")
@@ -42,3 +44,17 @@ config = configparser.ConfigParser()
 ini_path = os.path.join(get_parent_directory(), "ampelopsis.ini")
 config.read(ini_path)
 
+def get_netloc(pr):
+    if (pr.username is None) and (pr.password is None): # keep it simple
+        if ((pr.scheme == 'http') and (pr.port == 80)) or ((pr.scheme == 'https') and (pr.port == 443)):
+            return pr.hostname
+
+    return pr.netloc
+
+# we want to be conservative, but a space is a space...
+space_rx = re.compile('%20')
+
+# www.realhit.cz uses accents in URLs...
+def normalize_url_component(path):
+    q = quote_plus(path, safe="/+%&=[]:")
+    return space_rx.sub('+', q)

@@ -17,10 +17,13 @@ class Extender(VolumeHolder, CursorWrapper):
         volume_id = self.get_volume_id(url_id)
         content_type = self.get_content_type(url_id, volume_id)
         
-        f = self.open_headers(url_id, volume_id)
+        f = self.open_page(url_id, volume_id)
         if f is not None:
-            sz = self.get_body_size(url_id, volume_id)
-            self.hash_content(url_id, content_type, f, sz)
+            try:
+                sz = self.get_body_size(url_id, volume_id)
+                self.hash_content(url_id, content_type, f, sz)
+            finally:
+                f.close()
         else:
             self.cur.execute("""insert into extra(url_id, content_type, has_body)
 values(%s, %s, false)""", (url_id, content_type))
