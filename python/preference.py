@@ -25,7 +25,7 @@ class NoveltyPreference:
         segments = [ s for s in raw_segments if s ]
         l = len(segments)
         i = 1
-        prio = 0
+        prio = 1 # 0 is for seeds
         while i < l:
             head = tuple(segments[0:i])
             cnt = self.occurence.get(head, 0)
@@ -35,7 +35,10 @@ class NoveltyPreference:
 
         if len(self.occurence) > self.high_mark:
             self.prune()
-        
+
+        if url.find('?') >= 0:
+            prio *= 100
+            
         return prio
         
     def mark_batch(self):
