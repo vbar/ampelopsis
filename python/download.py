@@ -16,6 +16,7 @@ class Target:
         self.owner = owner
         self.url = url
         self.url_id = url_id
+        self.eff_id = url_id
         self.header_target = open(get_loose_path(url_id, True), 'wb')
         self.body_target = None
         self.retrieve_body = True
@@ -68,8 +69,17 @@ class Target:
         if self.body_target:
             self.body_target.close()
             self.body_target = None
+
+        if self.url_id != self.eff_id:
+            os.rename(get_loose_path(self.url_id, True), get_loose_path(self.eff_id, True))
             
-        self.owner.finish_page(self.url_id)
+            old_path = get_loose_path(self.url_id)
+            if self.retrieve_body:
+                os.rename(old_path, get_loose_path(self.eff_id))
+            elif os.path.exists(old_path):
+                os.remove(old_path)
+                
+        self.owner.finish_page(self.url_id, self.eff_id, self.retrieve_body)
         
     
 class Retriever(DownloadBase):
@@ -94,53 +104,49 @@ class Retriever(DownloadBase):
         mime_type = lst[0]
         return mime_type.lower() in self.mime_whitelist
     
-    def finish_page(self, url_id):
+    def finish_page(self, url_id, eff_id, has_body):
         self.cur.execute("""update field
 set checkd=localtimestamp
 where id=%s""", (url_id,))
 
-        self.cur.execute("""insert into parse_queue(url_id)
-values(%s)""", (url_id,))
-        
-    def insert_multiple(self, ida, idb):
-        if ida < idb:
-            id1 = ida
-            id2 = idb
-        else:
-            id1 = idb
-            id2 = ida
-                    
-        self.cur.execute("""insert into multiple(id1, id2) values(%s, %s)
-on conflict do nothing""", (id1, id2))
-        
-    def add_known_url(self, url_id, new_url):
-        known = False
-        new_url_id = None
-        self.cur.execute("""select id, checkd
-from field
-where url=%s""", (new_url,))
-        row = self.cur.fetchone()
-        if row is not None:
-            new_url_id, checked = row
-            known = checked is not None
-
-        if new_url_id:
+        if url_id != eff_id:
             self.cur.execute("""update field
 set checkd=localtimestamp
-where id=%s""", (new_url_id,))
-        else:
-            # conflict probably won't happen, but theoretically it's
-            # possible that a parallel download inserted the URL since
-            # the select above...
-            self.cur.execute("""insert into field(url, checkd) values(%s, localtimestamp)
-on conflict(url) do update
-set checkd=localtimestamp
-returning id""", (new_url,))
+where id=%s""", (eff_id,))
+
+        if has_body:
+            self.cur.execute("""insert into parse_queue(url_id)
+values(%s)""", (eff_id,))
+        
+    def add_redirect(self, url_id, new_url):
+        known = False
+        new_url_id = None
+        while new_url_id is None:
+            self.cur.execute("""select id
+from field
+where url=%s""", (new_url,))
             row = self.cur.fetchone()
-            new_url_id = row[0]
+            if row is not None:
+                new_url_id = row[0]
+                known = True
+            else:
+                self.cur.execute("""insert into field(url) values(%s)
+on conflict(url) do nothing
+returning id""", (new_url,))
+                row = self.cur.fetchone()
+                # conflict probably won't happen, but theoretically
+                # it's possible that a parallel download inserted the
+                # URL since the select above, in which case we'll just
+                # try again...
+                if row is None:
+                    print("parallel insert for " + new_url, file=sys.stderr)
+                else:
+                    new_url_id = row[0]
             
-        self.insert_multiple(url_id, new_url_id)
-        return known
+        self.cur.execute("""insert into redirect(from_id, to_id) values(%s, %s)
+on conflict do nothing""", (url_id, new_url_id))
+        
+        return (new_url_id, known)
     
     def cond_notify(self):
         if not self.single_action:
@@ -233,8 +239,11 @@ from download_queue""")
                         pr = urlparse(eff_url)
                         clean_pr = (pr.scheme, get_netloc(pr), pr.path, pr.params, pr.query, '')
                         clean_url = urlunparse(clean_pr)
-                        if (target.url != clean_url) and self.add_known_url(target.url_id, clean_url):
-                            target.body_buffer = None
+                        if target.url != clean_url:
+                            eff_id, known = self.add_redirect(target.url_id, clean_url)
+                            target.eff_id = eff_id
+                            if known:
+                                target.retrieve_body = False
 
                     msg = "got " + eff_url
                     if target.http_code != 200:

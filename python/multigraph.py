@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 from common import make_connection
+from cursor_wrapper import CursorWrapper
+from volume_holder import VolumeHolder
 
 class EqClass:
     def __init__(self, id1, id2):
@@ -11,9 +13,10 @@ class EqClass:
         self.data = None
         return data
         
-class Builder:
+class Builder(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
-        self.cur = cur
+        VolumeHolder.__init__(self)
+        CursorWrapper.__init__(self, cur)
         self.id2ec = {}
 
     def add(self, id1, id2):
@@ -47,7 +50,11 @@ class Builder:
             for data in datalist:
                 for i in sorted(data):
                     row = self.get_url(i)
-                    print(row[0])
+                    ln = row[0]
+                    if self.has_body(i):
+                        ln = "!" + ln
+                        
+                    print(ln)
                     
                 print("")
 
@@ -57,6 +64,15 @@ from field
 where id=%s""", (i,))
         return self.cur.fetchone()
     
+    def has_body(self, url_id):
+        volume_id = self.get_volume_id(url_id) 
+        f = self.open_page(url_id, volume_id)
+        if f is None:
+            return False
+        else:
+            f.close()
+            return True
+        
     def merge(self, ec1, ec2):
         ec1.data |= ec2.data
         for i in ec2.data:
@@ -66,7 +82,7 @@ def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             builder = Builder(cur)
-            cur.execute("""select id1, id2 from multiple order by id1, id2""")
+            cur.execute("""select from_id, to_id from redirect order by from_id, to_id""")
             rows = cur.fetchall()
             for row in rows:
                 builder.add(*row)
