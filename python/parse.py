@@ -8,6 +8,7 @@ from common import get_loose_path, get_netloc, get_option, make_connection, norm
 from host_check import HostCheck
 from mem_cache import MemCache
 from page_parser import PageParser
+from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
 from volume_holder import VolumeHolder
 
@@ -40,6 +41,12 @@ class PolyParser(VolumeHolder, HostCheck):
 
         url_whitelist_rx = get_option("url_whitelist_rx", None)
         self.url_whitelist_rx = re.compile(url_whitelist_rx, re.I) if url_whitelist_rx else None
+
+        self.cur.execute("""select nameval
+from param_blacklist
+order by nameval""")
+        rows = self.cur.fetchall()
+        self.param_blacklist = set((row[0] for row in rows))
         
     def parse_all(self):
         row = self.pop_work_item()
@@ -132,14 +139,42 @@ returning url_id""")
                 if skip_msg:
                     print("skipping %s b/c %s" % (clean_url, skip_msg), file=sys.stderr)
                 elif not self.mem_cache.check(clean_url):
-                    self.cur.execute("""insert into field(url) values(%s)
-on conflict do nothing
-returning id""", (clean_url,))
-                    row = self.cur.fetchone()
-                    if row is not None:
+                    url_id = self.insert_link(clean_pr, clean_url)
+                    if url_id is not None:
                         self.cur.execute("""insert into download_queue(url_id, priority, host_id)
 values(%s, %s, %s)
-on conflict do nothing""", (row[0], self.preference.prioritize(clean_url), host_id))
+on conflict do nothing""", (url_id, self.preference.prioritize(clean_url), host_id))
+
+    def insert_link(self, clean_pr, clean_url):
+        self.cur.execute("""insert into field(url)
+values(%s)
+on conflict do nothing
+returning id""", (clean_url,))
+        row = self.cur.fetchone()
+        if row is None:
+            return None
+        
+        url_id = row[0]
+        if clean_pr[4]:
+            clean_params = get_param_set(clean_pr[4])
+            simple_params = clean_params.difference(self.param_blacklist)
+            simple_query = "&".join(sorted(simple_params))
+            if simple_query != clean_pr[4]:
+                simple_pr = (clean_pr[0], clean_pr[1], clean_pr[2], clean_pr[3], simple_query, '')
+                simple_url = urlunparse(simple_pr)
+                # do not set checkd if simplification exists - it might be a real URL
+                self.cur.execute("""insert into field(url, checkd)
+values(%s, localtimestamp)
+on conflict do nothing
+returning id""", (simple_url,))
+                if self.cur.fetchone() is None:
+                    print("skipping %s - simplification already exists" % (clean_url,))
+                    self.cur.execute("""update field
+set checkd=localtimestamp
+where id=%s""", (url_id,))
+                    url_id = None
+                    
+        return url_id
 
                     
 def main():
