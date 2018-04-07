@@ -2,11 +2,11 @@
 
 import sys
 from common import make_connection
-from cursor_wrapper import CursorWrapper
+from path_builder import PathBuilder
 
-class Builder(CursorWrapper):
+class Builder(PathBuilder):
     def __init__(self, cur):
-        CursorWrapper.__init__(self, cur)
+        PathBuilder.__init__(self, cur)
         self.path = {} # depth -> [ url_id ]
         
     def get_url_id(self, url):
@@ -26,15 +26,6 @@ where url_id=%s""", (url_id,))
         row = self.cur.fetchone()
         return row[0]
     
-    def get_parents(self, urls, child_depth):
-        self.cur.execute("""select distinct from_id
-from edges
-join nodes on from_id=url_id
-where to_id in %s and depth=%s
-order by from_id""", (tuple(urls), child_depth - 1))
-        rows = self.cur.fetchall()
-        return [ row[0] for row in rows ]
-
     def add(self, depth, urls):
         self.path[depth] = urls
 
