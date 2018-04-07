@@ -13,9 +13,9 @@ class PageParser:
         for action, elem in context:
             if not self.found_base and (elem.tag == 'base'):
                 parent = elem.getparent()[0]
-                if parent and (parent.tag == 'head'):
+                if parent is not None and (parent.tag == 'head'):
                     grandparent = parent.getparent()[0]
-                    if grandparent and (grandparent.tag == 'html'):
+                    if grandparent is not None and (grandparent.tag == 'html'):
                         self.found_base = True
                         href = elem.get('href')
                         if href:
