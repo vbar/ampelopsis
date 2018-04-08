@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-from common import get_mandatory_option, make_connection
+from common import get_mandatory_option, get_option, make_connection
 from path_builder import PathBuilder
 
 class Adder(PathBuilder):
     def __init__(self, cur):
-        PathBuilder.__init__(self, cur)
+        PathBuilder.__init__(self, cur, int(get_option('path_cache_high_mark', "2000")), int(get_option('path_cache_low_mark', "1000")))
         
         print("resetting yields...")
         self.cur.execute("""update nodes
