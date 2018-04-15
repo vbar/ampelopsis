@@ -42,11 +42,14 @@ class PolyParser(VolumeHolder, HostCheck):
         url_whitelist_rx = get_option("url_whitelist_rx", None)
         self.url_whitelist_rx = re.compile(url_whitelist_rx, re.I) if url_whitelist_rx else None
 
-        self.cur.execute("""select nameval
+        self.comp_param = True if get_option("comp_param", True) else False
+        if self.comp_param:
+            self.cur.execute("""select nameval
 from param_blacklist
 order by nameval""")
-        rows = self.cur.fetchall()
-        self.param_blacklist = set((row[0] for row in rows))
+            rows = self.cur.fetchall()
+            self.param_blacklist = set((row[0] for row in rows))
+        # else param_blacklist isn't used
         
     def parse_all(self):
         row = self.pop_work_item()
@@ -155,7 +158,7 @@ returning id""", (clean_url,))
             return None
         
         url_id = row[0]
-        if clean_pr[4]:
+        if self.comp_param and clean_pr[4]:
             clean_params = get_param_set(clean_pr[4])
             simple_params = clean_params.difference(self.param_blacklist)
             simple_query = "&".join(sorted(simple_params))
