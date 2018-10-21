@@ -55,9 +55,10 @@ class Converter(JsonLookup):
                 out_node[k] = self.convert_node(v, False)
             if top_level:
                 out_node['Url'] = self.url
-                birthDate = self.get_birth_date(in_node['firstName'], in_node['lastName'])
-                if birthDate:
-                    out_node['birthDate'] = birthDate
+                pair = self.get_extras(in_node['firstName'], in_node['lastName'])
+                if pair:
+                    out_node['birthDate'] = pair[0]
+                    out_node['personUrl'] = pair[1]
         elif type(in_node) is list:
             out_node = []
             for it in in_node:

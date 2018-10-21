@@ -15,29 +15,16 @@ class JsonLookup(VolumeHolder, CursorWrapper):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
 
-    def get_birth_date(self, first_name, last_name):
-        found = []
-        wids = self.get_wids(first_name, last_name)
-        for wid in wids:
-            url = make_query_url(wid)
-            doc = self.get_document(url)
-            if doc:
-                bindings = doc['results']['bindings']
-                if len(bindings):
-                    m = self.datetime_rx.match(bindings[0]['b']['value'])
-                    found.append(m.group(1))
-
-        # matches for more than one wid are failures
-        return found[0] if len(found) == 1 else None
-
-    def get_wids(self, first_name, last_name):
-        url = make_search_url(first_name, last_name)
+    def get_extras(self, first_name, last_name):
+        url = make_query_url(first_name, last_name)
         doc = self.get_document(url)
         if doc:
-            lst = doc.get('search')
-            return ( it.get('title') for it in lst )
-        else:
-            return []
+            bindings = doc['results']['bindings']
+            if len(bindings):
+                m = self.datetime_rx.match(bindings[0]['b']['value'])
+                return (m.group(1), bindings[0]['a']['value'])
+
+        return None
 
     def get_document(self, url):
         url_id = self.get_url_id(url)
@@ -76,7 +63,7 @@ def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             lookup = JsonLookup(cur)
-            res = lookup.get_birth_date(sys.argv[1], sys.argv[2])
+            res = lookup.get_extras(sys.argv[1], sys.argv[2])
             if res:
                 print(res)
 
