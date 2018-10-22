@@ -5,7 +5,7 @@ import re
 import sys
 from common import make_connection
 from cursor_wrapper import CursorWrapper
-from jump_util import make_search_url, make_query_url
+from jump_util import make_query_url
 from volume_holder import VolumeHolder
 
 class JsonLookup(VolumeHolder, CursorWrapper):
