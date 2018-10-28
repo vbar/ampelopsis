@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from json import decoder
 import re
 import select
 import sys
@@ -91,6 +92,9 @@ from download_queue""")
             try:
                 parser = JsonParser(self, url)
                 parser.parse_links(reader)
+            except decoder.JSONDecodeError as ex:
+                self.cur.execute("""insert into parse_error(url_id, error_message, failed)
+values(%s, %s, localtimestamp)""" % (url_id, ex.msg))
             finally:
                 reader.close()
 
