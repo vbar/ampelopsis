@@ -94,7 +94,7 @@ from download_queue""")
                 parser.parse_links(reader)
             except decoder.JSONDecodeError as ex:
                 self.cur.execute("""insert into parse_error(url_id, error_message, failed)
-values(%s, %s, localtimestamp)""" % (url_id, ex.msg))
+values(%s, %s, localtimestamp)""", (url_id, ex.msg))
             finally:
                 reader.close()
 
