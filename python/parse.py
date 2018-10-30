@@ -32,7 +32,7 @@ class PolyParser(VolumeHolder, HostCheck):
         self.page_limit = int(page_limit) if page_limit else None
         self.page_count = 0
 
-        self.max_url_len = int(get_option("page_limit", "512"))
+        self.max_url_len = int(get_option("max_url_len", "512"))
         
         # ignore case flag would be better dynamic, but Python 3.5.2
         # doesn't support that...
