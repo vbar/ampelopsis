@@ -1,12 +1,10 @@
 import json
 import re
 import sys
-from jump_util import make_query_url
+from jump_util import make_position_set, make_query_url
 
 class JsonParser:
     core_url_head = "https://cro.justice.cz/verejnost/api/funkcionari"
-
-    wid_rx = re.compile('^Q[0-9]+$')
 
     def __init__(self, owner, url):
         self.owner = owner
@@ -23,9 +21,6 @@ class JsonParser:
                 self.match = m
                 self.process = proc_meth
                 break
-
-        if not self.match:
-            print("skipping %s with unknown schema" % url, file=sys.stderr)
 
     def parse_links(self, fp):
         if not self.match:
@@ -58,8 +53,7 @@ class JsonParser:
 
     def process_detail(self, doc):
         # enrich from Wikidata
-        # it would be a bit simpler to call this from
-        # process_overview, but JsonConvert gets the name from detail,
-        # and in overview it isn't always the same
-        url = make_query_url(doc.get('firstName'), doc.get('lastName'))
-        self.owner.add_link(url)
+        position_set = make_position_set(doc)
+        if len(position_set):
+            url = make_query_url(doc, position_set)
+            self.owner.add_link(url)
