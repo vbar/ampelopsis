@@ -6,6 +6,10 @@ from common import space_rx
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
+city_start_rx = re.compile("^(?:město|městská část|mč|obec|statutární město) ")
+
+mayor_position_entities = ( 'Q30185', 'Q147733' )
+
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
 
@@ -14,6 +18,12 @@ def normalize_name(name):
 def normalize_url_component(path):
     q = quote(path)
     return space_rx.sub('+', q)
+
+def normalize_city(name):
+    lower = name.lower()
+    safer = name_char_rx.sub("", lower.strip()) # maybe we need a more permissive regex, but nothing specific comes to mind...
+    shorter = city_start_rx.sub("", safer)
+    return shorter.strip()
 
 def make_position_set(detail):
     sought = set()
@@ -40,6 +50,8 @@ def make_position_set(detail):
                 sought.add('Q1162163')
 
         if wp['name'] == 'člen vlády':
+            # currently matching only ministers, but 'člen vlády' is
+            # also used for (at least some) deputy ministers...
             if it['organization'] == 'Ministerstvo dopravy':
                 sought.add('Q45754140')
             elif it['organization'] == 'Ministerstvo financí':
@@ -77,11 +89,8 @@ def make_position_set(detail):
         if wp['name'] == 'náměstek pro řízení sekce':
             sought.add('Q15735113')
         elif wp['name'] == 'starosta':
-            sought.add('Q30185')
-            sought.add('Q147733')
-            if it['organization'] == 'Město Třebíč':
-                sought.add('Q28860110')
-            # missing Q17149373, Q28860819 & probably others
+            for pos in mayor_position_entities:
+                sought.add(pos)
         elif wp['name'] == 'místostarosta / zástupce starosty':
             sought.add('Q581817')
         elif wp['name'] in ( 'člen zastupitelstva', 'člen Rady' ):
@@ -109,16 +118,65 @@ def make_position_set(detail):
 
     return sought
 
+def make_city_set_for_mayor(detail):
+    sought = set()
+    lst = detail['workingPositions']
+    for it in lst:
+        wp = it['workingPosition']
+        if wp['name'] == 'starosta':
+            sought.add(normalize_city(it['organization']))
+
+    return sought
+
 def make_query_url(detail, position_set):
+    city2mayor = {
+        'brno': 'Q28860819',
+        'praha': 'Q17149373',
+        'třebíč': 'Q28860110',
+    }
+
     name = "%s %s" % tuple(normalize_name(detail[n]) for n in ('firstName', 'lastName'))
     name_clause = 'filter(contains(?l, "%s")).' % name
 
+    city_restriction_set = set()
+    for pos in mayor_position_entities:
+        if pos in list(position_set):
+            position_set.remove(pos)
+            city_restriction_set.add(pos)
+
+    pos_clauses = []
+    if len(city_restriction_set):
+        vl = ' '.join('wd:' + p for p in sorted(city_restriction_set))
+
+        city_set = make_city_set_for_mayor(detail)
+        for city in city_set:
+            mayor = city2mayor.get(city)
+            if mayor:
+                position_set.add(mayor)
+
+        if len(city_set):
+            # equality should be sufficient but actually doesn't match some labels
+            filter_expr = ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
+
+            # city (or village), title (of city - ?l is already taken)
+            bare_clause = """values ?p { %s }
+        ?c p:P6 [ ps:P6 ?w ].
+        ?c rdfs:label ?t.
+        filter(lang(?t) = "cs").
+        filter(%s).""" % (vl, filter_expr)
+            pos_clauses.append(bare_clause)
+
     if len(position_set):
         vl = ' '.join('wd:' + p for p in sorted(position_set))
-        pos_clause = 'values ?p { %s }' % vl
+        pos_clauses.append('values ?p { %s }' % vl)
+
+    l = len(pos_clauses)
+    if l == 0:
+        pos_clause = '' # no restriction
+    elif l == 1:
+        pos_clause = pos_clauses[0]
     else:
-        # no restriction
-        pos_clause = ''
+        pos_clause = ' union '.join('{ %s }' % pc for pc in pos_clauses)
 
     # person, article, birth, label, position
     query = """select ?w ?a ?b ?l ?p
