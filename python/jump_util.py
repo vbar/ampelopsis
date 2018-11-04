@@ -8,6 +8,12 @@ name_char_rx = re.compile("[^\\w ./-]")
 
 city_start_rx = re.compile("^(?:město|městská část|mč|obec|statutární město) ")
 
+# ministers are special because their position is a subclass of
+# minister - normally minister of <resort> of Czech Republic
+minister_position_entity = 'Q83307'
+
+# mayors are special because there's so many the name match may
+# produce false positives - so for mayors we also match the city
 mayor_position_entities = ( 'Q30185', 'Q147733' )
 
 def normalize_name(name):
@@ -52,41 +58,8 @@ def make_position_set(detail):
         if wp['name'] == 'člen vlády':
             # currently matching only ministers, but 'člen vlády' is
             # also used for (at least some) deputy ministers...
-            if it['organization'] == 'Ministerstvo dopravy':
-                sought.add('Q45754140')
-            elif it['organization'] == 'Ministerstvo financí':
-                sought.add('Q2207925')
-            elif it['organization'] == 'Ministerstvo kultury':
-                sought.add('Q45843918')
-            elif it['organization'] in ( 'Ministrstvo obrany', 'Ministerstvo obrany' ): # typo in input
-                sought.add('Q45406265')
-            elif it['organization'] == 'Ministerstvo pro místní rozvoj':
-                sought.add('Q25515749')
-            elif it['organization'] == 'Ministerstvo práce a sociálních věcí':
-                sought.add('Q27479703')
-            elif it['organization'].startswith('Ministerstvo průmyslu a obchodu'):
-                sought.add('Q25507811')
-            elif it['organization'] == 'Ministerstvo spravedlnosti':
-                sought.add('Q26197353')
-                sought.add('Q1661653') # minister is correct, but ministry also occurs
-            elif it['organization'] == 'Ministerstvo školství, mládeže a tělovýchovy':
-                sought.add('Q30312984')
-            elif it['organization'] == 'Ministerstvo vnitra':
-                sought.add('Q20058795')
-            elif it['organization'] == 'Ministerstvo zahraničních věcí':
-                sought.add('Q2501396')
-            elif it['organization'] == 'Ministerstvo zdravotnictví':
-                sought.add('Q45750372')
-            elif it['organization'] == 'Ministerstvo zemědělství':
-                sought.add('Q28808262')
-            elif it['organization'] == 'Ministerstvo životního prostředí':
-                sought.add('Q33702144')
-            else: # premier doesn't have a specific position in input data
-                sought.add('Q3409229')
-                sought.add('Q140686') # let's try also generic chairperson
-                sought.add('Q83307') # ...and minister
-
-        if wp['name'] == 'náměstek pro řízení sekce':
+            sought.add(minister_position_entity)
+        elif wp['name'] == 'náměstek pro řízení sekce':
             sought.add('Q15735113')
         elif wp['name'] == 'starosta':
             for pos in mayor_position_entities:
@@ -138,15 +111,24 @@ def make_query_url(detail, position_set):
     name = "%s %s" % tuple(normalize_name(detail[n]) for n in ('firstName', 'lastName'))
     name_clause = 'filter(contains(?l, "%s")).' % name
 
-    city_restriction_set = set()
+    mayor_position_set = set()
     for pos in mayor_position_entities:
         if pos in list(position_set):
             position_set.remove(pos)
-            city_restriction_set.add(pos)
+            mayor_position_set.add(pos)
+
+    minister_position = None
+    if minister_position_entity in position_set:
+        position_set.remove(minister_position_entity)
+        minister_position = minister_position_entity
 
     pos_clauses = []
-    if len(city_restriction_set):
-        vl = ' '.join('wd:' + p for p in sorted(city_restriction_set))
+    if minister_position:
+        nmp = 'wd:' + minister_position
+        pos_clauses.append('?p wdt:P279/wdt:P279 %s.' % nmp)
+
+    if len(mayor_position_set):
+        vl = ' '.join('wd:' + p for p in sorted(mayor_position_set))
 
         city_set = make_city_set_for_mayor(detail)
         for city in city_set:
