@@ -6,7 +6,7 @@ from common import space_rx
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
-city_start_rx = re.compile("^(?:město|městská část|mč|obec|statutární město) ")
+city_start_rx = re.compile("^(?:mč|město|městská část|obec|statutární město) ")
 
 # ministers are special because their position is a subclass of
 # minister - normally minister of <resort> of Czech Republic
@@ -104,7 +104,10 @@ def make_city_set_for_mayor(detail):
 def make_query_url(detail, position_set):
     city2mayor = {
         'brno': 'Q28860819',
+        'litovel': 'Q32086537',
         'praha': 'Q17149373',
+        'příbor': 'Q29071925',
+        'slaný': 'Q42968448',
         'třebíč': 'Q28860110',
     }
 
@@ -128,8 +131,6 @@ def make_query_url(detail, position_set):
         pos_clauses.append('?p wdt:P279/wdt:P279 %s.' % nmp)
 
     if len(mayor_position_set):
-        vl = ' '.join('wd:' + p for p in sorted(mayor_position_set))
-
         city_set = make_city_set_for_mayor(detail)
         for city in city_set:
             mayor = city2mayor.get(city)
@@ -137,12 +138,14 @@ def make_query_url(detail, position_set):
                 position_set.add(mayor)
 
         if len(city_set):
+            vl = ' '.join('wd:' + p for p in sorted(mayor_position_set))
+
             # equality should be sufficient but actually doesn't match some labels
             filter_expr = ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
 
             # city (or village), title (of city - ?l is already taken)
             bare_clause = """values ?p { %s }
-        ?c p:P6 [ ps:P6 ?w ].
+        ?c p:P6/ps:P6 ?w.
         ?c rdfs:label ?t.
         filter(lang(?t) = "cs").
         filter(%s).""" % (vl, filter_expr)
@@ -160,7 +163,7 @@ def make_query_url(detail, position_set):
     else:
         pos_clause = ' union '.join('{ %s }' % pc for pc in pos_clauses)
 
-    # person, article, birth, label, position
+    # person (wikidata ID), article, birth, label, position
     query = """select ?w ?a ?b ?l ?p
 where {
         ?w wdt:P27 wd:Q213;
