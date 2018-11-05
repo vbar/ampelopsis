@@ -85,7 +85,8 @@ def main():
             lookup = JsonLookup(cur)
             for a in sys.argv[1:]:
                 detail = lookup.get_document(a)
-                qurl = make_query_url(detail, make_position_set(detail))
+                position_set = make_position_set(detail)
+                qurl = make_query_url(detail, position_set)
                 uo = parse.urlparse(qurl)
                 params = parse.parse_qsl(uo.query)
                 for p in params:
@@ -96,7 +97,22 @@ def main():
                 leaf = lookup.get_document(qurl)
                 if leaf:
                     json.dump(leaf, sys.stdout, ensure_ascii=False)
-                print("")
+                    print("")
+
+                if len(position_set):
+                    qurl = make_query_url(detail, set())
+                    leaf = lookup.get_document(qurl)
+                    if leaf:
+                        uo = parse.urlparse(qurl)
+                        print("")
+                        params = parse.parse_qsl(uo.query)
+                        for p in params:
+                            if p[0] == 'query':
+                                print(p[1])
+
+                        print("")
+                        json.dump(leaf, sys.stdout, ensure_ascii=False)
+                        print("")
 
 if __name__ == "__main__":
     main()
