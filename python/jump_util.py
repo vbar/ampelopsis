@@ -37,8 +37,15 @@ def make_position_set(detail):
     }
 
     other_universities = set([
+        'Česká zemědělská univerzita v Praze',
+        'České vysoké učení technické v Praze',
         'Masarykova univerzita',
+        'Mendelova univerzita v Brně',
+        'Slezská univerzita v Opavě',
         'Univerzita Palackého v Olomouci',
+        'Univerzita Tomáše Bati ve Zlíně',
+        'Vysoká škola báňská – Technická univerzita Ostrava',
+        'Vysoká škola polytechnická Jihlava',
         'Vysoké učení technické v Brně'
     ])
 
