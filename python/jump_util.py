@@ -32,25 +32,35 @@ def normalize_city(name):
     return shorter.strip()
 
 def make_position_set(detail):
+    university2rector = {
+        'Univerzita Karlova': 'Q12049166'
+    }
+
+    other_universities = set([
+        'Masarykova univerzita',
+        'Univerzita Palackého v Olomouci',
+        'Vysoké učení technické v Brně'
+    ])
+
     sought = set()
     lst = detail['workingPositions']
     for it in lst:
-        if it['organization'] == 'Nejvyšší státní zastupitelství':
+        org_name = it['organization']
+        if org_name == 'Nejvyšší státní zastupitelství':
             sought.add('Q26197430')
 
         wp = it['workingPosition']
         if wp['name'] == 'člen řídícího orgánu':
-            if it['organization'] == 'Univerzita Karlova':
-                # not necessarily a rector, but no other positions were seen for this match
-                sought.add('Q12049166')
-                sought.add('Q212071')
-                sought.add('Q2113250')
-            elif it['organization'] == 'Masarykova univerzita':
+            rector = university2rector.get(org_name)
+            if rector:
+                sought.add(rector)
+
+            if rector or org_name in other_universities:
                 sought.add('Q212071')
                 sought.add('Q2113250')
 
         if wp['name'] == 'vedoucí zaměstnanec 3. stupně řízení':
-            if (it['organization'] == 'Kancelář prezidenta republiky'):
+            if (org_name == 'Kancelář prezidenta republiky'):
                 sought.add('Q15712674')
             else:
                 sought.add('Q1162163')
