@@ -8,6 +8,8 @@ name_char_rx = re.compile("[^\\w ./-]")
 
 city_start_rx = re.compile("^(?:mč|město|městská část|obec|statutární město) ")
 
+university_name_rx = re.compile("\\b(?:univerzita|učení)")
+
 # ministers are special because their position is a subclass of
 # minister - normally minister of <resort> of Czech Republic
 minister_position_entity = 'Q83307'
@@ -33,26 +35,14 @@ def normalize_city(name):
 
 def make_position_set(detail):
     university2rector = {
-        'Univerzita Karlova': 'Q12049166'
+        'Univerzita Karlova': 'Q12049166',
+        'Univerzita Karlova v Praze': 'Q12049166'
     }
-
-    other_universities = set([
-        'Česká zemědělská univerzita v Praze',
-        'České vysoké učení technické v Praze',
-        'Masarykova univerzita',
-        'Mendelova univerzita v Brně',
-        'Slezská univerzita v Opavě',
-        'Univerzita Palackého v Olomouci',
-        'Univerzita Tomáše Bati ve Zlíně',
-        'Vysoká škola báňská – Technická univerzita Ostrava',
-        'Vysoká škola polytechnická Jihlava',
-        'Vysoké učení technické v Brně'
-    ])
 
     sought = set()
     lst = detail['workingPositions']
     for it in lst:
-        org_name = it['organization']
+        org_name = it['organization'].strip()
         if org_name == 'Nejvyšší státní zastupitelství':
             sought.add('Q26197430')
 
@@ -62,9 +52,10 @@ def make_position_set(detail):
             if rector:
                 sought.add(rector)
 
-            if rector or org_name in other_universities:
+            if rector or university_name_rx.search(org_name.lower()):
                 sought.add('Q212071')
                 sought.add('Q2113250')
+                sought.add('Q723682')
 
         if wp['name'] == 'vedoucí zaměstnanec 3. stupně řízení':
             if (org_name == 'Kancelář prezidenta republiky'):
