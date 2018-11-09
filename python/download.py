@@ -6,12 +6,10 @@ import os
 import pycurl
 import re
 import select
-import shutil
 import sys
 from urllib.parse import urlparse, urlunparse
 from common import get_loose_path, get_netloc, get_option, make_connection
 from download_base import DownloadBase
-from volume_holder import VolumeHolder
 
 class Target:
     def __init__(self, owner, url, url_id):
@@ -82,10 +80,9 @@ class Target:
         self.owner.finish_page(self.url_id, self.eff_id, self.retrieve_body)
 
 
-class Retriever(DownloadBase, VolumeHolder):
+class Retriever(DownloadBase):
     def __init__(self, single_action, conn, cur):
         DownloadBase.__init__(self, cur)
-        VolumeHolder.__init__(self)
 
         self.single_action = single_action
         self.conn = conn
@@ -165,61 +162,6 @@ from parse_queue""")
         print("got %d notification(s)" % (len(self.conn.notifies),))
         while self.conn.notifies:
             self.conn.notifies.pop()
-
-    def pop_work_item(self):
-        row = super().pop_work_item()
-        while row:
-            url_id = row[0]
-            url = self.get_url(url_id)
-
-            self.cur.execute("""select id, checkd
-from field_cache
-where url = %s""", (url,))
-            crow = self.cur.fetchone()
-            if not crow:
-                return row
-
-            self.copy_cached(url, url_id, *crow)
-
-            row = super().pop_work_item()
-
-        return None
-
-    def copy_cached(self, url, dst_id, src_id, checked):
-        print("using cached " + url, file=sys.stderr)
-
-        volume_id = self.get_volume_id(src_id)
-        if volume_id is None:
-            self.copy_cached_path(get_loose_path(src_id, True), get_loose_path(dst_id, True))
-            self.copy_cached_path(get_loose_path(src_id), get_loose_path(dst_id))
-        else:
-            self.copy_cached_handle(self.open_headers(src_id, volume_id), get_loose_path(dst_id, True))
-            self.copy_cached_handle(self.open_page(src_id, volume_id), get_loose_path(dst_id))
-
-        self.cur.execute("""update field
-set checkd=%s
-where id=%s""", (checked, dst_id))
-
-        self.cur.execute("""insert into parse_queue(url_id)
-values(%s)""", (dst_id,))
-
-    @staticmethod
-    def copy_cached_path(src_path, dst_path):
-        if os.path.exists(src_path):
-            shutil.copyfile(src_path, dst_path)
-        elif os.path.exists(dst_path):
-            os.remove(path)
-
-    @staticmethod
-    def copy_cached_handle(src_handle, dst_path):
-        if src_handle is not None:
-            try:
-                with open(dst_path, 'wb') as dst_handle:
-                    shutil.copyfileobj(src_handle, dst_handle)
-            finally:
-                src_handle.close()
-        elif os.path.exists(dst_path):
-            os.remove(dst_path)
 
     # adapted from https://github.com/pycurl/pycurl/blob/master/examples/retriever-multi.py
     def retrieve(self):
