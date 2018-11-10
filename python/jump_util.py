@@ -18,9 +18,9 @@ minister_position_entity = 'Q83307'
 # produce false positives - so for mayors we also match the city
 mayor_position_entities = ( 'Q30185', 'Q147733' )
 
-# councillors are even commoner than mayors, but in practice, wikidata
-# doesn't have the same statements for councillors as for mayors - the
-# stricter check is useful primarily for removing false positives...
+deputy_mayor_position_entity = 'Q581817'
+
+# councillors are even commoner than mayors
 councillor_position_entities = ( 'Q708492', 'Q19602879', 'Q4657217' )
 
 def normalize_name(name):
@@ -78,7 +78,7 @@ def make_position_set(detail):
             for pos in mayor_position_entities:
                 sought.add(pos)
         elif wp['name'] == 'místostarosta / zástupce starosty':
-            sought.add('Q581817')
+            sought.add(deputy_mayor_position_entity)
         elif wp['name'] in ( 'člen zastupitelstva', 'člen Rady' ):
             for pos in councillor_position_entities:
                 sought.add(pos)
@@ -113,12 +113,12 @@ def make_city_set_for_mayor(detail):
 
     return sought
 
-def make_city_set_for_councillor(detail):
+def make_city_set_for_municipal(detail):
     sought = set()
     lst = detail['workingPositions']
     for it in lst:
         wp = it['workingPosition']
-        if wp['name'] in ( 'člen zastupitelstva', 'člen Rady' ):
+        if wp['name'] in ( 'místostarosta / zástupce starosty', 'člen zastupitelstva', 'člen Rady' ):
             sought.add(normalize_city(it['organization']))
 
     return sought
@@ -146,11 +146,13 @@ def make_query_url(detail, position_set):
             position_set.remove(pos)
             mayor_position_set.add(pos)
 
-    councillor_position_set = set()
-    for pos in councillor_position_entities:
+    municipal_position_entities = list(councillor_position_entities)
+    municipal_position_entities.append(deputy_mayor_position_entity)
+    municipal_position_set = set()
+    for pos in municipal_position_entities:
         if pos in position_list:
             position_set.remove(pos)
-            councillor_position_set.add(pos)
+            municipal_position_set.add(pos)
 
     minister_position = None
     if minister_position_entity in position_set:
@@ -183,16 +185,17 @@ def make_query_url(detail, position_set):
         filter(%s).""" % (vl, filter_expr)
             pos_clauses.append(bare_clause)
 
-    if len(councillor_position_set):
-        city_set = make_city_set_for_councillor(detail)
+    if len(municipal_position_set):
+        city_set = make_city_set_for_municipal(detail)
         if len(city_set):
-            vl = ' '.join('wd:' + p for p in sorted(councillor_position_set))
+            vl = ' '.join('wd:' + p for p in sorted(municipal_position_set))
 
-            filter_expr = ' || '.join('(lcase(?t) = "%s")' % c for c in sorted(city_set))
+            # equality should be sufficient but actually doesn't match some labels
+            filter_expr = ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
 
             # city (or village), title (of city - ?l is already taken)
             bare_clause = """values ?p { %s }
-        ?c p:P6/ps:P6 ?w.
+        ?w p:P39/pq:P642 ?c.
         ?c rdfs:label ?t.
         filter(lang(?t) = "cs").
         filter(%s).""" % (vl, filter_expr)
