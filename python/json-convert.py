@@ -25,7 +25,8 @@ class Converter(JsonLookup):
     def cycle(self, prep):
         self.cur.execute("""select url, id
 from field
-where url ~ '^https://cro.justice.cz/verejnost/api/funkcionari/[a-f0-9-]+$'""")
+where url ~ '^https://cro.justice.cz/verejnost/api/funkcionari/[a-f0-9-]+$' and checkd is not null
+order by url""")
         rows = self.cur.fetchall()
         for row in rows:
             self.convert(*row, prep)
