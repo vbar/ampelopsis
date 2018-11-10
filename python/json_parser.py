@@ -27,14 +27,17 @@ class JsonParser:
                 break
 
     def parse_links(self, fp):
-        if not self.match:
-            return
-
         buf = b''
         for ln in fp:
             buf += ln
 
         doc = json.loads(buf.decode('utf-8'))
+
+        # not earlier because we want to record JSON parse error even
+        # from leafs
+        if not self.match:
+            return
+
         self.process(doc)
 
     def process_overview(self, doc):
