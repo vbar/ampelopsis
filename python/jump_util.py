@@ -7,7 +7,7 @@ from rulebook import CityLevel, councillor_position_entities, deputy_mayor_posit
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
-city_start_rx = re.compile("^(?:mč|město|městská část|obec|statutární město) ")
+city_start_rx = re.compile("^(?:mč|město|městská část|městys|obec|statutární město) ")
 
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
