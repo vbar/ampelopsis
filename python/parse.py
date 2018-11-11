@@ -33,8 +33,8 @@ class PolyParser(VolumeHolder, HostCheck):
         self.page_limit = int(page_limit) if page_limit else None
         self.page_count = 0
 
-        self.max_url_len = int(get_option("max_url_len", "1024"))
-        
+        self.max_url_len = int(get_option("max_url_len", "2048"))
+
         # ignore case flag would be better dynamic, but Python 3.5.2
         # doesn't support that...
         url_blacklist_rx = get_option("url_blacklist_rx", "[.](?:jpe?g|pdf|png)$")
