@@ -80,6 +80,15 @@ where url=%s""", (url,))
         return row[0]
 
 def main():
+    def print_query(qurl):
+        uo = parse.urlparse(qurl)
+        params = parse.parse_qsl(uo.query)
+        for p in params:
+            if p[0] == 'query':
+                print(p[1])
+
+        print("")
+
     with make_connection() as conn:
         with conn.cursor() as cur:
             lookup = JsonLookup(cur)
@@ -87,13 +96,7 @@ def main():
                 detail = lookup.get_document(a)
                 position_set = make_position_set(detail)
                 qurl = make_query_url(detail, position_set)
-                uo = parse.urlparse(qurl)
-                params = parse.parse_qsl(uo.query)
-                for p in params:
-                    if p[0] == 'query':
-                        print(p[1])
-
-                print("")
+                print_query(qurl)
                 leaf = lookup.get_document(qurl)
                 if leaf:
                     json.dump(leaf, sys.stdout, ensure_ascii=False)
@@ -103,14 +106,8 @@ def main():
                     qurl = make_query_url(detail, set())
                     leaf = lookup.get_document(qurl)
                     if leaf:
-                        uo = parse.urlparse(qurl)
                         print("")
-                        params = parse.parse_qsl(uo.query)
-                        for p in params:
-                            if p[0] == 'query':
-                                print(p[1])
-
-                        print("")
+                        print_query(qurl)
                         json.dump(leaf, sys.stdout, ensure_ascii=False)
                         print("")
 
