@@ -35,6 +35,11 @@ def convert_answer_to_iterable(answer, it):
 
 def make_position_set(detail):
     sought = set()
+
+    # will probably (but not provably) also be handled by rulebook
+    if detail['judge']:
+        sought.add(judge_position_entity)
+
     lst = detail['workingPositions']
     for it in lst:
         org_name = get_org_name(it)
@@ -49,7 +54,7 @@ def make_position_set(detail):
             for pos in answer:
                 sought.add(pos)
 
-        # probably synonymous, and could be included in rule_book, but
+        # probably synonymous, and could be included in rulebook, but
         # just to play it safe...
         if (wp_name == 'poslanec') or wp['deputy']:
             sought.add('Q1055894')
