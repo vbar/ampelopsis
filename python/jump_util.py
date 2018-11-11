@@ -75,12 +75,7 @@ def make_city_set(detail, representative):
 
     return sought
 
-def format_councillor_bare_clause(detail, councillor_position_iterable):
-    first = next(iter(councillor_position_iterable))
-    city_set = make_city_set(detail, first)
-    if not len(city_set):
-        return None
-
+def format_councillor_bare_clause(detail, councillor_position_iterable, city_set):
     vl = ' '.join('wd:' + p for p in sorted(councillor_position_iterable))
 
     # equality should be sufficient but actually doesn't match some labels
@@ -157,18 +152,36 @@ def make_query_url(detail, position_set):
         filter(%s).""" % (vl, filter_expr)
             pos_clauses.append(bare_clause)
 
+    deputy_mayor_city_set = set()
     if deputy_mayor_position:
-        # constructing city set separately for deputy mayor actually
-        # leads to fewer matches, but even if it works, matching
-        # deputy mayor as councillor is incorrect...
-        bare_clause = format_councillor_bare_clause(detail, (deputy_mayor_position,))
-        if bare_clause:
-            pos_clauses.append(bare_clause)
+        # Constructing city set separately for deputy mayor actually
+        # leads to fewer matches - maybe it's just a time mismatch,
+        # and we should do it (like for bank governor)? OTOH there's
+        # more municipal councillors than central bank's - let's
+        # distinguish, for now...
+        deputy_mayor_city_set = make_city_set(detail, deputy_mayor_position)
 
+    councillor_city_set = set()
     if len(councillor_position_set):
-        bare_clause = format_councillor_bare_clause(detail, councillor_position_set)
-        if bare_clause:
-            pos_clauses.append(bare_clause)
+        councillor_city_set = make_city_set(detail, councillor_position_entities[0])
+
+    # deputy mayor and councillor have the same bare clause; if their
+    # city set is the same, they can be combined
+    if len(deputy_mayor_city_set) and len(councillor_city_set) and (deputy_mayor_city_set == councillor_city_set):
+        assert deputy_mayor_position
+        assert len(councillor_position_set)
+        councillor_city_set |= deputy_mayor_city_set
+        deputy_mayor_city_set = set()
+        councillor_position_set.add(deputy_mayor_position)
+        deputy_mayor_position = None
+
+    if len(deputy_mayor_city_set):
+        assert deputy_mayor_position
+        pos_clauses.append(format_councillor_bare_clause(detail, (deputy_mayor_position,), deputy_mayor_city_set))
+
+    if len(councillor_city_set):
+        assert len(councillor_position_set)
+        pos_clauses.append(format_councillor_bare_clause(detail, councillor_position_set, councillor_city_set))
 
     if len(position_set):
         vl = ' '.join('wd:' + p for p in sorted(position_set))
