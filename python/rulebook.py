@@ -9,7 +9,7 @@ minister_position_entity = 'Q83307'
 mayor_position_entities = ( 'Q30185', 'Q147733' )
 
 # handled like a councillor, except it has its own working position
-# name in rule_book
+# name in rulebook
 deputy_mayor_position_entity = 'Q581817'
 
 # councillors are even commoner than mayors
@@ -30,9 +30,9 @@ university2rector = {
 }
 
 # A rulebook (q.v.) value marking the match as a position that should
-# also match a city. Note that instances of this object can be values
-# of multiple rulebook keys, but each individual instance must be
-# initialized with a non-overlapping position set (technically an
+# also match a city/village. Note that instances of this object can be
+# values of multiple rulebook keys, but each individual instance must
+# be initialized with a non-overlapping position set (technically an
 # iterable, or a single string).
 class CityLevel:
     def __init__(self, positions):
@@ -71,7 +71,7 @@ councillor_city_level = CityLevel(councillor_position_entities)
 # detail page JSON attribute 'workingPositions', to position set. The
 # mapping can be a single string, an iterable, or a callable returning
 # a string or an iterable. The callable is called with the it value.
-rule_book = {
+rulebook = {
     'člen řídícího orgánu': produce_academic,
     'vedoucí zaměstnanec 3. stupně řízení': produce_director,
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)

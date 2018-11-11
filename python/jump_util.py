@@ -1,7 +1,7 @@
 from urllib.parse import quote
 import re
 from common import space_rx
-from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entity, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, rule_book
+from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entity, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, rulebook
 
 # we could include single quote, but there probably aren't any Czech
 # politicians named O'Something...
@@ -48,7 +48,7 @@ def make_position_set(detail):
 
         wp = it['workingPosition']
         wp_name = wp['name']
-        answer = rule_book.get(wp_name)
+        answer = rulebook.get(wp_name)
         if answer:
             answer = convert_answer_to_iterable(answer, it)
             for pos in answer:
@@ -72,7 +72,7 @@ def make_city_set(detail, representative):
     lst = detail['workingPositions']
     for it in lst:
         wp = it['workingPosition']
-        answer = rule_book.get(wp['name'])
+        answer = rulebook.get(wp['name'])
         if answer is not None and isinstance(answer, CityLevel):
             answer = convert_answer_to_iterable(answer, it)
             if representative in answer:
