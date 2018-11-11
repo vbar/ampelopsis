@@ -2,6 +2,7 @@
 
 import json
 import sys
+from urllib import parse
 from common import make_connection
 from json_lookup import JsonLookup
 from jump_util import make_position_set, make_query_url
@@ -10,10 +11,20 @@ UNDERSPECIFIED = 1
 
 OVERSPECIFIED = 2
 
+def print_query(qurl):
+    uo = parse.urlparse(qurl)
+    params = parse.parse_qsl(uo.query)
+    for p in params:
+        if p[0] == 'query':
+            print(p[1])
+
+    print("")
+
 class DiFilter(JsonLookup):
-    def __init__(self, cur, mode):
+    def __init__(self, cur, mode, verbose):
         JsonLookup.__init__(self, cur)
         self.mode = mode
+        self.verbose = verbose
 
     def run(self):
         self.cur.execute("""select url, id
@@ -28,6 +39,8 @@ order by url""")
         detail = self.get_document(url)
 
         found = None
+        specific_url = None
+        generic_url = None
         lst = detail['workingPositions']
         for it in lst:
             position_set = make_position_set(detail)
@@ -45,6 +58,20 @@ order by url""")
 
         if found:
             print(found)
+            if self.verbose:
+                if specific_url:
+                    self.print_qa(specific_url)
+
+                self.print_qa(generic_url)
+                print("")
+
+    def print_qa(self, qurl):
+        print_query(qurl)
+        leaf = self.get_document(qurl)
+        if leaf:
+            json.dump(leaf, sys.stdout, ensure_ascii=False)
+            print("")
+            print("")
 
     def has_answer(self, url):
         doc = self.get_document(url)
@@ -55,11 +82,22 @@ order by url""")
         return len(bindings)
 
 def main():
-    if len(sys.argv) > 3:
+    if len(sys.argv) > 4:
+        raise Exception("too many arguments")
+
+    args = []
+    verbose = False
+    for a in sys.argv[1:]:
+        if (a == '-v') or (a == '--verbose'):
+            verbose = True
+        else:
+            args.append(a)
+
+    if len(args) > 2:
         raise Exception("too many arguments")
 
     modes = []
-    for a in sys.argv[1:]:
+    for a in args:
         if (a == '-u') or (a == '--under'):
             modes.append(UNDERSPECIFIED)
         elif (a == '-o') or (a == '--over'):
@@ -76,7 +114,7 @@ def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             mode = UNDERSPECIFIED | OVERSPECIFIED if len(modes) == 2 else modes[0]
-            difilter = DiFilter(cur, mode)
+            difilter = DiFilter(cur, mode, verbose)
             difilter.run()
 
 if __name__ == "__main__":
