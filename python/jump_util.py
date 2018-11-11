@@ -197,20 +197,28 @@ def make_query_url(detail, position_set):
         vl = ' '.join('wd:' + p for p in sorted(position_set))
         pos_clauses.append('values ?p { %s }' % vl)
 
+    l = len(pos_clauses)
+
     # judge is such a specific feature we require it when present in
-    # input data (rather than or it with political positions)
+    # input data (rather than or-ing it with political positions)
+    occupation_filter = ''
     if judge_position:
         np = 'wd:' + judge_position
-        occupation_pair = 'wdt:P106 %s;' % np
+        if not l:
+            # we can reuse ?p
+            political_constraint = 'wdt:P106 ?p;'
+            occupation_filter = 'values ?p { %s }' % np
+        else:
+            # leave ?p alone, add non-parametrized rule
+            political_constraint = 'wdt:P39 ?p; wdt:P106 %s;' % np
     else:
-        occupation_pair =''
+        political_constraint ='wdt:P39 ?p;'
 
-    l = len(pos_clauses)
     if l == 0:
-        # no restriction; can happen even when the original position
-        # set is non-empty, and if it causes false positives, we'll
-        # have to revisit...
-        pos_clause = ''
+        # no restriction (unless judge); can happen even when the
+        # original position set is non-empty, and if it causes false
+        # positives, we'll have to revisit...
+        pos_clause = occupation_filter
     elif l == 1:
         pos_clause = pos_clauses[0]
     else:
@@ -221,13 +229,12 @@ def make_query_url(detail, position_set):
 where {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;
-                wdt:P39 ?p;
                 %s
                 wdt:P569 ?b.
         ?a schema:about ?w.
         ?a schema:inLanguage "cs".
         filter(lang(?l) = "cs").
         %s %s
-}""" % (occupation_pair, name_clause, pos_clause)
+}""" % (political_constraint, name_clause, pos_clause)
     mq = re.sub("\\s+", " ", query.strip())
     return "https://query.wikidata.org/sparql?format=json&query=" + normalize_url_component(mq)
