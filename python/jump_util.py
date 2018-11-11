@@ -1,7 +1,7 @@
 from urllib.parse import quote
 import re
 from common import space_rx
-from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entity, get_org_name, mayor_position_entities, minister_position_entity, rule_book
+from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entity, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, rule_book
 
 # we could include single quote, but there probably aren't any Czech
 # politicians named O'Something...
@@ -109,6 +109,11 @@ def make_query_url(detail, position_set):
         position_set.remove(minister_position_entity)
         minister_position = minister_position_entity
 
+    judge_position = None
+    if judge_position_entity in position_set:
+        position_set.remove(judge_position_entity)
+        judge_position = judge_position_entity
+
     mayor_position_set = set()
     for pos in mayor_position_entities:
         if pos in position_list:
@@ -128,8 +133,8 @@ def make_query_url(detail, position_set):
 
     pos_clauses = []
     if minister_position:
-        nmp = 'wd:' + minister_position
-        pos_clauses.append('?p wdt:P279/wdt:P279 %s.' % nmp)
+        np = 'wd:' + minister_position
+        pos_clauses.append('?p wdt:P279/wdt:P279 %s.' % np)
 
     if len(mayor_position_set):
         city_set = make_city_set(detail, mayor_position_entities[0])
@@ -187,6 +192,14 @@ def make_query_url(detail, position_set):
         vl = ' '.join('wd:' + p for p in sorted(position_set))
         pos_clauses.append('values ?p { %s }' % vl)
 
+    # judge is such a specific feature we require it when present in
+    # input data (rather than or it with political positions)
+    if judge_position:
+        np = 'wd:' + judge_position
+        occupation_pair = 'wdt:P106 %s;' % np
+    else:
+        occupation_pair =''
+
     l = len(pos_clauses)
     if l == 0:
         # no restriction; can happen even when the original position
@@ -204,11 +217,12 @@ where {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;
                 wdt:P39 ?p;
+                %s
                 wdt:P569 ?b.
         ?a schema:about ?w.
         ?a schema:inLanguage "cs".
         filter(lang(?l) = "cs").
         %s %s
-}""" % (name_clause, pos_clause)
+}""" % (occupation_pair, name_clause, pos_clause)
     mq = re.sub("\\s+", " ", query.strip())
     return "https://query.wikidata.org/sparql?format=json&query=" + normalize_url_component(mq)

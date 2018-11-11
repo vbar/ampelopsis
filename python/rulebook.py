@@ -15,6 +15,10 @@ deputy_mayor_position_entity = 'Q581817'
 # councillors are even commoner than mayors
 councillor_position_entities = ( 'Q708492', 'Q19602879', 'Q4657217' )
 
+# judges are special because (unlike other matched persons) they
+# aren't politicians
+judge_position_entity = 'Q16533'
+
 # not particularly special but does repeat
 director_position_entity = 'Q1162163'
 
@@ -77,7 +81,7 @@ rule_book = {
     'člen zastupitelstva': councillor_city_level,
     'člen Rady': councillor_city_level, # there are other councils, which currently aren't recognized
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...
-    'soudce': 'Q16533',
+    'soudce': judge_position_entity,
     'ředitel bezpečnostního sboru': director_position_entity,
     'vedoucí zastupitelského úřadu': 'Q121998',
 }
