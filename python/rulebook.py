@@ -8,6 +8,8 @@ minister_position_entity = 'Q83307'
 # produce false positives - so for mayors we also match the city
 mayor_position_entities = ( 'Q30185', 'Q147733' )
 
+# handled like a councillor, except it has its own working position
+# name in rule_book
 deputy_mayor_position_entity = 'Q581817'
 
 # councillors are even commoner than mayors
@@ -38,7 +40,7 @@ class CityLevel:
 def get_org_name(it):
     return it['organization'].strip()
 
-def produce_rector(it):
+def produce_academic(it):
     org_name = get_org_name(it)
 
     sought = []
@@ -66,7 +68,7 @@ councillor_city_level = CityLevel(councillor_position_entities)
 # mapping can be a single string, an iterable, or a callable returning
 # a string or an iterable. The callable is called with the it value.
 rule_book = {
-    'člen řídícího orgánu': produce_rector,
+    'člen řídícího orgánu': produce_academic,
     'vedoucí zaměstnanec 3. stupně řízení': produce_director,
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
     'náměstek pro řízení sekce': 'Q15735113',
@@ -74,7 +76,7 @@ rule_book = {
     'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entity),
     'člen zastupitelstva': councillor_city_level,
     'člen Rady': councillor_city_level, # there are other councils, which currently aren't recognized
-    'člen bankovní rady České národní banky': 'Q28598459', # missing the governor
+    'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...
     'soudce': 'Q16533',
     'ředitel bezpečnostního sboru': director_position_entity,
     'vedoucí zastupitelského úřadu': 'Q121998',
