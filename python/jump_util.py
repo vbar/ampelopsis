@@ -81,7 +81,7 @@ def make_city_set(detail, representative):
 
     return sought
 
-def format_councillor_bare_clause(detail, councillor_position_iterable, city_set):
+def format_councillor_bare_clause(councillor_position_iterable, city_set):
     vl = ' '.join('wd:' + p for p in sorted(councillor_position_iterable))
 
     # equality should be sufficient but actually doesn't match some labels
@@ -188,11 +188,11 @@ def make_query_url(detail, position_set):
 
     if len(deputy_mayor_city_set):
         assert deputy_mayor_position
-        pos_clauses.append(format_councillor_bare_clause(detail, (deputy_mayor_position,), deputy_mayor_city_set))
+        pos_clauses.append(format_councillor_bare_clause((deputy_mayor_position,), deputy_mayor_city_set))
 
     if len(councillor_city_set):
         assert len(councillor_position_set)
-        pos_clauses.append(format_councillor_bare_clause(detail, councillor_position_set, councillor_city_set))
+        pos_clauses.append(format_councillor_bare_clause(councillor_position_set, councillor_city_set))
 
     if len(position_set):
         vl = ' '.join('wd:' + p for p in sorted(position_set))
