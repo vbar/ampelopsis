@@ -81,11 +81,31 @@ def make_city_set(detail, representative):
 
     return sought
 
-def format_councillor_bare_clause(councillor_position_iterable, city_set):
-    vl = ' '.join('wd:' + p for p in sorted(councillor_position_iterable))
+def format_position_iterable(position_iterable):
+    return ' '.join('wd:' + p for p in sorted(position_iterable))
 
+def format_city_set(city_set):
     # equality should be sufficient but actually doesn't match some labels
-    filter_expr = ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
+    return ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
+
+def format_mayor_bare_clause(mayor_position_set, city_set):
+    vl = format_position_iterable(mayor_position_set)
+    filter_expr = format_city_set(city_set)
+
+    # there are 2 (known) ways to get from mayor to their municipality; we or them
+    return """values ?p { %s }
+        {
+            ?c p:P6/ps:P6 ?w.
+        } union {
+            ?w p:P39/pq:P642 ?c.
+        }
+        ?c rdfs:label ?t.
+        filter(lang(?t) = "cs").
+        filter(%s).""" % (vl, filter_expr)
+
+def format_councillor_bare_clause(councillor_position_iterable, city_set):
+    vl = format_position_iterable(councillor_position_iterable)
+    filter_expr = format_city_set(city_set)
 
     return """values ?p { %s }
         ?w p:P39/pq:P642 ?c.
@@ -150,18 +170,7 @@ def make_query_url(detail, position_set):
                 position_set.add(mayor)
 
         if len(city_set):
-            vl = ' '.join('wd:' + p for p in sorted(mayor_position_set))
-
-            # equality should be sufficient but actually doesn't match some labels
-            filter_expr = ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
-
-            # city (or village), title (of city - ?l is already taken)
-            bare_clause = """values ?p { %s }
-        ?c p:P6/ps:P6 ?w.
-        ?c rdfs:label ?t.
-        filter(lang(?t) = "cs").
-        filter(%s).""" % (vl, filter_expr)
-            pos_clauses.append(bare_clause)
+            pos_clauses.append(format_mayor_bare_clause(mayor_position_set, city_set))
 
     deputy_mayor_city_set = set()
     if deputy_mayor_position:
@@ -195,7 +204,7 @@ def make_query_url(detail, position_set):
         pos_clauses.append(format_councillor_bare_clause(councillor_position_set, councillor_city_set))
 
     if len(position_set):
-        vl = ' '.join('wd:' + p for p in sorted(position_set))
+        vl = format_position_iterable(position_set)
         pos_clauses.append('values ?p { %s }' % vl)
 
     l = len(pos_clauses)
@@ -210,7 +219,7 @@ def make_query_url(detail, position_set):
             political_constraint = 'wdt:P106 ?p;'
             occupation_filter = 'values ?p { %s }' % np
         else:
-            # leave ?p alone, add non-parametrized rule
+            # leave ?p alone, add rule w/o variables
             political_constraint = 'wdt:P39 ?p; wdt:P106 %s;' % np
     else:
         political_constraint ='wdt:P39 ?p;'
