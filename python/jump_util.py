@@ -19,7 +19,8 @@ def normalize_url_component(path):
     return space_rx.sub('+', q)
 
 def normalize_city(name):
-    lower = name.lower()
+    lst = re.split('[,;-]', name, maxsplit=1) # '-' will split Frýdek-Místek, but SPARQL queries match on string start anyway...
+    lower = lst[0].lower()
     safer = name_char_rx.sub("", lower.strip()) # maybe we need a more permissive regex, but nothing specific comes to mind...
     shorter = city_start_rx.sub("", safer)
     return shorter.strip()
