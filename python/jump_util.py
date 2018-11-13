@@ -77,7 +77,9 @@ def make_city_set(detail, representative):
         if answer is not None and isinstance(answer, CityLevel):
             answer = convert_answer_to_iterable(answer, it)
             if representative in answer:
-                sought.add(normalize_city(it['organization']))
+                city = normalize_city(it['organization'])
+                if len(city) > 1: # Aš
+                    sought.add(city)
 
     return sought
 
