@@ -6,7 +6,7 @@ import sys
 from urllib import parse
 from common import make_connection
 from cursor_wrapper import CursorWrapper
-from jump_util import make_position_set, make_query_url
+from jump_util import make_person_name, make_position_set, make_query_url
 from volume_holder import VolumeHolder
 
 class JsonLookup(VolumeHolder, CursorWrapper):
@@ -20,21 +20,29 @@ class JsonLookup(VolumeHolder, CursorWrapper):
         doc = self.get_query_document(detail)
         persons = set()
         if doc:
+            name_rx = self.make_name_rx(detail)
             bindings = doc['results']['bindings']
             for it in bindings:
-                persons.add(it['w']['value'])
+                if name_rx.search(it['l']['value']):
+                    persons.add(it['w']['value'])
 
         return list(persons)
 
     def get_attributes(self, detail):
         doc = self.get_query_document(detail)
         if doc:
+            name_rx = self.make_name_rx(detail)
             bindings = doc['results']['bindings']
-            if len(bindings):
-                m = self.datetime_rx.match(bindings[0]['b']['value'])
-                return (m.group(1), bindings[0]['a']['value'])
+            for it in bindings:
+                if name_rx.search(it['l']['value']):
+                    m = self.datetime_rx.match(bindings[0]['b']['value'])
+                    return (m.group(1), bindings[0]['a']['value'])
 
         return None
+
+    def make_name_rx(self, detail):
+        name = make_person_name(detail)
+        return re.compile("\\b" + re.escape(name) + "\\b")
 
     # only matches w/ specific position(s)
     def get_query_document(self, detail):

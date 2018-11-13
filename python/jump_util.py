@@ -34,6 +34,9 @@ def convert_answer_to_iterable(answer, it):
     else: # must be iterable
         return answer
 
+def make_person_name(detail):
+    return "%s %s" % tuple(normalize_name(detail[n]) for n in ('firstName', 'lastName'))
+
 def make_position_set(detail):
     sought = set()
 
@@ -127,8 +130,7 @@ def make_query_url(detail, position_set):
 
     # city2councillor is possible, with 'praha': 'Q27830380', but may not match anyone...
 
-    name = "%s %s" % tuple(normalize_name(detail[n]) for n in ('firstName', 'lastName'))
-    name_clause = 'filter(contains(?l, "%s")).' % name
+    name_clause = 'filter(contains(?l, "%s")).' % make_person_name(detail)
 
     position_list = list(position_set)
 
