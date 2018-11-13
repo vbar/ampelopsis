@@ -38,26 +38,24 @@ order by url""")
     def test(self, url, url_id):
         detail = self.get_document(url)
 
-        found = None
+        found = False
         specific_url = None
         generic_url = None
-        lst = detail['workingPositions']
-        for it in lst:
-            position_set = make_position_set(detail)
-            l = len(position_set)
-            if (self.mode & OVERSPECIFIED) and l:
-                specific_url = make_query_url(detail, position_set)
-                generic_url = make_query_url(detail, set())
-                if not self.has_answer(specific_url) and self.has_answer(generic_url):
-                    found = url
+        position_set = make_position_set(detail)
+        l = len(position_set)
+        if (self.mode & OVERSPECIFIED) and l:
+            specific_url = make_query_url(detail, position_set)
+            generic_url = make_query_url(detail, set())
+            if not self.has_answer(specific_url) and self.has_answer(generic_url):
+                found = True
 
-            if (self.mode & UNDERSPECIFIED) and not l:
-                generic_url = make_query_url(detail, set())
-                if self.has_answer(generic_url):
-                    found = url
+        if (self.mode & UNDERSPECIFIED) and not l:
+            generic_url = make_query_url(detail, set())
+            if self.has_answer(generic_url):
+                found = True
 
         if found:
-            print(found)
+            print(url)
             if self.verbose:
                 if specific_url:
                     self.print_qa(specific_url)
