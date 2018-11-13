@@ -189,8 +189,9 @@ def make_query_url(detail, position_set):
 
     # deputy mayor and councillor have the same bare clause; if their
     # city set is the same, they can be combined
-    if len(deputy_mayor_city_set) and len(councillor_city_set) and (deputy_mayor_city_set == councillor_city_set):
+    if len(deputy_mayor_city_set) and (deputy_mayor_city_set == councillor_city_set):
         assert deputy_mayor_position
+        assert len(councillor_city_set)
         assert len(councillor_position_set)
         councillor_city_set |= deputy_mayor_city_set
         deputy_mayor_city_set = set()
