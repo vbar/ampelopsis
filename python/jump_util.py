@@ -7,7 +7,7 @@ from rulebook import CityLevel, councillor_position_entities, deputy_mayor_posit
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
-city_start_rx = re.compile("^(?:mč|město|městská část|městys|obec|obecní úřad|statutární město) ")
+city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|městys|obec|obecní úřad|oú|úřad městské části|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
 
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
@@ -18,10 +18,34 @@ def normalize_url_component(path):
     q = quote(path)
     return space_rx.sub('+', q)
 
-def normalize_city(name):
-    lst = re.split('[,;-]', name, maxsplit=1) # '-' will split Frýdek-Místek, but SPARQL queries match on string start anyway...
-    lower = lst[0].lower()
-    safer = name_char_rx.sub("", lower.strip()) # maybe we need a more permissive regex, but nothing specific comes to mind...
+def normalize_city(raw):
+    name2city = {
+        'magistrát města české budějovice': 'české budějovice',
+        'magistrát města chomutova': 'chomutov',
+        'magistrát města ústí n.l.': 'ústí nad labem',
+        'magistrát města mladá boleslav': 'mladá boleslav',
+        'magistrát mladá boleslav': 'mladá boleslav',
+        'magistrát města mostu': 'most',
+        'magistrát města opavy': 'opava',
+        'magistrát města pardubic': 'pardubice',
+        'magistrát města pardubice': 'pardubice',
+        'magistrát města plzně': 'plzeň',
+        'magistrát hlavního města prahy': 'praha',
+        'magistrát hlavního města praha': 'praha', # sic
+        'úřad městské části města brna, brno-komín': 'brno',
+    }
+
+    name = raw.lower()
+    city = name2city.get(name)
+    if city:
+        return city
+
+    # '-' will split Frýdek-Místek, but SPARQL queries match on string
+    # start anyway; to handle abbreviations, we want to stop before
+    # the first '.'
+    lst = re.split('[-.,;]', name, maxsplit=1)
+    head = lst[0]
+    safer = name_char_rx.sub("", head.strip()) # maybe we need a more permissive regex, but nothing specific comes to mind...
     shorter = city_start_rx.sub("", safer)
     return shorter.strip()
 
@@ -128,7 +152,9 @@ def make_query_url(detail, position_set):
         'třebíč': 'Q28860110',
     }
 
-    # city2councillor is possible, with 'praha': 'Q27830380', but may not match anyone...
+    city2councillor = {
+        'praha': 'Q27830380',
+    }
 
     name_clause = 'filter(contains(?l, "%s")).' % make_person_name(detail)
 
@@ -188,6 +214,10 @@ def make_query_url(detail, position_set):
     councillor_city_set = set()
     if len(councillor_position_set):
         councillor_city_set = make_city_set(detail, councillor_position_entities[0])
+        for city in councillor_city_set:
+            councillor = city2councillor.get(city)
+            if councillor:
+                position_set.add(councillor)
 
     # deputy mayor and councillor have the same bare clause; if their
     # city set is the same, they can be combined
