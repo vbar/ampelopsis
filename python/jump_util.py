@@ -9,6 +9,8 @@ name_char_rx = re.compile("[^\\w ./-]")
 
 city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|městys|obec|obecní úřad|oú|úřad městské části|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
 
+city_stop_rx = re.compile("[-.,;()]")
+
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
 
@@ -43,7 +45,7 @@ def normalize_city(raw):
     # '-' will split Frýdek-Místek, but SPARQL queries match on string
     # start anyway; to handle abbreviations, we want to stop before
     # the first '.'
-    lst = re.split('[-.,;]', name, maxsplit=1)
+    lst = city_stop_rx.split(name, maxsplit=1)
     head = lst[0]
     safer = name_char_rx.sub("", head.strip()) # maybe we need a more permissive regex, but nothing specific comes to mind...
     shorter = city_start_rx.sub("", safer)
