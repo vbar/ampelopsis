@@ -100,7 +100,7 @@ def produce_director(it):
     else:
         return director_position_entity
 
-councillor_city_level = CityLevel(councillor_position_entities)
+council_level = CouncilLevel(CityLevel(councillor_position_entities))
 
 # Maps it['workingPosition']['name'], where it is an item of cro
 # detail page JSON attribute 'workingPositions', to position set. The
@@ -113,8 +113,8 @@ rulebook = {
     'náměstek pro řízení sekce': 'Q15735113',
     'starosta': CityLevel(mayor_position_entities),
     'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entity),
-    'člen zastupitelstva': councillor_city_level,
-    'člen Rady': CouncilLevel(councillor_city_level),
+    'člen zastupitelstva': council_level,
+    'člen Rady': council_level,
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...
     'soudce': judge_position_entity,
     'ředitel bezpečnostního sboru': director_position_entity,
