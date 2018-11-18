@@ -9,6 +9,7 @@ from common import get_loose_path, get_netloc, get_option, make_connection, norm
 from host_check import HostCheck
 from mem_cache import MemCache
 from json_parser import JsonParser
+from jumper import Jumper
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
 from volume_holder import VolumeHolder
@@ -51,6 +52,8 @@ order by nameval""")
             rows = self.cur.fetchall()
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
+
+        self.jumper = None
 
     def parse_all(self):
         row = self.pop_work_item()
@@ -182,6 +185,17 @@ where id=%s""", (url_id,))
                     url_id = None
 
         return url_id
+
+    def get_jumper(self):
+        if not self.jumper:
+            self.jumper = Jumper()
+            self.jumper.load(self.cur)
+
+        return self.jumper
+
+    def set_jumper(self, jumper):
+        jumper.store(self.cur)
+        self.jumper = jumper
 
 
 def main():

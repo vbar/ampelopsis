@@ -5,7 +5,6 @@ import sys
 from urllib import parse
 from common import make_connection
 from json_lookup import JsonLookup
-from jump_util import make_position_set, make_query_url
 
 UNDERSPECIFIED = 1
 
@@ -41,16 +40,16 @@ order by url""")
         found = False
         specific_url = None
         generic_url = None
-        position_set = make_position_set(detail)
+        position_set = self.make_position_set(detail)
         l = len(position_set)
         if (self.mode & OVERSPECIFIED) and l:
-            specific_url = make_query_url(detail, position_set)
-            generic_url = make_query_url(detail, set())
+            specific_url = self.make_query_url(detail, position_set)
+            generic_url = self.make_query_url(detail, set())
             if not self.has_answer(specific_url) and self.has_answer(generic_url):
                 found = True
 
         if (self.mode & UNDERSPECIFIED) and not l:
-            generic_url = make_query_url(detail, set())
+            generic_url = self.make_query_url(detail, set())
             if self.has_answer(generic_url):
                 found = True
 

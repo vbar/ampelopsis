@@ -4,15 +4,17 @@ import json
 import re
 import sys
 from cursor_wrapper import CursorWrapper
-from jump_util import make_person_name, make_position_set, make_query_url
+from jumper import Jumper
 from volume_holder import VolumeHolder
 
-class JsonLookup(VolumeHolder, CursorWrapper):
+class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
     datetime_rx = re.compile('^([0-9]{4}-[0-9]{2}-[0-9]{2})T00:00:00Z$')
 
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
+        Jumper.__init__(self)
+        self.load(cur)
 
     def get_entities(self, detail):
         doc = self.get_query_document(detail)
@@ -39,16 +41,16 @@ class JsonLookup(VolumeHolder, CursorWrapper):
         return None
 
     def make_name_rx(self, detail):
-        name = make_person_name(detail)
+        name = self.make_person_name(detail)
         return re.compile("\\b" + re.escape(name) + "\\b")
 
     # only matches w/ specific position(s)
     def get_query_document(self, detail):
-        position_set = make_position_set(detail)
+        position_set = self.make_position_set(detail)
         if not len(position_set):
             return None
 
-        url = make_query_url(detail, position_set)
+        url = self.make_query_url(detail, position_set)
         return self.get_document(url)
 
     def get_document(self, url):

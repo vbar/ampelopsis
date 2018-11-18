@@ -2,18 +2,20 @@ import json
 import re
 import sys
 from common import get_option
-from jump_util import make_position_set, make_query_url
+from jumper import Jumper, make_mayor_of_query_url
 
 class JsonParser:
     core_url_head = "https://cro.justice.cz/verejnost/api/funkcionari"
 
     def __init__(self, owner, url):
         self.owner = owner
+        self.jumper = None
         self.jump_links = int(get_option('jump_links', "1"))
         if (self.jump_links < 0) or (self.jump_links > 2):
             raise Exception("invalid option jump_links")
 
         schema = (
+            ( "^" + re.escape(make_mayor_of_query_url()) + '$', self.process_mayor_of ),
             ( "^" + self.core_url_head + "\\?order=DESC&page=(?P<page>\\d+)&pageSize=(?P<page_size>\\d+)&sort=created$", self.process_overview ),
             ( "^" + self.core_url_head + "/[0-9a-fA-F-]+$", self.process_detail )
         )
@@ -40,6 +42,20 @@ class JsonParser:
 
         self.process(doc)
 
+    def process_mayor_of(self, doc):
+        if self.jumper:
+            print("filling jumper after it's been loaded", file=sys.stderr)
+        else:
+            self.jumper = Jumper()
+
+        bindings = doc['results']['bindings']
+        for it in bindings:
+            m = re.search('/(Q[0-9]+)$', it['q']['value'])
+            if m:
+                self.jumper.add_muni_mayor(it['l']['value'], m.group(1))
+
+        self.owner.set_jumper(self.jumper)
+
     def process_overview(self, doc):
         page = int(self.match.group('page'))
         page_size = int(self.match.group('page_size'))
@@ -63,11 +79,14 @@ class JsonParser:
             return
 
         # enrich from Wikidata
-        position_set = make_position_set(doc)
+        if not self.jumper:
+            self.jumper = self.owner.get_jumper()
+
+        position_set = self.jumper.make_position_set(doc)
         if len(position_set):
-            url = make_query_url(doc, position_set)
+            url = self.jumper.make_query_url(doc, position_set)
             self.owner.add_link(url)
 
         if self.jump_links == 2:
-            url = make_query_url(doc, set())
+            url = self.jumper.make_query_url(doc, set())
             self.owner.add_link(url)

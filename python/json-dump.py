@@ -5,7 +5,6 @@ import sys
 from urllib import parse
 from common import make_connection
 from json_lookup import JsonLookup
-from jump_util import make_position_set, make_query_url
 
 def print_query(qurl):
     uo = parse.urlparse(qurl)
@@ -22,8 +21,8 @@ def main():
             lookup = JsonLookup(cur)
             for a in sys.argv[1:]:
                 detail = lookup.get_document(a)
-                position_set = make_position_set(detail)
-                qurl = make_query_url(detail, position_set)
+                position_set = lookup.make_position_set(detail)
+                qurl = lookup.make_query_url(detail, position_set)
                 print_query(qurl)
                 leaf = lookup.get_document(qurl)
                 if leaf:
@@ -31,7 +30,7 @@ def main():
                     print("")
 
                 if len(position_set):
-                    qurl = make_query_url(detail, set())
+                    qurl = lookup.make_query_url(detail, set())
                     leaf = lookup.get_document(qurl)
                     if leaf:
                         print("")
