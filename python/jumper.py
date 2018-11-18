@@ -190,7 +190,8 @@ set municipality=%s""", (mayor, city, city))
         for it in lst:
             org_name = get_org_name(it)
             if org_name == 'Nejvyšší státní zastupitelství':
-                sought.add('Q26197430')
+                sought.add('Q26197430') # now redirects to
+                sought.add('Q12040609')
 
             wp = it['workingPosition']
             wp_name = wp['name']
