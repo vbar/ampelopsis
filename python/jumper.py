@@ -19,6 +19,11 @@ city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvo
 # to stop before the first '.'
 city_stop_rx = re.compile("[.,;()]| - ")
 
+# Some wikidata city district labels (i.e. Řeporyje) do not contain
+# the city name. 3 is a stricter limit than elsewhere, but are there
+# any 2-letter district names?
+city_district_rx = re.compile("^.+-([^-]{3,})$")
+
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
 
@@ -37,12 +42,40 @@ def convert_answer_to_iterable(answer, it):
     else: # must be iterable
         return answer
 
+def convert_city_set_to_dict(city_set):
+    city_dict = {}
+    for city in city_set:
+        m = city_district_rx.match(city)
+        if m:
+            local_name = m.group(1)
+            match_fnc = 'contains'
+        else:
+            local_name = city
+            # equality actually doesn't match some labels, even before we split them on '.'
+            match_fnc = 'strstarts'
+
+        # in case of key clash (which normally shouldn't happen, but
+        # just to handle every case), prefer the least-strict matching
+        # function
+        if (match_fnc == 'strstarts') and (city_dict.get('local_name') == 'contains'):
+            match_fnc = 'contains'
+
+        city_dict[local_name] = match_fnc
+
+    return city_dict
+
 def format_position_iterable(position_iterable):
     return ' '.join('wd:' + p for p in sorted(position_iterable))
 
 def format_city_set(city_set):
-    # equality actually doesn't match some labels, even before we split them on '.'
-    return ' || '.join('strstarts(lcase(?t), "%s")' % c for c in sorted(city_set))
+    city_dict = convert_city_set_to_dict(city_set)
+
+    terms = []
+    for local_name in sorted(city_dict.keys()):
+        match_fnc = city_dict[local_name]
+        terms.append('%s(lcase(?t), "%s")' % (match_fnc, local_name))
+
+    return ' || '.join(terms)
 
 def format_mayor_bare_clause(mayor_position_set, city_set):
     vl = format_position_iterable(mayor_position_set)
