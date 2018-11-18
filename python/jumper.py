@@ -254,9 +254,9 @@ set municipality=%s""", (mayor, city, city))
         if len(councillor_position_set):
             councillor_city_set = self.make_city_set(detail, councillor_position_entities[0])
             for city in councillor_city_set:
-                councillor = self.city2councillor.get(city)
-                if councillor:
-                    position_set.add(councillor)
+                for short_muni, councillor in self.city2councillor.items():
+                    if re.match("^" + re.escape(short_muni) + "\\b", city): # e.g. praha 3
+                        position_set.add(councillor)
 
         # deputy mayor and councillor have the same bare clause; if their
         # city set is the same, they can be combined
