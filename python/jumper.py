@@ -194,23 +194,16 @@ set municipality=%s""", (mayor, city, city))
                 sought.add('Q12040609')
 
             wp = it['workingPosition']
-            wp_name = wp['name']
-            answer = rulebook.get(wp_name)
+            answer = rulebook.get(wp['name'])
             if answer:
                 answer = convert_answer_to_iterable(answer, it)
                 for pos in answer:
                     sought.add(pos)
 
-            # probably synonymous, and could be included in rulebook, but
-            # just to play it safe...
-            if (wp_name == 'poslanec') or wp['deputy']:
-                sought.add('Q1055894')
-                sought.add('Q19803234')
-                sought.add('Q486839')
-            elif (wp_name == 'senátor') or wp['senator']:
-                sought.add('Q15686806')
-                sought.add('Q18941264')
-                sought.add('Q486839')
+            # checking wp['deputy'] and wp['senator'] here is
+            # possible, but it makes no difference (all MPs have
+            # wp['name'] 'poslanec', and senators 'senátor'), and
+            # adding MP terms wouldn't work outside rulebook anyway...
 
         return sought
 

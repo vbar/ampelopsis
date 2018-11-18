@@ -132,6 +132,8 @@ rulebook = {
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
     'náměstek člena vlády': deputy_minister_position_entity,
     'náměstek pro řízení sekce': deputy_minister_position_entity,
+    'poslanec': 'Q19803234',
+    'senátor': 'Q18941264',
     'starosta': CityLevel(mayor_position_entities),
     'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entities),
     'člen zastupitelstva': council_level,
