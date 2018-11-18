@@ -10,7 +10,10 @@ mayor_position_entities = ( 'Q30185', 'Q147733' )
 
 # handled like a councillor, except it has its own working position
 # name in rulebook
-deputy_mayor_position_entity = 'Q581817'
+deputy_mayor_position_entities = (
+    'Q581817',
+    'Q13424814' # "Wali" doesn't sound very applicable (and probably isn't very specific), but it is used...
+)
 
 # councillors are even commoner than mayors
 councillor_position_entities = ( 'Q708492', 'Q19602879', 'Q4657217' )
@@ -112,7 +115,7 @@ rulebook = {
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
     'náměstek pro řízení sekce': 'Q15735113',
     'starosta': CityLevel(mayor_position_entities),
-    'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entity),
+    'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entities),
     'člen zastupitelstva': council_level,
     'člen Rady': council_level,
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...

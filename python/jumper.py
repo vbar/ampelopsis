@@ -3,7 +3,7 @@
 from urllib.parse import quote
 import re
 from common import space_rx
-from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entity, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, rulebook
+from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entities, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, rulebook
 
 query_url_head = "https://query.wikidata.org/sparql?format=json&query="
 
@@ -215,10 +215,11 @@ set municipality=%s""", (mayor, city, city))
                 position_set.remove(pos)
                 mayor_position_set.add(pos)
 
-        deputy_mayor_position = None
-        if deputy_mayor_position_entity in position_set:
-            position_set.remove(deputy_mayor_position_entity)
-            deputy_mayor_position = deputy_mayor_position_entity
+        deputy_mayor_position_set = set()
+        for pos in deputy_mayor_position_entities:
+            if pos in position_list:
+                position_set.remove(pos)
+                deputy_mayor_position_set.add(pos)
 
         councillor_position_set = set()
         for pos in councillor_position_entities:
@@ -242,13 +243,13 @@ set municipality=%s""", (mayor, city, city))
                 pos_clauses.append(format_mayor_bare_clause(mayor_position_set, city_set))
 
         deputy_mayor_city_set = set()
-        if deputy_mayor_position:
+        if len(deputy_mayor_position_set):
             # Constructing city set separately for deputy mayor
             # actually leads to fewer matches - maybe it's just a time
             # mismatch, and we should do it (like for bank governor)?
             # OTOH there's more municipal councillors than central
             # bank's - let's distinguish, for now...
-            deputy_mayor_city_set = self.make_city_set(detail, deputy_mayor_position)
+            deputy_mayor_city_set = self.make_city_set(detail, deputy_mayor_position_entities[0])
 
         councillor_city_set = set()
         if len(councillor_position_set):
@@ -261,17 +262,17 @@ set municipality=%s""", (mayor, city, city))
         # deputy mayor and councillor have the same bare clause; if their
         # city set is the same, they can be combined
         if len(deputy_mayor_city_set) and (deputy_mayor_city_set == councillor_city_set):
-            assert deputy_mayor_position
+            assert len(deputy_mayor_position_set)
             assert len(councillor_city_set)
             assert len(councillor_position_set)
             councillor_city_set |= deputy_mayor_city_set
             deputy_mayor_city_set = set()
-            councillor_position_set.add(deputy_mayor_position)
-            deputy_mayor_position = None
+            councillor_position_set |= deputy_mayor_position_set
+            deputy_mayor_position_set = set()
 
         if len(deputy_mayor_city_set):
-            assert deputy_mayor_position
-            pos_clauses.append(format_councillor_bare_clause((deputy_mayor_position,), deputy_mayor_city_set))
+            assert len(deputy_mayor_position_set)
+            pos_clauses.append(format_councillor_bare_clause(deputy_mayor_position_set, deputy_mayor_city_set))
 
         if len(councillor_city_set):
             assert len(councillor_position_set)
