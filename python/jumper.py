@@ -11,7 +11,7 @@ query_url_head = "https://query.wikidata.org/sparql?format=json&query="
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
-city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|městys|obec|obecní úřad|oú|úřad městské části|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
+city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
 
 # '-' will split Frýdek-Místek, but SPARQL queries match on string
 # start anyway; to handle abbreviations, we want to stop before the
