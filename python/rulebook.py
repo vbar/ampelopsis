@@ -53,6 +53,14 @@ region2councillor = {
     'zlínský kraj': district_councillor_position_entity,
 }
 
+unknown_council_set = set([
+    'dobrovolný svazek obcí moravskotřebovský vodovod',
+
+    # the institution exists in wikidata (Q12048468) but apparently
+    # not its members (see e.g. Q12049410)
+    'rada pro rozhlasové a televizní vysílání',
+])
+
 def get_org_name(it):
     return it['organization'].strip()
 
@@ -69,23 +77,23 @@ class CityLevel:
         return self.positions
 
 # Match for a city council, or some other council; currently we just
-# check regions.
+# check regions (and drop some obscure orgs).
 class CouncilLevel(CityLevel):
     def __init__(self, default_level):
         self.default_level = default_level
 
     def __call__(self, it):
         org_name = get_org_name(it)
+        org_name = org_name.lower()
 
-        # the institution exists in wikidata (Q12048468) but
-        # apparently not its members (see e.g. Q12049410)
-        if org_name == 'Rada pro rozhlasové a televizní vysílání':
-            return []
-
-        pos = region2councillor.get(org_name.lower())
-        if pos:
+        if org_name in unknown_council_set:
             # this match isn't for a city and doesn't contribute to
             # city set
+            return []
+
+        pos = region2councillor.get(org_name)
+        if pos:
+            # ditto
             return pos
         else:
             return self.default_level(it)
