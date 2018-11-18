@@ -24,6 +24,7 @@ judge_position_entity = 'Q16533'
 
 # not particularly special but does repeat
 director_position_entity = 'Q1162163'
+district_councillor_position_entity = 'Q27830328'
 
 university_name_rx = re.compile("\\b(?:univerzita|učení)")
 
@@ -32,23 +33,24 @@ university2rector = {
     'Univerzita Karlova v Praze': 'Q12049166'
 }
 
-# Correct positions mostly not found - better search is probably
-# needed... Prague is not included because it is a city, and is
-# handled on a higher level.
+# Mostly generic. Prague is not included because it is a city, and is
+# handled on a higher level (not using
+# district_councillor_position_entity - perhaps it should?)
 region2councillor = {
-    'jihočeský kraj': 'Q55670007',
-    'jihomoravský kraj': False,
-    'karlovarský kraj': False,
-    'kraj vysočina': False,
-    'královéhradecký kraj': False,
-    'liberecký kraj': False,
-    'moravskoslezský kraj': 'Q55973189',
-    'olomoucký kraj': False,
-    'pardubický kraj': False,
-    'plzeňský kraj': False,
-    'středočeský kraj': False,
-    'ústecký kraj': False,
-    'zlínský kraj': False,
+    'jihočeský kraj': ( 'Q55670007', district_councillor_position_entity ),
+    'jihomoravský kraj': district_councillor_position_entity,
+    'karlovarský kraj': district_councillor_position_entity,
+    'kraj vysočina': district_councillor_position_entity,
+    'krajský úřad středočeského kraje': district_councillor_position_entity,
+    'královéhradecký kraj': district_councillor_position_entity,
+    'liberecký kraj': district_councillor_position_entity,
+    'moravskoslezský kraj': ( 'Q55973189', district_councillor_position_entity ),
+    'olomoucký kraj': district_councillor_position_entity,
+    'pardubický kraj': district_councillor_position_entity,
+    'plzeňský kraj': district_councillor_position_entity,
+    'středočeský kraj': district_councillor_position_entity,
+    'ústecký kraj': district_councillor_position_entity,
+    'zlínský kraj': district_councillor_position_entity,
 }
 
 def get_org_name(it):
@@ -75,12 +77,12 @@ class CouncilLevel(CityLevel):
     def __call__(self, it):
         org_name = get_org_name(it)
         pos = region2councillor.get(org_name.lower())
-        if pos is None:
-            return self.default_level(it)
-        else:
+        if pos:
             # this match isn't for a city and doesn't contribute to
             # city set
-            return pos if pos else []
+            return pos
+        else:
+            return self.default_level(it)
 
 def produce_academic(it):
     org_name = get_org_name(it)
