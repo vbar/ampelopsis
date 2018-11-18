@@ -29,6 +29,28 @@ university2rector = {
     'Univerzita Karlova v Praze': 'Q12049166'
 }
 
+# Correct positions mostly not found - better search is probably
+# needed... Prague is not included because it is a city, and is
+# handled on a higher level.
+region2councillor = {
+    'jihočeský kraj': 'Q55670007',
+    'jihomoravský kraj': False,
+    'karlovarský kraj': False,
+    'kraj vysočina': False,
+    'královéhradecký kraj': False,
+    'liberecký kraj': False,
+    'moravskoslezský kraj': 'Q55973189',
+    'olomoucký kraj': False,
+    'pardubický kraj': False,
+    'plzeňský kraj': False,
+    'středočeský kraj': False,
+    'ústecký kraj': False,
+    'zlínský kraj': False,
+}
+
+def get_org_name(it):
+    return it['organization'].strip()
+
 # A rulebook (q.v.) value marking the match as a position that should
 # also match a city/village. Note that instances of this object can be
 # values of multiple rulebook keys, but each individual instance must
@@ -41,8 +63,21 @@ class CityLevel:
     def __call__(self, it):
         return self.positions
 
-def get_org_name(it):
-    return it['organization'].strip()
+# Match for a city council, or some other council; currently we just
+# check regions.
+class CouncilLevel(CityLevel):
+    def __init__(self, default_level):
+        self.default_level = default_level
+
+    def __call__(self, it):
+        org_name = get_org_name(it)
+        pos = region2councillor.get(org_name.lower())
+        if pos is None:
+            return self.default_level(it)
+        else:
+            # this match isn't for a city and doesn't contribute to
+            # city set
+            return pos if pos else []
 
 def produce_academic(it):
     org_name = get_org_name(it)
@@ -79,7 +114,7 @@ rulebook = {
     'starosta': CityLevel(mayor_position_entities),
     'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entity),
     'člen zastupitelstva': councillor_city_level,
-    'člen Rady': councillor_city_level, # there are other councils, which currently aren't recognized
+    'člen Rady': CouncilLevel(councillor_city_level),
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...
     'soudce': judge_position_entity,
     'ředitel bezpečnostního sboru': director_position_entity,
