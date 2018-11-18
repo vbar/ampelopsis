@@ -13,10 +13,11 @@ name_char_rx = re.compile("[^\\w ./-]")
 
 city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
 
-# '-' will split Frýdek-Místek, but SPARQL queries match on string
-# start anyway; to handle abbreviations, we want to stop before the
-# first '.'
-city_stop_rx = re.compile("[-.,;()]")
+# '-' by itself would split not only Frýdek-Místek (doesn't really
+# matter because SPARQL queries match on string start anyway) but also
+# Praha-Řeporyje (more problematic); to handle abbreviations, we want
+# to stop before the first '.'
+city_stop_rx = re.compile("[.,;()]| - ")
 
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
