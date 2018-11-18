@@ -76,6 +76,12 @@ class CouncilLevel(CityLevel):
 
     def __call__(self, it):
         org_name = get_org_name(it)
+
+        # the institution exists in wikidata (Q12048468) but
+        # apparently not its members (see e.g. Q12049410)
+        if org_name == 'Rada pro rozhlasové a televizní vysílání':
+            return []
+
         pos = region2councillor.get(org_name.lower())
         if pos:
             # this match isn't for a city and doesn't contribute to
