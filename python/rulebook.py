@@ -22,7 +22,8 @@ councillor_position_entities = ( 'Q708492', 'Q19602879', 'Q4657217' )
 # aren't politicians
 judge_position_entity = 'Q16533'
 
-# not particularly special but does repeat
+# not particularly special but do repeat
+deputy_minister_position_entity = 'Q15735113'
 director_position_entity = 'Q1162163'
 district_councillor_position_entity = 'Q27830328'
 
@@ -129,7 +130,8 @@ rulebook = {
     'člen řídícího orgánu': produce_academic,
     'vedoucí zaměstnanec 3. stupně řízení': produce_director,
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
-    'náměstek pro řízení sekce': 'Q15735113',
+    'náměstek člena vlády': deputy_minister_position_entity,
+    'náměstek pro řízení sekce': deputy_minister_position_entity,
     'starosta': CityLevel(mayor_position_entities),
     'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entities),
     'člen zastupitelstva': council_level,
