@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# requires database created with config option jump_links = 2
+
 import json
 import sys
 from urllib import parse
