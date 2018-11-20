@@ -95,9 +95,15 @@ class Retriever(DownloadBase):
         self.mime_whitelist = { 'text/html' }
         mime_whitelist = get_option('mime_whitelist', None)
         if mime_whitelist:
-            self.mime_whitelist.update(mime_whitelist.split())
+            if mime_whitelist == "*":
+                self.mime_whitelist = set()
+            else:
+                self.mime_whitelist.update(mime_whitelist.split())
 
     def is_acceptable(self, content_type):
+        if len(self.mime_whitelist) == 0:
+            return True
+
         lst = content_type.split(';', 2)
         mime_type = lst[0]
         return mime_type.lower() in self.mime_whitelist
