@@ -100,6 +100,9 @@ from download_queue""")
 values(%s, %s, localtimestamp)""", (url_id, ex.msg))
             finally:
                 reader.close()
+        else:
+            self.cur.execute("""insert into parse_error(url_id, error_message, failed)
+values(%s, 'page not found', localtimestamp)""", (url_id,))
 
         self.cur.execute("""update field
 set parsed=localtimestamp
