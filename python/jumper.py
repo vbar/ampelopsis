@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
+from datetime import datetime
 from urllib.parse import quote
 import re
 from common import space_rx
-from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entities, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, rulebook
+from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entities, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, ParliamentLevel, rulebook
 
 query_url_head = "https://query.wikidata.org/sparql?format=json&query="
 
@@ -23,6 +24,8 @@ city_stop_rx = re.compile("[.,;()]| - ")
 # the city name. 3 is a stricter limit than elsewhere, but are there
 # any 2-letter district names?
 city_district_rx = re.compile("^.+-([^-]{3,})$")
+
+date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
@@ -75,7 +78,8 @@ def format_city_set(city_set):
         match_fnc = city_dict[local_name]
         terms.append('%s(lcase(?t), "%s")' % (match_fnc, local_name))
 
-    return ' || '.join(terms)
+    cond = ' || '.join(terms)
+    return cond if len(terms) < 2 else '(%s)' % cond
 
 def format_mayor_bare_clause(mayor_position_set, city_set):
     vl = format_position_iterable(mayor_position_set)
@@ -89,8 +93,7 @@ def format_mayor_bare_clause(mayor_position_set, city_set):
             ?w p:P39/pq:P642 ?c.
         }
         ?c rdfs:label ?t.
-        filter(lang(?t) = "cs").
-        filter(%s).""" % (vl, filter_expr)
+        filter(lang(?t) = "cs" && %s)""" % (vl, filter_expr)
 
 def format_councillor_bare_clause(councillor_position_iterable, city_set):
     vl = format_position_iterable(councillor_position_iterable)
@@ -99,8 +102,7 @@ def format_councillor_bare_clause(councillor_position_iterable, city_set):
     return """values ?p { %s }
         ?w p:P39/pq:P642 ?c.
         ?c rdfs:label ?t.
-        filter(lang(?t) = "cs").
-        filter(%s).""" % (vl, filter_expr)
+        filter(lang(?t) = "cs" && %s)""" % (vl, filter_expr)
 
 def make_mayor_of_query_url():
     vl = format_position_iterable(mayor_position_entities)
@@ -111,13 +113,16 @@ where {
         values ?p { %s }
         ?j wdt:P17 wd:Q213;
                 rdfs:label ?l.
-        filter(lang(?l) = "cs").
+        filter(lang(?l) = "cs")
 }""" % vl
     mq = re.sub("\\s+", " ", query.strip())
     return query_url_head + normalize_url_component(mq)
 
 class Jumper:
     def __init__(self):
+        today = datetime.now()
+        self.last_year = today.year - 1
+
         self.city2mayor = {}
 
         # hardcoded, for now
@@ -222,15 +227,41 @@ set municipality=%s""", (mayor, city, city))
 
         return sought
 
-    def make_query_url(self, detail, position_set):
-        name_clause = 'filter(contains(?l, "%s")).' % self.make_person_name(detail)
+    def fold_min_start(self, detail, representative):
+        year = None
+        lst = detail['workingPositions']
+        for it in lst:
+            wp = it['workingPosition']
+            answer = rulebook.get(wp['name'])
+            if answer is not None and isinstance(answer, ParliamentLevel):
+                answer = convert_answer_to_iterable(answer, it)
+                if representative in answer:
+                    for start_name in ('start', 'dateOfStart'):
+                        start = it.get(start_name)
+                        if start:
+                            m = date_rx.match(start)
+                            if m:
+                                y = int(m.group(1))
+                                if (year is None) or (year > y):
+                                    year = y
 
+        return year
+
+    def make_query_url(self, detail, position_set):
+        name_cond = 'contains(?l, "%s")' % self.make_person_name(detail)
+
+        specific = len(position_set)
         position_list = list(position_set)
 
         minister_position = None
         if minister_position_entity in position_set:
             position_set.remove(minister_position_entity)
             minister_position = minister_position_entity
+
+        mp_position = None
+        if mp_position_entity in position_set:
+            position_set.remove(mp_position_entity)
+            mp_position = mp_position_entity
 
         judge_position = None
         if judge_position_entity in position_set:
@@ -259,6 +290,16 @@ set municipality=%s""", (mayor, city, city))
         if minister_position:
             np = 'wd:' + minister_position
             pos_clauses.append('?p wdt:P279/wdt:P279 %s.' % np)
+
+        min_year = None
+        if mp_position:
+            min_year = self.fold_min_start(detail, mp_position)
+            if min_year: # could theoretically be 0, but that's no different from None
+                # should have filtered on year but that times out when
+                # nested in a union clause, so we handle it by a
+                # filter on top level
+                np = 'wd:' + mp_position
+                pos_clauses.append('values ?p { %s }' % np)
 
         if len(mayor_position_set):
             city_set = self.make_city_set(detail, mayor_position_entities[0])
@@ -315,13 +356,13 @@ set municipality=%s""", (mayor, city, city))
         # judge is such a specific feature we require it when present
         # in input data (rather than or-ing it with political
         # positions)
-        occupation_filter = ''
+        occupation_clause = ''
         if judge_position:
             np = 'wd:' + judge_position
             if not l:
                 # we can reuse ?p
                 political_constraint = 'wdt:P106 ?p;'
-                occupation_filter = 'values ?p { %s }' % np
+                occupation_clause = 'values ?p { %s }' % np
             else:
                 # leave ?p alone, add rule w/o variables
                 political_constraint = 'wdt:P39 ?p; wdt:P106 %s;' % np
@@ -332,11 +373,33 @@ set municipality=%s""", (mayor, city, city))
             # no restriction (unless judge); can happen even when the
             # original position set is non-empty, and if it causes false
             # positives, we'll have to revisit...
-            pos_clause = occupation_filter
+            pos_clause = occupation_clause
         elif l == 1:
             pos_clause = pos_clauses[0]
         else:
             pos_clause = ' union '.join('{ %s }' % pc for pc in pos_clauses)
+
+        extra_clause = ''
+        if min_year:
+            assert mp_position
+            assert l
+
+            # 'coalesce(?f, ?t) >= "%d-01-01"^^xsd:dateTime' might be more efficient...
+            base_cond = 'year(coalesce(?f, ?t)) >= %d' % min_year
+            if l == 1:
+                cond = base_cond
+            else:
+                np = 'wd:' + mp_position
+                cond = '?p != %s || %s' % (np, base_cond)
+
+            extra_clause = """optional { ?w p:P39/pq:P580 ?f. }
+        optional { ?w p:P39/pq:P582 ?t. }
+        filter(%s)""" % cond
+
+        death_clause = ''
+        if specific:
+             death_clause = """optional { ?w wdt:P570 ?d. }
+        filter(!bound(?d) || year(?d) >= %d)""" % self.last_year
 
         # person (wikidata ID), article, birth, label, position
         query = """select ?w ?a ?b ?l ?p
@@ -345,11 +408,12 @@ where {
                 rdfs:label ?l;
                 %s
                 wdt:P569 ?b.
-        ?a schema:about ?w.
-        ?a schema:inLanguage "cs".
-        filter(lang(?l) = "cs").
+        %s
+        ?a schema:about ?w;
+                schema:inLanguage "cs".
+        filter(lang(?l) = "cs" && %s)
         %s %s
-}""" % (political_constraint, name_clause, pos_clause)
+}""" % (political_constraint, death_clause, name_cond, pos_clause, extra_clause)
         mq = re.sub("\\s+", " ", query.strip())
         return query_url_head + normalize_url_component(mq)
 

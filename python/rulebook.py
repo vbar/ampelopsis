@@ -4,6 +4,9 @@ import re
 # minister - normally minister of <resort> of Czech Republic
 minister_position_entity = 'Q83307'
 
+# MPs are special because we want to check their terms
+mp_position_entity = 'Q19803234'
+
 # mayors are special because there's so many the name match may
 # produce false positives - so for mayors we also match the city
 mayor_position_entities = ( 'Q30185', 'Q147733' )
@@ -99,6 +102,13 @@ class CouncilLevel(CityLevel):
         else:
             return self.default_level(it)
 
+class ParliamentLevel:
+    def __init__(self, position):
+        self.position = position
+
+    def __call__(self, it):
+        return self.position
+
 def produce_academic(it):
     org_name = get_org_name(it)
 
@@ -132,7 +142,7 @@ rulebook = {
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
     'náměstek člena vlády': deputy_minister_position_entity,
     'náměstek pro řízení sekce': deputy_minister_position_entity,
-    'poslanec': 'Q19803234',
+    'poslanec': ParliamentLevel(mp_position_entity),
     'senátor': 'Q18941264',
     'starosta': CityLevel(mayor_position_entities),
     'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entities),
