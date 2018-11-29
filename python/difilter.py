@@ -38,6 +38,9 @@ order by url""")
 
     def test(self, url, url_id):
         detail = self.get_document(url)
+        if not detail:
+            print(url + " not found", file=sys.stderr)
+            return
 
         found = False
         specific_url = None
