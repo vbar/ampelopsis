@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import sys
 from common import get_parent_directory, make_connection
 from json_lookup import JsonLookup
@@ -17,6 +18,10 @@ class Converter(JsonLookup):
         self.json_dir = os.path.join(get_parent_directory(), "json")
         if not os.path.exists(self.json_dir):
             os.makedirs(self.json_dir)
+
+        self.combo_dir = os.path.join(get_parent_directory(), "combo")
+        if not os.path.exists(self.combo_dir):
+            os.makedirs(self.combo_dir)
 
     def run(self):
         self.cycle(True)
@@ -65,6 +70,9 @@ order by url""")
             target = os.path.join(self.json_dir, self.doc_id + ".json")
             with open(target, 'w') as writer:
                 json.dump(doc, writer, ensure_ascii=False)
+
+            if doc.get('wikidataId'):
+                shutil.copy(target, self.combo_dir)
 
     def convert_node(self, in_node, top_level):
         if type(in_node) is dict:
