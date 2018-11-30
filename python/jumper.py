@@ -100,8 +100,7 @@ def format_councillor_bare_clause(councillor_position_iterable, city_set):
     filter_expr = format_city_set(city_set)
 
     return """values ?p { %s }
-        ?w p:P39/pq:P642 ?c.
-        ?c rdfs:label ?t.
+        ?w p:P39/pq:P642/rdfs:label ?t.
         filter(lang(?t) = "cs" && %s)""" % (vl, filter_expr)
 
 def make_mayor_of_query_url():
