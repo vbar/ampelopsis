@@ -53,6 +53,8 @@ order by nameval""")
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
 
+        self.dupl_err_rep = get_option("dupl_err_rep", False)
+
         self.jumper = None
 
     def parse_all(self):
@@ -100,7 +102,7 @@ from download_queue""")
 values(%s, %s, localtimestamp)""", (url_id, ex.msg))
             finally:
                 reader.close()
-        else:
+        elif self.dupl_err_rep:
             self.cur.execute("""insert into parse_error(url_id, error_message, failed)
 values(%s, 'page not found', localtimestamp)""", (url_id,))
 
