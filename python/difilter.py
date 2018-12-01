@@ -4,20 +4,18 @@
 
 import json
 import sys
-from urllib import parse
 from common import make_connection
 from json_lookup import JsonLookup
+from urlize import extract_query
 
 UNDERSPECIFIED = 1
 
 OVERSPECIFIED = 2
 
 def print_query(qurl):
-    uo = parse.urlparse(qurl)
-    params = parse.parse_qsl(uo.query)
-    for p in params:
-        if p[0] == 'query':
-            print(p[1])
+    q = extract_query(qurl)
+    if (q):
+        print(q)
 
     print("")
 

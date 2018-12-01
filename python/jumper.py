@@ -1,12 +1,9 @@
 #!/usr/bin/python3
 
 from datetime import datetime
-from urllib.parse import quote
 import re
-from common import space_rx
 from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entities, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, ParliamentLevel, rulebook
-
-query_url_head = "https://query.wikidata.org/sparql?format=json&query="
+from urlize import create_query_url
 
 # we could include single quote, but there probably aren't any Czech
 # politicians named O'Something...
@@ -29,12 +26,6 @@ date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
 def normalize_name(name):
     return name_char_rx.sub("", name.strip())
-
-# not the same as in common because it also needs to reflect curl
-# canonicalization...
-def normalize_url_component(path):
-    q = quote(path)
-    return space_rx.sub('+', q)
 
 def convert_answer_to_iterable(answer, it):
     if callable(answer): # technically we could have a cycle, but hopefully nobody will need that...
@@ -114,8 +105,7 @@ where {
                 rdfs:label ?l.
         filter(lang(?l) = "cs")
 }""" % vl
-    mq = re.sub("\\s+", " ", query.strip())
-    return query_url_head + normalize_url_component(mq)
+    return create_query_url(query)
 
 class Jumper:
     def __init__(self):
@@ -413,8 +403,7 @@ where {
         filter(lang(?l) = "cs" && %s)
         %s %s
 }""" % (political_constraint, death_clause, name_cond, pos_clause, extra_clause)
-        mq = re.sub("\\s+", " ", query.strip())
-        return query_url_head + normalize_url_component(mq)
+        return create_query_url(query)
 
 if __name__ == "__main__":
     # needed by seed.sh
