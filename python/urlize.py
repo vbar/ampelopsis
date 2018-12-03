@@ -10,11 +10,11 @@ whitespace_rx = re.compile("\\s+")
 # multi-character token (in which case the spaces are before and after
 # the token) in regularized form that don't have the spaces in pressed
 # form (because SPARQL doesn't need it)
-token_rx_subset = "=<>!|&"
+token_rx_subset = "=<>|&"
 
 # characters preceded by space in regularized form that don't have the
 # space in pressed form
-open_rx_set = "[{}?%s]" % token_rx_subset
+open_rx_set = "[{}?!%s]" % token_rx_subset
 
 # characters followed by space in regularized form that don't have the
 # space in pressed form; '.' isn't included because it's valid in
