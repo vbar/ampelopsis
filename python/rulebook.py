@@ -1,6 +1,7 @@
 import re
 
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, district_councillor_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
+from rulebook_util import get_org_name
 
 university_name_rx = re.compile("\\b(?:univerzita|učení)")
 
@@ -36,9 +37,6 @@ unknown_council_set = set([
     # not its members (see e.g. Q12049410)
     'rada pro rozhlasové a televizní vysílání',
 ])
-
-def get_org_name(it):
-    return it['organization'].strip()
 
 # A rulebook (q.v.) value marking the match as a position that should
 # also match a city/village. Note that instances of this object can be
