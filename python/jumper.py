@@ -2,7 +2,8 @@
 
 from datetime import datetime
 import re
-from rulebook import CityLevel, councillor_position_entities, deputy_mayor_position_entities, get_org_name, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, ParliamentLevel, rulebook
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
+from rulebook import CityLevel, get_org_name, ParliamentLevel, rulebook
 from urlize import create_query_url
 
 # we could include single quote, but there probably aren't any Czech
