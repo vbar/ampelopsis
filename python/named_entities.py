@@ -18,11 +18,22 @@ mayor_position_entities = ( 'Q30185', 'Q147733' )
 # name in rulebook
 deputy_mayor_position_entities = (
     'Q581817',
-    'Q13424814' # "Wali" doesn't sound very applicable (and probably isn't very specific), but it is used...
+
+    # "Wali" doesn't sound very applicable (and probably isn't very specific), but it is used...
+    'Q13424814'
 )
 
 # councillors are even commoner than mayors
-councillor_position_entities = ( 'Q708492', 'Q19602879', 'Q4657217' )
+councillor_position_entities = (
+    'Q708492',
+    'Q4657217',
+
+    # "representative" might match both on municipal and region level,
+    # but trying to use it on region level didn't match anybody new
+    # (regional politicians apparently tend to have other positions as
+    # well), so for now we don't bother
+    'Q19602879'
+)
 
 # judges are special because (unlike other matched persons) they
 # aren't politicians
@@ -31,4 +42,4 @@ judge_position_entity = 'Q16533'
 # not particularly special but do repeat
 deputy_minister_position_entity = 'Q15735113'
 director_position_entity = 'Q1162163'
-district_councillor_position_entity = 'Q27830328'
+region_councillor_position_entity = 'Q27830328'

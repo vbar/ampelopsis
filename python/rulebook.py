@@ -1,6 +1,6 @@
 import re
 
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, district_councillor_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
 university_name_rx = re.compile("\\b(?:univerzita|učení)")
@@ -12,22 +12,22 @@ university2rector = {
 
 # Mostly generic. Prague is not included because it is a city, and is
 # handled on a higher level (not using
-# district_councillor_position_entity - perhaps it should?)
+# region_councillor_position_entity - perhaps it should?)
 region2councillor = {
-    'jihočeský kraj': ( 'Q55670007', district_councillor_position_entity ),
-    'jihomoravský kraj': district_councillor_position_entity,
-    'karlovarský kraj': district_councillor_position_entity,
-    'kraj vysočina': district_councillor_position_entity,
-    'krajský úřad středočeského kraje': district_councillor_position_entity,
-    'královéhradecký kraj': district_councillor_position_entity,
-    'liberecký kraj': district_councillor_position_entity,
-    'moravskoslezský kraj': ( 'Q55973189', district_councillor_position_entity ),
-    'olomoucký kraj': district_councillor_position_entity,
-    'pardubický kraj': district_councillor_position_entity,
-    'plzeňský kraj': district_councillor_position_entity,
-    'středočeský kraj': district_councillor_position_entity,
-    'ústecký kraj': district_councillor_position_entity,
-    'zlínský kraj': district_councillor_position_entity,
+    'jihočeský kraj': ( 'Q55670007', region_councillor_position_entity ),
+    'jihomoravský kraj': region_councillor_position_entity,
+    'karlovarský kraj': region_councillor_position_entity,
+    'kraj vysočina': region_councillor_position_entity,
+    'krajský úřad středočeského kraje': region_councillor_position_entity,
+    'královéhradecký kraj': region_councillor_position_entity,
+    'liberecký kraj': region_councillor_position_entity,
+    'moravskoslezský kraj': ( 'Q55973189', region_councillor_position_entity ),
+    'olomoucký kraj': region_councillor_position_entity,
+    'pardubický kraj': region_councillor_position_entity,
+    'plzeňský kraj': region_councillor_position_entity,
+    'středočeský kraj': region_councillor_position_entity,
+    'ústecký kraj': region_councillor_position_entity,
+    'zlínský kraj': region_councillor_position_entity,
 }
 
 unknown_council_set = set([
