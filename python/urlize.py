@@ -23,16 +23,17 @@ close_rx_set = "[{},;%s]" % token_rx_subset
 
 open_rx = re.compile(" (%s)" % open_rx_set)
 
-pressed_open_rx = re.compile("(?<![( %s])(%s)" % (token_rx_subset, open_rx_set))
+pressed_open_rx = re.compile("(?<![(! %s])(%s)" % (token_rx_subset, open_rx_set))
 
 close_rx = re.compile("(%s) " % close_rx_set)
 
 pressed_close_rx = re.compile("(%s)(?![ %s])" % (close_rx_set, token_rx_subset))
 
 def normalize_url_param(path):
-    # could preserve parentheses (and braces) here, but
-    # normalize_url_component would have to as well
-    q = parse.quote(path, safe="/[]:")
+    # Must be a subset of safe chars in normalize_url_component. OTOH
+    # this function quotes a single parameter, so the chars cannot
+    # contain '?', '&' or ';'.
+    q = parse.quote(path, safe="/()[]{}:!|\"")
     return space_rx.sub('+', q)
 
 def create_query_url(query):
