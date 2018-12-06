@@ -251,7 +251,7 @@ set municipality=%s""", (mayor, city, city))
 
         mp_position = None
         if mp_position_entity in position_set:
-            position_set.remove(mp_position_entity)
+            # not removed from position_set
             mp_position = mp_position_entity
 
         judge_position = None
@@ -285,12 +285,9 @@ set municipality=%s""", (mayor, city, city))
         min_year = None
         if mp_position:
             min_year = self.fold_min_start(detail, mp_position)
-            if min_year: # could theoretically be 0, but that's no different from None
-                # should have filtered on year but that times out when
-                # nested in a union clause, so we handle it by a
-                # filter on top level
-                np = 'wd:' + mp_position
-                pos_clauses.append('values ?p { %s }' % np)
+            # should have filtered on year here but that times out
+            # when nested in a union, so we handle it not by a
+            # position clause but by a filter on top level
 
         if len(mayor_position_set):
             city_set = self.make_city_set(detail, mayor_position_entities[0])
