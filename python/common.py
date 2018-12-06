@@ -34,10 +34,10 @@ def get_volume_path(volume_id):
 
 def get_loose_path(url_id, hdr=False):
     tmp_dir = os.path.join(get_parent_directory(), "tmp")
-    
+
     if schema:
         tmp_dir = os.path.join(tmp_dir, schema)
-        
+
     middle = str(url_id % 1000)
     loose_dir = os.path.join(tmp_dir, middle)
     if not os.path.exists(loose_dir):
@@ -56,7 +56,7 @@ def make_connection():
     if schema:
         with conn.cursor() as cur:
             cur.execute("set search_path to " + schema)
-            
+
     return conn
 
 def get_netloc(pr):
@@ -71,5 +71,5 @@ space_rx = re.compile('%20')
 
 # www.realhit.cz uses accents in URLs...
 def normalize_url_component(path):
-    q = quote_plus(path, safe="/+%&=[]:")
+    q = quote_plus(path, safe="/+%&=()[]{};:!|\"")
     return space_rx.sub('+', q)
