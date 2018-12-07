@@ -38,15 +38,15 @@ class DiFilter(JsonLookup):
         self.white = set(whitelist)
 
     def run(self):
-        self.cur.execute("""select url, id
+        self.cur.execute("""select url
 from field
 where url ~ '^https://cro.justice.cz/verejnost/api/funkcionari/[a-f0-9-]+$'
 order by url""")
         rows = self.cur.fetchall()
         for row in rows:
-            self.test(*row)
+            self.test(row[0])
 
-    def test(self, url, url_id):
+    def test(self, url):
         detail = self.get_document(url)
         if not detail:
             print(url + " not found", file=sys.stderr)
