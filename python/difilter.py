@@ -7,6 +7,7 @@ import re
 import sys
 from common import make_connection
 from json_lookup import JsonLookup
+from rulebook_util import get_org_name
 from urlize import extract_query
 
 UNDERSPECIFIED = 1
@@ -21,10 +22,12 @@ def print_query(qurl):
     print("")
 
 class DiFilter(JsonLookup):
-    def __init__(self, cur, mode, verbose):
+    def __init__(self, cur, mode, verbose, req_org_name=None, req_pos_name=None):
         JsonLookup.__init__(self, cur)
         self.mode = mode
         self.verbose = verbose
+        self.req_org_name = req_org_name
+        self.req_pos_name = req_pos_name
         self.black = None
         self.white = None
         self.entity_rx = re.compile('/(Q[0-9]+)$')
@@ -50,6 +53,10 @@ order by url""")
         detail = self.get_document(url)
         if not detail:
             print(url + " not found", file=sys.stderr)
+            return
+
+
+        if not self.has_req_name(detail):
             return
 
         found = False
@@ -84,6 +91,26 @@ order by url""")
             json.dump(leaf, sys.stdout, ensure_ascii=False)
             print("")
             print("")
+
+    def has_req_name(self, detail):
+        if not self.req_org_name and not self.req_pos_name:
+            # no filtering
+            return True
+
+        lst = detail['workingPositions']
+        for it in lst:
+            if self.req_org_name:
+                nm = get_org_name(it)
+                if nm == self.req_org_name:
+                    return True
+
+            if self.req_pos_name:
+                wp = it['workingPosition']
+                nm = wp['name']
+                if nm == self.req_pos_name:
+                    return True
+
+        return False
 
     # doesn't respect filtering in JsonLookup.get_entities - should it?
     def has_answer(self, url):
@@ -132,16 +159,27 @@ def main():
             argv.pop()
             # black_flag remains false
 
-    if len(argv) > 4:
-        raise Exception("too many arguments")
-
     args = []
     verbose = False
+    pos_name_filter = False
+    org_name_filter = False
     for a in argv[1:]:
-        if (a == '-v') or (a == '--verbose'):
+        if pos_name_filter is None:
+            pos_name_filter = a
+        elif org_name_filter is None:
+            org_name_filter = a
+        elif a in ( '-pn', '--pos-name' ):
+            pos_name_filter = None
+        elif a in ( '-on', '--org-name' ):
+            org_name_filter = None
+        elif a in ( '-v', '--verbose' ):
             verbose = True
         else:
             args.append(a)
+
+    for a in ( pos_name_filter, org_name_filter ):
+        if (a is None) or (a == ""):
+            raise Exception("missing required option value")
 
     if len(args) > 2:
         raise Exception("too many arguments")
@@ -164,7 +202,7 @@ def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             mode = UNDERSPECIFIED | OVERSPECIFIED if len(modes) == 2 else modes[0]
-            difilter = DiFilter(cur, mode, verbose)
+            difilter = DiFilter(cur, mode, verbose, req_org_name=org_name_filter, req_pos_name=pos_name_filter)
             if len(tail_list):
                 if black_flag:
                     difilter.set_blacklist(tail_list)
