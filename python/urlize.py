@@ -29,6 +29,10 @@ close_rx = re.compile("(%s) " % close_rx_set)
 
 pressed_close_rx = re.compile("(%s)(?![ %s])" % (close_rx_set, token_rx_subset))
 
+clause_rx = re.compile(" (where {|} union {) ")
+
+end_rx = re.compile("(})$")
+
 def normalize_url_param(path):
     # Must be a subset of safe chars in normalize_url_component. OTOH
     # this function quotes a single parameter, so the chars cannot
@@ -45,7 +49,8 @@ def create_query_url(query):
 def reflate(q):
     half = pressed_close_rx.sub("\\1 ", q)
     reg = pressed_open_rx.sub(" \\1", half)
-    return reg.strip()
+    multi = clause_rx.sub("\n\\1\\n", reg.strip())
+    return end_rx.sub("\n\\1", multi)
 
 def extract_query(qurl):
     uo = parse.urlparse(qurl)
