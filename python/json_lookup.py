@@ -42,7 +42,7 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
 
     def make_name_rx(self, detail):
         name = self.make_person_name(detail)
-        return re.compile("\\b" + re.escape(name) + "\\b")
+        return re.compile("\\b" + re.escape(name) + "\\b", re.IGNORECASE)
 
     # only matches w/ specific position(s)
     def get_query_document(self, detail):

@@ -26,8 +26,9 @@ city_district_rx = re.compile("^.+-([^-]{3,})$")
 
 date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
-def normalize_name(name):
-    return name_char_rx.sub("", name.strip())
+def normalize_name(raw):
+    name = name_char_rx.sub("", raw.strip())
+    return name.lower()
 
 def convert_answer_to_iterable(answer, it):
     if callable(answer): # technically we could have a cycle, but hopefully nobody will need that...
@@ -239,7 +240,7 @@ set municipality=%s""", (mayor, city, city))
         return year
 
     def make_query_url(self, detail, position_set):
-        name_cond = 'contains(?l, "%s")' % self.make_person_name(detail)
+        name_cond = 'contains(lcase(?l), "%s")' % self.make_person_name(detail)
 
         specific = len(position_set)
         position_list = list(position_set)
