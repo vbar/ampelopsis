@@ -121,5 +121,6 @@ rulebook = {
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...
     'soudce': judge_position_entity,
     'ředitel bezpečnostního sboru': director_position_entity,
+    'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': director_position_entity,
     'vedoucí zastupitelského úřadu': 'Q121998',
 }
