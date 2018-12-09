@@ -14,9 +14,10 @@ ORG = 1
 WPN = 2
 
 class Scanner(JsonLookup):
-    def __init__(self, cur, feature):
+    def __init__(self, cur, feature, show_all):
         JsonLookup.__init__(self, cur)
         self.feature = feature
+        self.show_all = show_all
         self.names = set()
 
     def run(self):
@@ -36,9 +37,10 @@ order by url""")
             print(url + " not found", file=sys.stderr)
             return
 
-        generic_url = self.make_query_url(detail, set())
-        if not self.has_answer(generic_url):
-            return
+        if not self.show_all:
+            generic_url = self.make_query_url(detail, set())
+            if not self.has_answer(generic_url):
+                return
 
         lst = detail['workingPositions']
         for it in lst:
@@ -76,17 +78,26 @@ def main():
     if l > 2:
         raise Exception("too many arguments")
 
-    feature = ORG
-    if l == 2:
-        a = sys.argv[1]
-        if a in ( '-pn', '--pos-name' ):
-            feature = WPN
-        elif a not in ( '-on', '--org-name' ):
+    feature = 0
+    show_all = False
+    for a in sys.argv[1:]:
+        if a in ( '-a', '--all' ):
+            show_all = True
+        elif a in ( '-pn', '--pos-name' ):
+            feature |= WPN
+        elif a in ( '-on', '--org-name' ):
+            feature |= ORG
+        else:
             raise Exception("invalid argument " + a)
+
+    if feature == 0:
+        feature = ORG
+    elif (feature != WPN) and (feature != ORG):
+        raise Exception("--org-name option is not compatible with --pos-name")
 
     with make_connection() as conn:
         with conn.cursor() as cur:
-            scanner = Scanner(cur, feature)
+            scanner = Scanner(cur, feature, show_all)
             scanner.run()
 
 if __name__ == "__main__":
