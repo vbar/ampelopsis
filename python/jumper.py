@@ -3,7 +3,7 @@
 from datetime import datetime
 import re
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
-from rulebook import CityLevel, ParliamentLevel, rulebook
+from rulebook import MuniLevel, ParliamentLevel, rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url
 
@@ -210,7 +210,7 @@ set municipality=%s""", (mayor, city, city))
         for it in lst:
             wp = it['workingPosition']
             answer = rulebook.get(wp['name'])
-            if answer is not None and isinstance(answer, CityLevel):
+            if answer is not None and isinstance(answer, MuniLevel):
                 answer = convert_answer_to_iterable(answer, it)
                 if representative in answer:
                     norm_muni = self.normalize_city(it['organization'])

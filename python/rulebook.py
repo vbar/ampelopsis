@@ -43,7 +43,7 @@ unknown_council_set = set([
 # values of multiple rulebook keys, but each individual instance must
 # be initialized with a non-overlapping position set (technically an
 # iterable, or a single string).
-class CityLevel:
+class MuniLevel:
     def __init__(self, positions):
         self.positions = positions
 
@@ -52,7 +52,7 @@ class CityLevel:
 
 # Match for a city council, or some other council; currently we just
 # check regions (and drop some obscure orgs).
-class CouncilLevel(CityLevel):
+class CouncilLevel(MuniLevel):
     def __init__(self, default_level):
         self.default_level = default_level
 
@@ -100,7 +100,7 @@ def produce_director(it):
     else:
         return director_position_entity
 
-council_level = CouncilLevel(CityLevel(councillor_position_entities))
+council_level = CouncilLevel(MuniLevel(councillor_position_entities))
 
 # Maps it['workingPosition']['name'], where it is an item of cro
 # detail page JSON attribute 'workingPositions', to position set. The
@@ -114,8 +114,8 @@ rulebook = {
     'náměstek pro řízení sekce': deputy_minister_position_entity,
     'poslanec': ParliamentLevel(mp_position_entity),
     'senátor': 'Q18941264',
-    'starosta': CityLevel(mayor_position_entities),
-    'místostarosta / zástupce starosty': CityLevel(deputy_mayor_position_entities),
+    'starosta': MuniLevel(mayor_position_entities),
+    'místostarosta / zástupce starosty': MuniLevel(deputy_mayor_position_entities),
     'člen zastupitelstva': council_level,
     'člen Rady': council_level,
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ), # not clear whether input distinguishes member from governor, so we don't - there shouldn't be so many of them anyway...
