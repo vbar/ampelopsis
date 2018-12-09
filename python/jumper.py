@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import re
+from corrector import Corrector
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
 from rulebook import MuniLevel, ParliamentLevel, rulebook
 from rulebook_util import get_org_name
@@ -122,9 +123,7 @@ class Jumper:
             'praha': 'Q27830380',
         }
 
-        # hardcoded list is not really satisfactory, and to handle
-        # typos, we should match everything with edit distance 1 (or
-        # maybe higher, but that'd probably have its own problems)...
+        # hardcoded list is not really satisfactory...
         self.name2city = {
             'magistrát města české budějovice': 'české budějovice',
             'magistrát města chomutova': 'chomutov',
@@ -134,12 +133,16 @@ class Jumper:
             'magistrát města mostu': 'most',
             'magistrát města opavy': 'opava',
             'magistrát města pardubic': 'pardubice',
-            'magistrát města pardubice': 'pardubice',
             'magistrát města plzně': 'plzeň',
             'magistrát hlavního města prahy': 'praha',
-            'magistrát hlavního města praha': 'praha', # sic
             'úřad městské části města brna, brno-komín': 'brno',
         }
+
+        # we could use even looser match, but can't afford the memory
+        # requirements of the naive Corrector implementation...
+        self.city_office_corrector = Corrector(2, self.name2city.keys())
+
+        self.top_prosecutors_office_corrector = Corrector(2, ('nejvyšší státní zastupitelství',))
 
     def load(self, cur):
         cur.execute("""select municipality, wd_entity
@@ -163,9 +166,14 @@ set municipality=%s""", (mayor, city, city))
 
     def normalize_city(self, raw):
         name = raw.lower()
-        city = self.name2city.get(name)
-        if city:
-            return city
+
+        city_offices = self.city_office_corrector.match(name)
+        l = len(city_offices)
+        if l > 1:
+            raise Exception("internal error: name2city has approximately duplicate keys")
+
+        if l == 1:
+            return self.name2city[city_offices.pop()]
 
         lst = city_stop_rx.split(name, maxsplit=1)
         head = lst[0]
@@ -185,8 +193,7 @@ set municipality=%s""", (mayor, city, city))
 
         lst = detail['workingPositions']
         for it in lst:
-            org_name = get_org_name(it)
-            if org_name == 'nejvyšší státní zastupitelství':
+            if len(self.top_prosecutors_office_corrector.match(get_org_name(it))):
                 sought.add('Q26197430') # now redirects to
                 sought.add('Q12040609')
 
