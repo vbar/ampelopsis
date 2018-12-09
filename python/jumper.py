@@ -3,8 +3,9 @@
 from datetime import datetime
 import re
 from corrector import Corrector
+from levels import MuniLevel, ParliamentLevel
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
-from rulebook import MuniLevel, ParliamentLevel, rulebook
+from rulebook import rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url
 

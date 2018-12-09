@@ -1,5 +1,6 @@
 import re
 
+from levels import CouncilLevel, MuniLevel, ParliamentLevel
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
@@ -38,46 +39,6 @@ unknown_council_set = set([
     'rada pro rozhlasové a televizní vysílání',
 ])
 
-# A rulebook (q.v.) value marking the match as a position that should
-# also match a city/village. Note that instances of this object can be
-# values of multiple rulebook keys, but each individual instance must
-# be initialized with a non-overlapping position set (technically an
-# iterable, or a single string).
-class MuniLevel:
-    def __init__(self, positions):
-        self.positions = positions
-
-    def __call__(self, it):
-        return self.positions
-
-# Match for a city council, or some other council; currently we just
-# check regions (and drop some obscure orgs).
-class CouncilLevel(MuniLevel):
-    def __init__(self, default_level):
-        self.default_level = default_level
-
-    def __call__(self, it):
-        org_name = get_org_name(it)
-
-        if org_name in unknown_council_set:
-            # this match isn't for a city and doesn't contribute to
-            # city set
-            return []
-
-        pos = region2councillor.get(org_name)
-        if pos:
-            # ditto
-            return pos
-        else:
-            return self.default_level(it)
-
-class ParliamentLevel:
-    def __init__(self, position):
-        self.position = position
-
-    def __call__(self, it):
-        return self.position
-
 def produce_academic(it):
     org_name = get_org_name(it)
 
@@ -99,7 +60,7 @@ def produce_director(it):
     else:
         return director_position_entity
 
-council_level = CouncilLevel(MuniLevel(councillor_position_entities))
+council_level = CouncilLevel(unknown_council_set, region2councillor, MuniLevel(councillor_position_entities))
 
 # Maps it['workingPosition']['name'], where it is an item of cro
 # detail page JSON attribute 'workingPositions', to position set. The
