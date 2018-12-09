@@ -186,7 +186,7 @@ set municipality=%s""", (mayor, city, city))
         lst = detail['workingPositions']
         for it in lst:
             org_name = get_org_name(it)
-            if org_name == 'Nejvyšší státní zastupitelství':
+            if org_name == 'nejvyšší státní zastupitelství':
                 sought.add('Q26197430') # now redirects to
                 sought.add('Q12040609')
 

@@ -6,8 +6,8 @@ from rulebook_util import get_org_name
 university_name_rx = re.compile("\\b(?:univerzita|učení)")
 
 university2rector = {
-    'Univerzita Karlova': 'Q12049166',
-    'Univerzita Karlova v Praze': 'Q12049166'
+    'univerzita karlova': 'Q12049166',
+    'univerzita karlova v praze': 'Q12049166'
 }
 
 # Mostly generic. Prague is not included because it is a city, and is
@@ -58,7 +58,6 @@ class CouncilLevel(MuniLevel):
 
     def __call__(self, it):
         org_name = get_org_name(it)
-        org_name = org_name.lower()
 
         if org_name in unknown_council_set:
             # this match isn't for a city and doesn't contribute to
@@ -87,7 +86,7 @@ def produce_academic(it):
     if rector:
         sought.append(rector)
 
-    if rector or university_name_rx.search(org_name.lower()):
+    if rector or university_name_rx.search(org_name):
         sought.extend([ 'Q212071', 'Q2113250', 'Q723682' ])
 
     return sought
@@ -95,7 +94,7 @@ def produce_academic(it):
 def produce_director(it):
     org_name = get_org_name(it)
 
-    if (org_name == 'Kancelář prezidenta republiky'):
+    if (org_name == 'kancelář prezidenta republiky'):
         return 'Q15712674'
     else:
         return director_position_entity

@@ -1,2 +1,3 @@
 def get_org_name(it):
-    return it['organization'].strip()
+    mixed = it['organization'].strip()
+    return mixed.lower()
