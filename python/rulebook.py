@@ -1,14 +1,12 @@
 import re
 
-from levels import CouncilLevel, MuniLevel, ParliamentLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, region_councillor_position_entity
+from levels import CouncilLevel, MuniLevel, ParliamentLevel, UniversityLevel
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
-university_name_rx = re.compile("\\b(?:univerzita|učení)")
-
 university2rector = {
-    'univerzita karlova': 'Q12049166',
-    'univerzita karlova v praze': 'Q12049166'
+    'univerzita karlova': rector_of_charles_university_position_entity,
+    'univerzita karlova v praze': rector_of_charles_university_position_entity
 }
 
 # Mostly generic. Prague is not included because it is a city, and is
@@ -39,19 +37,6 @@ unknown_council_set = set([
     'rada pro rozhlasové a televizní vysílání',
 ])
 
-def produce_academic(it):
-    org_name = get_org_name(it)
-
-    sought = []
-    rector = university2rector.get(org_name)
-    if rector:
-        sought.append(rector)
-
-    if rector or university_name_rx.search(org_name):
-        sought.extend([ 'Q212071', 'Q2113250', 'Q723682' ])
-
-    return sought
-
 def produce_director(it):
     org_name = get_org_name(it)
 
@@ -67,7 +52,7 @@ council_level = CouncilLevel(unknown_council_set, region2councillor, MuniLevel(c
 # mapping can be a single string, an iterable, or a callable returning
 # a string or an iterable. The callable is called with the it value.
 rulebook = {
-    'člen řídícího orgánu': produce_academic,
+    'člen řídícího orgánu': UniversityLevel(university2rector),
     'vedoucí zaměstnanec 3. stupně řízení': produce_director,
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
     'náměstek člena vlády': deputy_minister_position_entity,

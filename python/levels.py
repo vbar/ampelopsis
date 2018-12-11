@@ -1,5 +1,8 @@
+import re
 from corrector import Corrector
 from rulebook_util import get_org_name
+
+university_name_rx = re.compile("\\b(?:univerzita|učení)")
 
 # A rulebook (q.v.) value marking the match as an MP position that
 # should also have its terms checked. Note that despite the name,
@@ -24,6 +27,24 @@ class MuniLevel:
 
     def __call__(self, it):
         return self.positions
+
+# Match for an academic functionary
+class UniversityLevel:
+    def __init__(self, university2rector):
+        self.university2rector = university2rector
+
+    def __call__(self, it):
+        org_name = get_org_name(it)
+
+        sought = []
+        rector = self.university2rector.get(org_name)
+        if rector:
+            sought.append(rector)
+
+        if rector or university_name_rx.search(org_name):
+            sought.extend([ 'Q212071', 'Q2113250', 'Q723682' ])
+
+        return sought
 
 # Match for a city council, or some other council; currently we just
 # check regions (and drop some obscure orgs).
