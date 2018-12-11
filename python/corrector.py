@@ -1,43 +1,42 @@
-# from https://norvig.com/spell-correct.html
-def edits1(word):
-    "All edits that are one edit away from `word`."
-    letters = 'aábcčdďeéěfghiíjklľmnňoópqrřsštťuúůvwxyýzž'
-    splits = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-    deletes = [L + R[1:] for L, R in splits if R]
-    transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R)>1]
-    replaces = [L + c + R[1:] for L, R in splits if R for c in letters]
-    inserts = [L + c + R for L, R in splits for c in letters]
-    return set(deletes + transposes + replaces + inserts)
+#!/usr/bin/python3
 
-def edits(word_set):
-    a = set()
-    for word in word_set:
-        a |= edits1(word)
-
-    return a
+import sys
+import timeit
+from Levenshtein import distance
 
 class Corrector:
-    def __init__(self, n, di):
+    def __init__(self, n, di, debug_name=""):
         if n < 1:
             raise Exception("max number of corrections must be positive")
 
-        self.d = {}
-        for w in di:
-            appro = edits1(w)
-            i = 1
-            while i < n:
-                appro = edits(appro)
-                i += 1
-
-            self.d[w] = appro
+        self.n = n
+        self.ds = set(di)
+        self.debug_name = debug_name
+        if debug_name:
+            self.call_count = 0
+            self.total_time = 0
 
     def is_correct(self, w):
-        return w in self.d
+        return w in self.ds
 
     def match(self, w):
+        if self.debug_name:
+            self.call_count += 1
+            start = timeit.default_timer()
+
         m = set()
-        for k, v in self.d.items():
-            if w in v:
+        for k in self.ds:
+            if distance(w, k) <= self.n:
                 m.add(k)
 
+        if self.debug_name:
+            self.total_time += timeit.default_timer() - start
+
         return m
+
+    # only callable for objects instantiated with non-empty debug_name
+    def debug_dump(self):
+        print("%s: %.2f seconds in %d calls" % (self.debug_name, self.total_time, self.call_count))
+
+if __name__ == "__main__":
+    print("OK")

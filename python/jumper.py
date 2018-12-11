@@ -139,12 +139,8 @@ class Jumper:
             'úřad městské části města brna, brno-komín': 'brno',
         }
 
-        # we could use even looser match, but can't afford the memory
-        # requirements of the naive Corrector implementation...
-        self.city_office_corrector = Corrector(2, self.name2city.keys())
-
-        # ditto
-        self.top_prosecutors_office_corrector = Corrector(1, ('nejvyšší státní zastupitelství',))
+        self.city_office_corrector = Corrector(3, self.name2city.keys())
+        self.top_prosecutors_office_corrector = Corrector(2, ('nejvyšší státní zastupitelství',))
 
     def load(self, cur):
         cur.execute("""select municipality, wd_entity
