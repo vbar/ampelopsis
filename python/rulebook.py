@@ -13,7 +13,7 @@ region2councillor = {
     'karlovarský kraj': region_councillor_position_entity,
     'kraj vysočina': region_councillor_position_entity,
     'krajský úřad středočeského kraje': region_councillor_position_entity,
-    'královéhradecký kraj': region_councillor_position_entity,
+    'královéhradecký kraj': ( 'Q59539134', region_councillor_position_entity ),
     'liberecký kraj': region_councillor_position_entity,
     'moravskoslezský kraj': ( 'Q55973189', region_councillor_position_entity ),
     'olomoucký kraj': region_councillor_position_entity,
