@@ -1,3 +1,4 @@
+from corrector import Corrector
 from rulebook_util import get_org_name
 
 # A rulebook (q.v.) value marking the match as an MP position that
@@ -30,6 +31,7 @@ class CouncilLevel(MuniLevel):
     def __init__(self, unknown_council_set, region2councillor, default_level):
         self.unknown_council_set = unknown_council_set
         self.region2councillor = region2councillor
+        self.region_corrector = Corrector(4, region2councillor.keys())
         self.default_level = default_level
 
     def __call__(self, it):
@@ -40,9 +42,19 @@ class CouncilLevel(MuniLevel):
             # contribute to city set
             return []
 
-        pos = self.region2councillor.get(org_name)
-        if pos:
-            # ditto
-            return pos
+        if self.region_corrector.is_correct(org_name):
+            return self.region2councillor[org_name]
+
+        region_entities = set()
+        regions = self.region_corrector.match(org_name)
+        for reg in regions:
+            ent = self.region2councillor[reg]
+            if isinstance(ent, str):
+                region_entities.add(ent)
+            else:
+                region_entities.update(ent)
+
+        if len(region_entities):
+            return region_entities
         else:
             return self.default_level(it)

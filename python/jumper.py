@@ -139,7 +139,7 @@ class Jumper:
             'úřad městské části města brna, brno-komín': 'brno',
         }
 
-        self.city_office_corrector = Corrector(3, self.name2city.keys())
+        self.city_office_corrector = Corrector(4, self.name2city.keys())
         self.top_prosecutors_office_corrector = Corrector(2, ('nejvyšší státní zastupitelství',))
 
     def load(self, cur):
