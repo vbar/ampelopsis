@@ -4,11 +4,6 @@ from levels import CouncilLevel, MuniLevel, ParliamentLevel, UniversityLevel
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
-university2rector = {
-    'univerzita karlova': rector_of_charles_university_position_entity,
-    'univerzita karlova v praze': rector_of_charles_university_position_entity
-}
-
 # Mostly generic. Prague is not included because it is a city, and is
 # handled on a higher level (not using
 # region_councillor_position_entity - perhaps it should?)
@@ -52,7 +47,7 @@ council_level = CouncilLevel(unknown_council_set, region2councillor, MuniLevel(c
 # mapping can be a single string, an iterable, or a callable returning
 # a string or an iterable. The callable is called with the it value.
 rulebook = {
-    'člen řídícího orgánu': UniversityLevel(university2rector),
+    'člen řídícího orgánu': UniversityLevel(),
     'vedoucí zaměstnanec 3. stupně řízení': produce_director,
     'člen vlády': minister_position_entity, # apparently doesn't include deputy ministers (but does include premier)
     'náměstek člena vlády': deputy_minister_position_entity,
