@@ -9,7 +9,7 @@ from rulebook_util import get_org_name
 # region_councillor_position_entity - perhaps it should?)
 region2councillor = {
     'jihočeský kraj': ( 'Q55670007', region_councillor_position_entity ),
-    'jihomoravský kraj': region_councillor_position_entity,
+    'jihomoravský kraj': ( 'Q59583668', region_councillor_position_entity ),
     'karlovarský kraj': region_councillor_position_entity,
     'kraj vysočina': region_councillor_position_entity,
     'krajský úřad středočeského kraje': region_councillor_position_entity,
