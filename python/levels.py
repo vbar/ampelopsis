@@ -8,7 +8,7 @@ charles_university = {
     'univerzita karlova v praze'
 }
 
-university_name_rx = re.compile("\\b(?:univerzita|učení)")
+university_name_rx = re.compile("\\b(?:univerzita|učení|škola)")
 
 # A rulebook (q.v.) value marking the match as an MP position that
 # should also have its terms checked. Note that despite the name,
