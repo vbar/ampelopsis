@@ -37,6 +37,3 @@ class Corrector:
     # only callable for objects instantiated with non-empty debug_name
     def debug_dump(self):
         print("%s: %.2f seconds in %d calls" % (self.debug_name, self.total_time, self.call_count))
-
-if __name__ == "__main__":
-    print("OK")
