@@ -1,7 +1,7 @@
 import re
 
 from levels import CouncilLevel, MuniLevel, ParliamentLevel, UniversityLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, police_officer_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
 # Mostly generic. Prague is not included because it is a city, and is
@@ -42,6 +42,9 @@ def produce_director(it):
 
 council_level = CouncilLevel(unknown_council_set, region2councillor, MuniLevel(councillor_position_entities))
 
+# police director is not the same as police officer, but implies it
+police_entities = ( director_position_entity, police_officer_position_entity )
+
 # Maps it['workingPosition']['name'], where it is an item of cro
 # detail page JSON attribute 'workingPositions', to position set. The
 # mapping can be a single string, an iterable, or a callable returning
@@ -74,7 +77,7 @@ rulebook = {
     'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ),
 
     'soudce': judge_position_entity,
-    'ředitel bezpečnostního sboru': director_position_entity,
-    'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': director_position_entity,
+    'ředitel bezpečnostního sboru': police_entities,
+    'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
     'vedoucí zastupitelského úřadu': 'Q121998',
 }

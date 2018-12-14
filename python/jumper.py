@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 from corrector import Corrector
 from levels import MuniLevel, ParliamentLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, police_officer_position_entity
 from rulebook import rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url
@@ -283,6 +283,11 @@ set municipality=%s""", (mayor, city, city))
                 position_set.remove(pos)
                 councillor_position_set.add(pos)
 
+        police_officer_position = None
+        if police_officer_position_entity in position_set:
+            position_set.remove(police_officer_position_entity)
+            police_officer_position = police_officer_position_entity
+
         pos_clauses = []
         if minister_position:
             np = 'wd:' + minister_position
@@ -349,24 +354,46 @@ set municipality=%s""", (mayor, city, city))
 
         # judge is such a specific feature we require it when present
         # in input data (rather than or-ing it with political
-        # positions)
+        # positions); that complicates the policeman case, where we
+        # have to decide whether to reuse ?p with occupation predicate
+        # or add a clause with hardcoded object
         occupation_clause = ''
         if judge_position:
-            np = 'wd:' + judge_position
             if not l:
                 # we can reuse ?p
                 political_constraint = 'wdt:P106 ?p;'
-                occupation_clause = 'values ?p { %s }' % np
+                occupation_list = [ judge_position ]
+                if police_officer_position:
+                    occupation_list.append(police_officer_position)
+
+                vl = format_position_iterable(occupation_list)
+                occupation_clause = 'values ?p { %s }' % vl
             else:
                 # leave ?p alone, add rule w/o variables
+                np = 'wd:' + judge_position
                 political_constraint = 'wdt:P39 ?p; wdt:P106 %s;' % np
+                if police_officer_position:
+                    np = 'wd:' + police_officer_position
+                    pos_clauses.append('?w wdt:P106 %s.' % np)
         else:
-            political_constraint ='wdt:P39 ?p;'
+            if not police_officer_position:
+                political_constraint ='wdt:P39 ?p;'
+            else:
+                np = 'wd:' + police_officer_position
+                if not l:
+                    # we can reuse ?p
+                    political_constraint = 'wdt:P106 ?p;'
+                    occupation_clause = 'values ?p { %s }' % np
+                else:
+                    # leave ?p alone, add position clause
+                    political_constraint ='wdt:P39 ?p;'
+                    pos_clauses.append('?w wdt:P106 %s.' % np)
 
+        l = len(pos_clauses)
         if l == 0:
-            # no restriction (unless judge); can happen even when the
-            # original position set is non-empty, and if it causes false
-            # positives, we'll have to revisit...
+            # no restriction (unless judge or policeman); can happen
+            # even when the original position set is non-empty - if
+            # that causes false positives, we'll have to revisit...
             pos_clause = occupation_clause
         elif l == 1:
             pos_clause = pos_clauses[0]
