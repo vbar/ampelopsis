@@ -59,7 +59,7 @@ order by url""")
         if not self.has_req_name(detail):
             return
 
-        found = self.mode == 0
+        found = False
         specific_url = None
         generic_url = None
         position_set = self.make_position_set(detail)
@@ -78,8 +78,12 @@ order by url""")
         if not self.mode:
             if l:
                 specific_url = self.make_query_url(detail, position_set)
+                if self.has_answer(specific_url):
+                    found = True
 
             generic_url = self.make_query_url(detail, set())
+            if self.has_answer(generic_url):
+                found = True
 
         if found:
             print(url)
