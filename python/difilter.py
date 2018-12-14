@@ -59,7 +59,7 @@ order by url""")
         if not self.has_req_name(detail):
             return
 
-        found = False
+        found = self.mode == 0
         specific_url = None
         generic_url = None
         position_set = self.make_position_set(detail)
@@ -74,6 +74,12 @@ order by url""")
             generic_url = self.make_query_url(detail, set())
             if self.has_answer(generic_url):
                 found = True
+
+        if not self.mode:
+            if l:
+                specific_url = self.make_query_url(detail, position_set)
+
+            generic_url = self.make_query_url(detail, set())
 
         if found:
             print(url)
@@ -190,6 +196,11 @@ def main():
             modes.append(UNDERSPECIFIED)
         elif (a == '-o') or (a == '--over'):
             modes.append(OVERSPECIFIED)
+        elif (a == '-a') or (a == '--all'):
+            if len(modes):
+                raise Exception("--all is incompatible with --over/--under")
+
+            modes.append(0)
         else:
             raise Exception("invalid argument " + a)
 
