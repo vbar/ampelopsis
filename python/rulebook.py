@@ -78,6 +78,7 @@ rulebook = {
 
     'soudce': judge_position_entity,
     'ředitel bezpečnostního sboru': police_entities,
+    # ředitel odboru/sekce doesn't match any more directors
     'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
     'vedoucí zastupitelského úřadu': 'Q121998',
 }
