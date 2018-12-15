@@ -56,7 +56,7 @@ def convert_city_set_to_dict(city_set):
         # in case of key clash (which normally shouldn't happen, but
         # just to handle every case), prefer the least-strict matching
         # function
-        if (match_fnc == 'strstarts') and (city_dict.get('local_name') == 'contains'):
+        if (match_fnc == 'strstarts') and (city_dict.get(local_name) == 'contains'):
             match_fnc = 'contains'
 
         city_dict[local_name] = match_fnc
