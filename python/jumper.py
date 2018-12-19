@@ -84,11 +84,11 @@ def format_mayor_bare_clause(mayor_position_set, city_set):
     # there are 2 (known) ways to get from mayor to their municipality; we or them
     return """values ?p { %s }
         {
-            ?c p:P6/ps:P6 ?w.
+            ?m p:P6/ps:P6 ?w.
         } union {
-            ?w p:P39/pq:P642 ?c.
+            ?w p:P39/pq:P642 ?m.
         }
-        ?c rdfs:label ?t.
+        ?m rdfs:label ?t.
         filter(lang(?t) = "cs" && %s)""" % (vl, filter_expr)
 
 def format_councillor_bare_clause(councillor_position_iterable, city_set):
@@ -101,8 +101,7 @@ def format_councillor_bare_clause(councillor_position_iterable, city_set):
 
 def make_mayor_of_query_url():
     vl = format_position_iterable(mayor_position_entities)
-    query = """select ?q ?j ?l ?p
-where {
+    query = """select ?q ?j ?l ?p {
         ?q wdt:P279 ?p;
                 wdt:P1001 ?j.
         values ?p { %s }
@@ -423,9 +422,8 @@ set municipality=%s""", (mayor, city, city))
              death_clause = """optional { ?w wdt:P570 ?d. }
         filter(!bound(?d) || year(?d) >= %d)""" % self.last_year
 
-        # person (wikidata ID), article, birth, label, position
-        query = """select ?w ?a ?b ?l ?p
-where {
+        # person (wikidata ID), article, birth, label, description, position
+        query = """select ?w ?a ?b ?l ?g ?p {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;
                 %s
@@ -433,6 +431,10 @@ where {
         %s
         ?a schema:about ?w;
                 schema:inLanguage "cs".
+        optional {
+                ?w schema:description ?g.
+                filter(lang(?g) = "cs")
+        }
         filter(lang(?l) = "cs" && %s)
         %s %s
 }""" % (political_constraint, death_clause, name_cond, pos_clause, extra_clause)
