@@ -29,7 +29,9 @@ close_rx = re.compile("(%s) " % close_rx_set)
 
 pressed_close_rx = re.compile("(%s)(?![ %s])" % (close_rx_set, token_rx_subset))
 
-clause_rx = re.compile(" (where {|} union {) ")
+begin_rx = re.compile("^([^{]+{) ")
+
+clause_rx = re.compile(" } union { ")
 
 end_rx = re.compile("(})$")
 
@@ -49,7 +51,8 @@ def create_query_url(query):
 def reflate(q):
     half = pressed_close_rx.sub("\\1 ", q)
     reg = pressed_open_rx.sub(" \\1", half)
-    multi = clause_rx.sub("\n\\1\\n", reg.strip())
+    two = begin_rx.sub("\\1\n  ", reg.strip())
+    multi = clause_rx.sub("\n\\1\n", two.strip())
     return end_rx.sub("\n\\1", multi)
 
 def extract_query(qurl):
