@@ -1,7 +1,7 @@
 import re
 
 from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, UniversityLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, physician_position_entity, police_officer_position_entity, psychiatrist_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, psychiatrist_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
 # Mostly generic. Prague is not included because it is a city, and is
@@ -36,7 +36,6 @@ unknown_council_set = set([
 # occupation must be special-cased in Jumper
 organization2occupation = {
     'kancelář prezidenta republiky': 'Q15712674',
-    'nemocnice jablonec nad nisou, p.o.': physician_position_entity,
     'psychiatrická nemocnice bohnice': psychiatrist_position_entity,
 }
 

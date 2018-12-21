@@ -1,6 +1,6 @@
 import re
 from corrector import Corrector
-from named_entities import director_position_entity, judge_position_entity, rector_of_charles_university_position_entity
+from named_entities import director_position_entity, judge_position_entity, physician_position_entity, rector_of_charles_university_position_entity
 from rulebook_util import get_org_name
 
 charles_university = {
@@ -9,6 +9,8 @@ charles_university = {
 }
 
 university_name_rx = re.compile("\\b(?:univerzita|učení|škola)")
+
+hospital_name_rx = re.compile("^nemocnice\\b")
 
 # A rulebook (q.v.) value marking the match as an MP position that
 # should also have its terms checked. Note that despite the name,
@@ -75,6 +77,9 @@ class DirectorLevel:
             return self.organization2occupation[org_name]
 
         entities = set()
+        if hospital_name_rx.match(org_name):
+            entities.add(physician_position_entity)
+
         orgs = self.org_corrector.match(org_name)
         for org in orgs:
             ent = self.organization2occupation[org]
