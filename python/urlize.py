@@ -31,7 +31,7 @@ pressed_close_rx = re.compile("(%s)(?![ %s])" % (close_rx_set, token_rx_subset))
 
 begin_rx = re.compile("^([^{]+{) ")
 
-clause_rx = re.compile(" } union { ")
+clause_rx = re.compile(" (} union {) ")
 
 end_rx = re.compile("(})$")
 
