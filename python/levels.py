@@ -1,6 +1,6 @@
 import re
 from corrector import Corrector
-from named_entities import judge_position_entity, rector_of_charles_university_position_entity
+from named_entities import director_position_entity, judge_position_entity, rector_of_charles_university_position_entity
 from rulebook_util import get_org_name
 
 charles_university = {
@@ -62,6 +62,31 @@ class UniversityLevel:
             sought.extend([ 'Q212071', 'Q2113250', 'Q723682' ])
 
         return sought
+
+class DirectorLevel:
+    def __init__(self, organization2occupation):
+        self.organization2occupation = organization2occupation
+        self.org_corrector = Corrector(2, organization2occupation.keys())
+
+    def __call__(self, it):
+        org_name = get_org_name(it)
+
+        if self.org_corrector.is_correct(org_name):
+            return self.organization2occupation[org_name]
+
+        entities = set()
+        orgs = self.org_corrector.match(org_name)
+        for org in orgs:
+            ent = self.organization2occupation[org]
+            if isinstance(ent, str):
+                entities.add(ent)
+            else:
+                entities.update(ent)
+
+        if not len(entities):
+            entities.add(director_position_entity)
+
+        return entities
 
 # Match for a city council, or some other council; currently we just
 # check regions (and drop some obscure orgs).
