@@ -39,6 +39,7 @@ councillor_position_entities = (
 # matched persons) they aren't politicians
 judge_position_entity = 'Q16533'
 police_officer_position_entity = 'Q384593'
+physician_position_entity = 'Q39631'
 psychiatrist_position_entity = 'Q211346'
 
 # not particularly special but do repeat
