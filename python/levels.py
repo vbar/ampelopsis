@@ -1,6 +1,6 @@
 import re
 from corrector import Corrector
-from named_entities import rector_of_charles_university_position_entity
+from named_entities import judge_position_entity, rector_of_charles_university_position_entity
 from rulebook_util import get_org_name
 
 charles_university = {
@@ -22,6 +22,14 @@ class ParliamentLevel:
     def __call__(self, it):
         return self.position
 
+# Match for a judge. Not configurable - differs from simply using
+# judge_position_entity by allowing Jumper to recognize the class
+# name. Admittedly Jumper could also recognize judge_position_entity,
+# but just to keep the level processing somewhat regular...
+class JudgeLevel:
+    def __call__(self, it):
+        return judge_position_entity
+
 # A rulebook (q.v.) value marking the match as a position that should
 # also match a city/village. Note that instances of this object can be
 # values of multiple rulebook keys, but each individual instance must
@@ -34,7 +42,7 @@ class MuniLevel:
     def __call__(self, it):
         return self.positions
 
-# Match for an academic functionary
+# Match for an academic functionary.
 class UniversityLevel:
     # currently set up for just Charles University, but can be
     # extended, if there are other rector entities...

@@ -3,7 +3,7 @@
 from datetime import datetime
 import re
 from corrector import Corrector
-from levels import MuniLevel, ParliamentLevel
+from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, police_officer_position_entity
 from rulebook import rulebook
 from rulebook_util import get_org_name
@@ -65,6 +65,15 @@ def convert_city_set_to_dict(city_set):
 
 def format_position_iterable(position_iterable):
     return ' '.join('wd:' + p for p in sorted(position_iterable))
+
+def format_court_set(court_set):
+    terms = [ 'contains(lcase(?g), "%s")' % stem for stem in sorted(court_set) ]
+    cond = ' || '.join(terms)
+    return cond if len(terms) < 2 else '(%s)' % cond
+
+def format_neg_court_set(neg_court_set):
+    terms = [ '!contains(lcase(?g), "%s")' % stem for stem in sorted(neg_court_set) ]
+    return ' && '.join(terms)
 
 def format_city_set(city_set):
     city_dict = convert_city_set_to_dict(city_set)
@@ -139,8 +148,21 @@ class Jumper:
             'úřad městské části města brna, brno-komín': 'brno',
         }
 
+        # Does not include district & regional courts - for those we
+        # want a negative match. Values must be substrings of
+        # genitive.
+        self.court2stem = {
+            'nejvyšší soud': 'nejvyššího soudu', # do not match nejvyšší správní soud - that's considered non-prominent
+            'ústavní soud': 'ústavní', # ústavního
+            'vrchní soud v praze': 'vrchní', # vrchního
+            'vrchní soud v olomouci': 'vrchní',
+        }
+
+        self.neg_court_cond = format_neg_court_set(set(self.court2stem.values()))
+
         self.city_office_corrector = Corrector(4, self.name2city.keys())
         self.top_prosecutors_office_corrector = Corrector(2, ('nejvyšší státní zastupitelství',))
+        self.court_corrector = Corrector(3, self.court2stem.keys())
 
     def load(self, cur):
         cur.execute("""select municipality, wd_entity
@@ -185,7 +207,11 @@ set municipality=%s""", (mayor, city, city))
     def make_position_set(self, detail):
         sought = set()
 
-        # will probably (but not provably) also be handled by rulebook
+        # will probably (but not provably) also be handled by
+        # rulebook; judge_position_entity should work outside rulebook
+        # (unlike e.g. mp_position_entity) because judges w/o
+        # JudgeLevel matches are considered non-prominent and get a
+        # negative court set
         if detail['judge']:
             sought.add(judge_position_entity)
 
@@ -206,6 +232,19 @@ set municipality=%s""", (mayor, city, city))
             # possible, but it makes no difference (all MPs have
             # wp['name'] 'poslanec', and senators 'senátor'), and
             # adding MP terms wouldn't work outside rulebook anyway...
+
+        return sought
+
+    def make_court_set(self, detail):
+        sought = set()
+        lst = detail['workingPositions']
+        for it in lst:
+            wp = it['workingPosition']
+            answer = rulebook.get(wp['name'])
+            if answer is not None and isinstance(answer, JudgeLevel):
+                courts = self.court_corrector.match(get_org_name(it))
+                for court in courts:
+                    sought.add(self.court2stem[court])
 
         return sought
 
@@ -261,9 +300,11 @@ set municipality=%s""", (mayor, city, city))
             mp_position = mp_position_entity
 
         judge_position = None
+        court_set = None
         if judge_position_entity in position_set:
             position_set.remove(judge_position_entity)
             judge_position = judge_position_entity
+            court_set = self.make_court_set(detail)
 
         mayor_position_set = set()
         for pos in mayor_position_entities:
@@ -422,6 +463,18 @@ set municipality=%s""", (mayor, city, city))
              death_clause = """optional { ?w wdt:P570 ?d. }
         filter(!bound(?d) || year(?d) >= %d)""" % self.last_year
 
+        judge_cond = ''
+        if judge_position:
+            if len(court_set):
+                base_cond = format_court_set(court_set)
+            else:
+                # non-prominent judge
+                base_cond = self.neg_court_cond
+
+            # prededed by name_cond; unbound ?g matches iff the judge
+            # is non-prominent
+            judge_cond = ' && ' + base_cond
+
         # person (wikidata ID), article, birth, label, description, position
         query = """select ?w ?a ?b ?l ?g ?p {
         ?w wdt:P27 wd:Q213;
@@ -435,9 +488,9 @@ set municipality=%s""", (mayor, city, city))
                 ?w schema:description ?g.
                 filter(lang(?g) = "cs")
         }
-        filter(lang(?l) = "cs" && %s)
+        filter(lang(?l) = "cs" && %s%s)
         %s %s
-}""" % (political_constraint, death_clause, name_cond, pos_clause, extra_clause)
+}""" % (political_constraint, death_clause, name_cond, judge_cond, pos_clause, extra_clause)
         return create_query_url(query)
 
 if __name__ == "__main__":
