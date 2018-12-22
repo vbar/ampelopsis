@@ -8,18 +8,11 @@ import sys
 from common import make_connection
 from json_lookup import JsonLookup
 from rulebook_util import get_org_name
-from urlize import extract_query
+from urlize import print_query
 
 UNDERSPECIFIED = 1
 
 OVERSPECIFIED = 2
-
-def print_query(qurl):
-    q = extract_query(qurl)
-    if (q):
-        print(q)
-
-    print("")
 
 class DiFilter(JsonLookup):
     def __init__(self, cur, mode, verbose, req_org_name=None, req_pos_name=None):

@@ -63,3 +63,10 @@ def extract_query(qurl):
             return reflate(p[1])
 
     return None
+
+def print_query(qurl):
+    q = extract_query(qurl)
+    if (q):
+        print(q)
+
+    print("")

@@ -4,14 +4,7 @@ import json
 import sys
 from common import make_connection
 from json_lookup import JsonLookup
-from urlize import extract_query
-
-def print_query(qurl):
-    q = extract_query(qurl)
-    if (q):
-        print(q)
-
-    print("")
+from urlize import print_query
 
 def main():
     with make_connection() as conn:
