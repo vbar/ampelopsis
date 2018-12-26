@@ -45,10 +45,10 @@ order by url""")
         lst = detail['workingPositions']
         for it in lst:
             nm = None
-            if self.feature & ORG:
+            if self.feature == ORG:
                 nm = get_org_name(it)
-
-            if self.feature & WPN:
+            else:
+                assert self.feature == WPN
                 wp = it['workingPosition']
                 nm = wp['name']
 
