@@ -90,11 +90,11 @@ order by url""")
                 if wid:
                     out_node['wikidataId'] = wid
                     pellet = self.get_attributes(in_node)
-                    if pellet:
-                        out_node['birthDate'] = pellet.birthDate
+                    assert pellet
 
-                        if pellet.wikidataId:
-                            out_node['personUrl'] = pellet.wikidataId
+                    out_node['birthDate'] = pellet.birthDate
+                    if pellet.aboutLink:
+                        out_node['personUrl'] = pellet.aboutLink
         elif type(in_node) is list:
             out_node = []
             for it in in_node:
