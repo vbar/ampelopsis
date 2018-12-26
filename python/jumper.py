@@ -491,8 +491,10 @@ set municipality=%s""", (mayor, city, city))
                 %s
                 wdt:P569 ?b.
         %s
-        ?a schema:about ?w;
-                schema:inLanguage "cs".
+        optional {
+                ?a schema:about ?w;
+                        schema:inLanguage "cs".
+        }
         optional {
                 ?w schema:description ?g.
                 filter(lang(?g) = "cs")
