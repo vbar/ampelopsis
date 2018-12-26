@@ -89,10 +89,12 @@ order by url""")
                 wid = self.get_unique_wid(in_node)
                 if wid:
                     out_node['wikidataId'] = wid
-                    pair = self.get_attributes(in_node)
-                    if pair:
-                        out_node['birthDate'] = pair[0]
-                        out_node['personUrl'] = pair[1]
+                    pellet = self.get_attributes(in_node)
+                    if pellet:
+                        out_node['birthDate'] = pellet.birthDate
+
+                        if pellet.wikidataId:
+                            out_node['personUrl'] = pellet.wikidataId
         elif type(in_node) is list:
             out_node = []
             for it in in_node:

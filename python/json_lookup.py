@@ -5,11 +5,10 @@ import re
 import sys
 from cursor_wrapper import CursorWrapper
 from jumper import Jumper
+from pellet import Pellet
 from volume_holder import VolumeHolder
 
 class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
-    datetime_rx = re.compile('^([0-9]{4}-[0-9]{2}-[0-9]{2})T00:00:00Z$')
-
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
@@ -17,28 +16,34 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         self.load(cur)
 
     def get_entities(self, detail):
-        doc = self.get_query_document(detail)
-        persons = set()
-        if doc:
-            name_rx = self.make_name_rx(detail)
-            bindings = doc['results']['bindings']
-            for it in bindings:
-                if name_rx.search(it['l']['value']):
-                    persons.add(it['w']['value'])
-
+        pellets = self.get_pellets(detail)
+        persons = set(p.wikidataId for p in pellets)
         return list(persons)
 
     def get_attributes(self, detail):
+        pellets = self.get_pellets(detail)
+        if len(pellets):
+            pellets.sort(key=lambda p: p.get_key(), reverse=True)
+            return pellets[0]
+        else:
+            return None
+
+    def get_pellets(self, detail):
+        pellets = []
         doc = self.get_query_document(detail)
         if doc:
             name_rx = self.make_name_rx(detail)
             bindings = doc['results']['bindings']
             for it in bindings:
                 if name_rx.search(it['l']['value']):
-                    m = self.datetime_rx.match(bindings[0]['b']['value'])
-                    return (m.group(1), bindings[0]['a']['value'])
+                    m = Pellet.datetime_rx.match(bindings[0]['b']['value'])
+                    if m:
+                        anode = bindings[0].get('a')
+                        a = anode.get('value') if anode else None
+                        p = Pellet(it['w']['value'], m.group(1), a)
+                        pellets.append(p)
 
-        return None
+        return pellets
 
     def make_name_rx(self, detail):
         name = self.make_person_name(detail)
