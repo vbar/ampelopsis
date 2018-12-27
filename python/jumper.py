@@ -13,7 +13,7 @@ from urlize import create_query_url, whitespace_rx
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
-city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|mo|městský úřad|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
+city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|mo|městský úřad|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úmo|úřad městyse|ves|statutární město|zastupitelstvo obce|zastupitelstvo města) ")
 
 # '-' by itself would split not only Frýdek-Místek (doesn't really
 # matter because SPARQL queries match on string start anyway) but also
