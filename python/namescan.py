@@ -84,7 +84,7 @@ order by url""")
 
 def main():
     l = len(sys.argv)
-    if l > 2:
+    if l > 3:
         raise Exception("too many arguments")
 
     feature = 0
