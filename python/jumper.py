@@ -5,7 +5,7 @@ import re
 from corrector import Corrector
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, psychiatrist_position_entity
-from rulebook import rulebook
+from rulebook import Rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url, whitespace_rx
 
@@ -122,6 +122,9 @@ def make_mayor_of_query_url():
 
 class Jumper:
     def __init__(self):
+        # core analysis
+        self.rulebook = Rulebook()
+
         today = datetime.now()
         self.last_year = today.year - 1
 
@@ -222,7 +225,7 @@ set municipality=%s""", (mayor, city, city))
                 sought.add('Q12040609')
 
             wp = it['workingPosition']
-            answer = rulebook.get(wp['name'])
+            answer = self.rulebook.get(wp['name'])
             if answer:
                 answer = convert_answer_to_iterable(answer, it)
                 for pos in answer:
@@ -240,7 +243,7 @@ set municipality=%s""", (mayor, city, city))
         lst = detail['workingPositions']
         for it in lst:
             wp = it['workingPosition']
-            answer = rulebook.get(wp['name'])
+            answer = self.rulebook.get(wp['name'])
             if answer is not None and isinstance(answer, JudgeLevel):
                 courts = self.court_corrector.match(get_org_name(it))
                 for court in courts:
@@ -253,7 +256,7 @@ set municipality=%s""", (mayor, city, city))
         lst = detail['workingPositions']
         for it in lst:
             wp = it['workingPosition']
-            answer = rulebook.get(wp['name'])
+            answer = self.rulebook.get(wp['name'])
             if answer is not None and isinstance(answer, MuniLevel):
                 answer = convert_answer_to_iterable(answer, it)
                 if representative in answer:
@@ -268,7 +271,7 @@ set municipality=%s""", (mayor, city, city))
         lst = detail['workingPositions']
         for it in lst:
             wp = it['workingPosition']
-            answer = rulebook.get(wp['name'])
+            answer = self.rulebook.get(wp['name'])
             if answer is not None and isinstance(answer, ParliamentLevel):
                 answer = convert_answer_to_iterable(answer, it)
                 if representative in answer:

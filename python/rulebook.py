@@ -39,46 +39,52 @@ organization2occupation = {
     'psychiatrická nemocnice bohnice': psychiatrist_position_entity,
 }
 
-council_level = CouncilLevel(unknown_council_set, region2councillor, MuniLevel(councillor_position_entities))
-
-director_level = DirectorLevel(organization2occupation)
-
-# police director is not the same as police officer, but implies it
-police_entities = ( director_position_entity, police_officer_position_entity )
-
 # Maps it['workingPosition']['name'], where it is an item of cro
 # detail page JSON attribute 'workingPositions', to position set. The
 # mapping can be a single string, an iterable, or a callable returning
 # a string or an iterable. The callable is called with the it value.
-rulebook = {
-    # "governing body member" doesn't sound very university-specific,
-    # but is actually used either for universities, or regional
-    # councils/obscure orgs not found in Wikidata
-    'člen řídícího orgánu': UniversityLevel(),
+class Rulebook:
+    def __init__(self):
+        council_level = CouncilLevel(unknown_council_set, region2councillor, MuniLevel(councillor_position_entities))
 
-    'vedoucí zaměstnanec 3. stupně řízení': director_level,
-    'vedoucí zaměstnanec 4. stupně řízení': director_level,
+        director_level = DirectorLevel(organization2occupation)
 
-    # apparently doesn't include deputy ministers (but does include
-    # premier)
-    'člen vlády': minister_position_entity,
+        # police director is not the same as police officer, but implies it
+        police_entities = ( director_position_entity, police_officer_position_entity )
 
-    'náměstek člena vlády': deputy_minister_position_entity,
-    'náměstek pro řízení sekce': deputy_minister_position_entity,
-    'poslanec': ParliamentLevel(mp_position_entity),
-    'senátor': 'Q18941264',
-    'starosta': MuniLevel(mayor_position_entities),
-    'místostarosta / zástupce starosty': MuniLevel(deputy_mayor_position_entities),
-    'člen zastupitelstva': council_level,
-    'člen Rady': council_level,
+        self.rulebook = {
+            # "governing body member" doesn't sound very university-specific,
+            # but is actually used either for universities, or regional
+            # councils/obscure orgs not found in Wikidata
+            'člen řídícího orgánu': UniversityLevel(),
 
-    # not clear whether input distinguishes member from governor, so
-    # we don't - there shouldn't be so many of them anyway...
-    'člen bankovní rady České národní banky': ( 'Q28598459', 'Q25505764' ),
+            'vedoucí zaměstnanec 3. stupně řízení': director_level,
+            'vedoucí zaměstnanec 4. stupně řízení': director_level,
 
-    'soudce': JudgeLevel(),
-    'ředitel bezpečnostního sboru': police_entities,
-    # ředitel odboru/sekce doesn't match any more directors
-    'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
-    'vedoucí zastupitelského úřadu': 'Q121998',
-}
+            # apparently doesn't include deputy ministers (but does include
+            # premier)
+            'člen vlády': minister_position_entity,
+
+            'náměstek člena vlády': deputy_minister_position_entity,
+            'náměstek pro řízení sekce': deputy_minister_position_entity,
+            'poslanec': ParliamentLevel(mp_position_entity),
+            'senátor': 'Q18941264',
+            'starosta': MuniLevel(mayor_position_entities),
+            'místostarosta / zástupce starosty': MuniLevel(deputy_mayor_position_entities),
+            'člen zastupitelstva': council_level,
+            'člen rady': council_level,
+
+            # not clear whether input distinguishes member from governor, so
+            # we don't - there shouldn't be so many of them anyway...
+            'člen bankovní rady české národní banky': ( 'Q28598459', 'Q25505764' ),
+
+            'soudce': JudgeLevel(),
+            'ředitel bezpečnostního sboru': police_entities,
+            # ředitel odboru/sekce doesn't match any more directors
+            'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
+            'vedoucí zastupitelského úřadu': 'Q121998',
+        }
+
+    def get(self, raw):
+        name = raw.lower()
+        return self.rulebook.get(name.strip())
