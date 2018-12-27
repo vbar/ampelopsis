@@ -7,7 +7,9 @@
 # minister - normally minister of <resort> of Czech Republic
 minister_position_entity = 'Q83307'
 
-# MPs are special because we want to check their terms
+# MPs are special because we want to check their terms. More generic
+# Q486839 is also occasionally used, but apparently never without
+# Q19803234, so we ignore it.
 mp_position_entity = 'Q19803234'
 
 # mayors are special because there's so many the name match may
