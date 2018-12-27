@@ -7,16 +7,20 @@ import os
 import sys
 from common import make_connection
 from json_lookup import JsonLookup
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook_util import get_org_name
 
 ORG = 1
 
 WPN = 2
 
+MUNI = 4
+
 class Scanner(JsonLookup):
     def __init__(self, cur, feature, show_all):
         JsonLookup.__init__(self, cur)
         self.feature = feature
+        self.municipal_representatives = ( mayor_position_entities[0], deputy_mayor_position_entities[0], councillor_position_entities[0] )
         self.show_all = show_all
         self.names = set()
 
@@ -42,18 +46,23 @@ order by url""")
             if not self.has_answer(generic_url):
                 return
 
-        lst = detail['workingPositions']
-        for it in lst:
-            nm = None
-            if self.feature == ORG:
-                nm = get_org_name(it)
-            else:
-                assert self.feature == WPN
-                wp = it['workingPosition']
-                nm = wp['name']
+        if self.feature == MUNI:
+            for mr in self.municipal_representatives:
+                sought = self.make_city_set(detail, mr)
+                self.names |= sought
+        else:
+            lst = detail['workingPositions']
+            for it in lst:
+                nm = None
+                if self.feature == ORG:
+                    nm = get_org_name(it)
+                else:
+                    assert self.feature == WPN
+                    wp = it['workingPosition']
+                    nm = wp['name']
 
-            if nm:
-                self.names.add(nm)
+                if nm:
+                    self.names.add(nm)
 
     def has_answer(self, url):
         doc = None
@@ -87,13 +96,15 @@ def main():
             feature |= WPN
         elif a in ( '-on', '--org-name' ):
             feature |= ORG
+        elif a in ( '-m', '--muni' ):
+            feature |= MUNI
         else:
             raise Exception("invalid argument " + a)
 
     if feature == 0:
         feature = ORG
-    elif (feature != WPN) and (feature != ORG):
-        raise Exception("--org-name option is not compatible with --pos-name")
+    elif feature not in (ORG, WPN, MUNI):
+        raise Exception("--org-name, --pos-name and --muni modes cannot be used together")
 
     with make_connection() as conn:
         with conn.cursor() as cur:
