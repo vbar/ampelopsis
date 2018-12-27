@@ -81,7 +81,10 @@ class Rulebook:
             'soudce': JudgeLevel(),
             'ředitel bezpečnostního sboru': police_entities,
             # ředitel odboru/sekce doesn't match any more directors
+
+            # 2nd level exists but doesn't match anybody new
             'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
+
             'vedoucí zastupitelského úřadu': 'Q121998',
         }
 
