@@ -7,19 +7,19 @@ from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, psychiatrist_position_entity
 from rulebook import rulebook
 from rulebook_util import get_org_name
-from urlize import create_query_url
+from urlize import create_query_url, whitespace_rx
 
 # we could include single quote, but there probably aren't any Czech
 # politicians named O'Something...
 name_char_rx = re.compile("[^\\w ./-]")
 
-city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
+city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|mo|městský úřad|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úřad městyse|statutární město|zastupitelstvo obce) ")
 
 # '-' by itself would split not only Frýdek-Místek (doesn't really
 # matter because SPARQL queries match on string start anyway) but also
 # Praha-Řeporyje (more problematic); to handle abbreviations, we want
 # to stop before the first '.'
-city_stop_rx = re.compile("[.,;()]| - ")
+city_stop_rx = re.compile("[.,;()]| - |\\bse sídlem\\b")
 
 # Some wikidata city district labels (i.e. Řeporyje) do not contain
 # the city name. 3 is a stricter limit than elsewhere, but are there
@@ -199,7 +199,7 @@ set municipality=%s""", (mayor, city, city))
         head = lst[0]
         safer = name_char_rx.sub("", head.strip()) # maybe we need a more permissive regex, but nothing specific comes to mind...
         shorter = city_start_rx.sub("", safer)
-        return shorter.strip()
+        return whitespace_rx.sub(" ", shorter.strip())
 
     def make_person_name(self, detail):
         return "%s %s" % tuple(normalize_name(detail[n]) for n in ('firstName', 'lastName'))
