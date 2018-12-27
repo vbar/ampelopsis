@@ -482,11 +482,11 @@ set municipality=%s""", (mayor, city, city))
                 # non-prominent judge
                 base_cond = self.neg_court_cond
 
-            # prededed by name_cond; unbound ?g matches iff the judge
+            # preceded by name_cond; unbound ?g matches iff the judge
             # is non-prominent
             judge_cond = ' && ' + base_cond
 
-        # person (wikidata ID), article, birth, label, description, position
+        # person (wikidata ID), article, birth, label, general description, position
         query = """select ?w ?a ?b ?l ?g ?p {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;

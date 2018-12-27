@@ -37,8 +37,10 @@ councillor_position_entities = (
     'Q19602879'
 )
 
-# judges, policemen and doctors are special because (unlike other
-# matched persons) they aren't politicians
+# Judges, policemen and doctors are special because (unlike other
+# matched persons) they aren't politicians. Constitutional judge
+# (Q59773473) is also used, but doesn't match anybody new - it's
+# enough to match the description...
 judge_position_entity = 'Q16533'
 police_officer_position_entity = 'Q384593'
 physician_position_entity = 'Q39631'
