@@ -228,8 +228,7 @@ set municipality=%s""", (mayor, city, city))
             answer = self.rulebook.get(wp['name'])
             if answer:
                 answer = convert_answer_to_iterable(answer, it)
-                for pos in answer:
-                    sought.add(pos)
+                sought.update(answer)
 
             # checking wp['deputy'] and wp['senator'] here is
             # possible, but it makes no difference (all MPs have
