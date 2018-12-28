@@ -459,7 +459,9 @@ set municipality=%s""", (mayor, city, city))
 
             # 'coalesce(?f, ?t) >= "%d-01-01"^^xsd:dateTime' might be more efficient...
             base_cond = 'year(coalesce(?f, ?t)) >= %d' % min_year
-            if l == 1:
+            # mp_position is in position set...
+            if (l == 1) and (len(position_set) == 1):
+                # ...so position set == mp_position
                 cond = base_cond
             else:
                 np = 'wd:' + mp_position
