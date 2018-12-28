@@ -71,5 +71,5 @@ space_rx = re.compile('%20')
 
 # www.realhit.cz uses accents in URLs...
 def normalize_url_component(path):
-    q = quote_plus(path, safe="/+%&=()[]{};:!|\"")
+    q = quote_plus(path, safe="/+%?&=$*()[]{},;:!|\"")
     return space_rx.sub('+', q)
