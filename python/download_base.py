@@ -11,7 +11,7 @@ class DownloadBase(CursorWrapper):
 from tops""")
         row = self.cur.fetchone()
         return row[0]
-    
+
     def pop_work_item(self):
         while True:
             # https://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/
@@ -37,6 +37,3 @@ returning url_id""", (self.host_id,))
                     self.host_id = 0
                 else:
                     return None
-                
-        
-    
