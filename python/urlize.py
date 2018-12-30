@@ -39,7 +39,7 @@ def normalize_url_param(path):
     # Must be a subset of safe chars in normalize_url_component. OTOH
     # this function quotes a single parameter, so the chars cannot
     # contain '?', '&' or ';'.
-    q = parse.quote(path, safe="/()[]{}:!|\"")
+    q = parse.quote(path, safe="/(){}:!|\"")
     return space_rx.sub('+', q)
 
 def create_query_url(query):
