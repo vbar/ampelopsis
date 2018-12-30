@@ -82,6 +82,10 @@ order by url""")
                     k = 'Id'
                     if top_level:
                         self.doc_id = v
+                    elif top_level and (k == 'firstName'):
+                        k = 'Name'
+                    elif top_level and (k == 'lastName'):
+                        k = 'Surname'
 
                 out_node[k] = self.convert_node(v, False)
             if top_level:
@@ -92,7 +96,8 @@ order by url""")
                     pellet = self.get_attributes(in_node)
                     assert pellet
 
-                    out_node['birthDate'] = pellet.birthDate
+                    out_node['Birthdate'] = pellet.birthDate
+                    out_node['HsProcessType'] = 'person'
                     if pellet.aboutLink:
                         out_node['personUrl'] = pellet.aboutLink
         elif type(in_node) is list:
