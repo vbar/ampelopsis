@@ -326,19 +326,11 @@ set municipality=%s""", (mayor, city, city))
                 position_set.remove(pos)
                 councillor_position_set.add(pos)
 
-        occupation_list = [] # judge might be included later but not now - it depends on other positions
-
-        if police_officer_position_entity in position_set:
-            position_set.remove(police_officer_position_entity)
-            occupation_list.append(police_officer_position_entity)
-
-        if physician_position_entity in position_set:
-            position_set.remove(physician_position_entity)
-            occupation_list.append(physician_position_entity)
-
-        if psychiatrist_position_entity in position_set:
-            position_set.remove(psychiatrist_position_entity)
-            occupation_list.append(psychiatrist_position_entity)
+        occupation_list = [] # judge is not included because it's required when present in input
+        for occupation in (police_officer_position_entity, physician_position_entity, psychiatrist_position_entity):
+            if occupation in position_set:
+                position_set.remove(occupation)
+                occupation_list.append(occupation)
 
         pos_clauses = []
         if minister_position:
@@ -403,62 +395,62 @@ set municipality=%s""", (mayor, city, city))
             pos_clauses.append('values ?p { %s }' % vl)
 
         l = len(pos_clauses)
+        l0 = len(occupation_list)
 
         # judge is such a specific feature we require it when present
         # in input data (rather than or-ing it with political
-        # positions); that complicates the policeman & doctor case,
-        # where we have to decide whether to reuse ?p with occupation
-        # predicate or add a clause with hardcoded object
-        occupation_clause = ''
+        # positions); that (plus multiple refactorings) complicates
+        # the policeman & doctor case...
+        political_constraint = ''
+        mainline_block = ''
         if judge_position:
             if not l:
-                # we can reuse ?p
-                political_constraint = 'wdt:P106 ?p;'
-                occupation_list.append(judge_position)
-                vl = format_position_iterable(occupation_list)
-                occupation_clause = 'values ?p { %s }' % vl
+                political_constraint = 'wdt:P106 ?o;'
+                mainline_block = 'optional { ?w wdt:P39 ?p. }'
             else:
-                # leave ?p alone, add rule w/o variables
-                np = 'wd:' + judge_position
-                political_constraint = 'wdt:P39 ?p; wdt:P106 %s;' % np
-                for occupation in occupation_list:
-                    np = 'wd:' + occupation
-                    pos_clauses.append('?w wdt:P106 %s.' % np)
+                political_constraint = 'wdt:P39 ?p; wdt:P106 ?o;'
+
+            np = 'wd:' + judge_position
+            mainline_block += 'values ?o { %s }' % np
         else:
-            if not len(occupation_list):
-                political_constraint ='wdt:P39 ?p;'
+            if not l0:
+                if specific:
+                    political_constraint ='wdt:P39 ?p;'
+                    mainline_block = 'optional { ?w wdt:P106 ?o. }'
+                else:
+                    mainline_block = """optional { ?w wdt:P39 ?p. }
+        optional { ?w wdt:P106 ?o. }"""
             else:
                 if not l:
-                    # we can reuse ?p
-                    political_constraint = 'wdt:P106 ?p;'
-                    vl = format_position_iterable(occupation_list)
-                    occupation_clause = 'values ?p { %s }' % vl
+                    political_constraint = 'wdt:P106 ?o;'
+                    mainline_block = 'optional { ?w wdt:P39 ?p. }'
                 else:
-                    # leave ?p alone, add position clause
-                    political_constraint ='wdt:P39 ?p;'
-                    for occupation in occupation_list:
-                        np = 'wd:' + occupation
-                        pos_clauses.append('?w wdt:P106 %s.' % np)
+                    political_constraint = 'wdt:P39 ?p; wdt:P106 ?o;'
+
+        if l0:
+            vl = format_position_iterable(occupation_list)
+            occ_clause = 'values ?o { %s }' % vl
+            pos_clauses.append(occ_clause)
 
         l = len(pos_clauses)
         if l == 0:
-            # no restriction (unless judge or other occupation); can
-            # happen even when the original position set is non-empty
-            # - if that causes false positives, we'll have to
-            # revisit...
-            pos_clause = occupation_clause
+            # no restriction; can happen even when the original
+            # position set is non-empty - if that causes false
+            # positives, we'll have to revisit...
+            pos_clause = ''
         elif l == 1:
             pos_clause = pos_clauses[0]
         else:
             pos_clause = ' union '.join('{ %s }' % pc for pc in pos_clauses)
 
-        extra_clause = ''
+        extra_block = ''
         if min_year:
             assert mp_position
             assert l
 
-            # 'coalesce(?f, ?t) >= "%d-01-01"^^xsd:dateTime' might be more efficient...
-            base_cond = 'year(coalesce(?f, ?t)) >= %d' % min_year
+            # ?t is already taken; 'coalesce(?f, ?u) >=
+            # "%d-01-01"^^xsd:dateTime' might be more efficient...
+            base_cond = 'year(coalesce(?f, ?u)) >= %d' % min_year
             # mp_position is in position set...
             if (l == 1) and (len(position_set) == 1):
                 # ...so position set == mp_position
@@ -467,8 +459,8 @@ set municipality=%s""", (mayor, city, city))
                 np = 'wd:' + mp_position
                 cond = '?p != %s || %s' % (np, base_cond)
 
-            extra_clause = """optional { ?w p:P39/pq:P580 ?f. }
-        optional { ?w p:P39/pq:P582 ?t. }
+            extra_block = """optional { ?w p:P39/pq:P580 ?f. }
+        optional { ?w p:P39/pq:P582 ?u. }
         filter(%s)""" % cond
 
         death_clause = ''
@@ -488,13 +480,13 @@ set municipality=%s""", (mayor, city, city))
             # is non-prominent
             judge_cond = ' && ' + base_cond
 
-        # person (wikidata ID), article, birth, label, general description, position
-        query = """select ?w ?a ?b ?l ?g ?p {
+        # person (wikidata ID), article, birth, label, general description, position, occupation
+        query = """select ?w ?a ?b ?l ?g ?p ?o {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;
                 %s
                 wdt:P569 ?b.
-        %s
+        %s%s
         optional {
                 ?a schema:about ?w;
                         schema:inLanguage "cs".
@@ -505,7 +497,7 @@ set municipality=%s""", (mayor, city, city))
         }
         filter(lang(?l) = "cs" && %s%s)
         %s %s
-}""" % (political_constraint, death_clause, name_cond, judge_cond, pos_clause, extra_clause)
+}""" % (political_constraint, death_clause, mainline_block, name_cond, judge_cond, pos_clause, extra_block)
         return create_query_url(query)
 
 if __name__ == "__main__":

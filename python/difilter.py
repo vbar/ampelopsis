@@ -128,15 +128,19 @@ order by url""")
             return len(bindings)
 
         for it in bindings:
-            m = self.entity_rx.search(it['p']['value'])
-            if m:
-                pos = m.group(1)
-                if self.white is None:
-                    if not(pos in self.black):
-                        return True
-                else:
-                    if pos in self.white:
-                        return True
+            for vn in ('p', 'o'):
+                vnode = it.get(vn)
+                if vnode:
+                    vv = vnode.get('value')
+                    if vv:
+                        m = self.entity_rx.search(vv)
+                        if m:
+                            pos = m.group(1)
+                            if self.white is None:
+                                if not(pos in self.black):
+                                    return True
+                            elif pos in self.white:
+                                return True
 
         return False
 
