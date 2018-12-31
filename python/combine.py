@@ -82,12 +82,15 @@ order by url""")
                     k = 'Id'
                     if top_level:
                         self.doc_id = v
-                    elif top_level and (k == 'firstName'):
-                        k = 'Name'
-                    elif top_level and (k == 'lastName'):
-                        k = 'Surname'
+                elif top_level and (k == 'firstName'):
+                    k = 'Name'
+                elif top_level and (k == 'lastName'):
+                    k = 'Surname'
 
-                out_node[k] = self.convert_node(v, False)
+                if k in ( 'concatenatedWorkingPositionOrganizations', 'concatenatedWorkingPositions'):
+                    out_node[k] = self.convert_concatenated(v)
+                else:
+                    out_node[k] = self.convert_node(v, False)
             if top_level:
                 out_node['Url'] = self.url
                 wid = self.get_unique_wid(in_node)
@@ -108,6 +111,26 @@ order by url""")
             out_node = in_node
 
         return out_node
+
+    def convert_concatenated(self, v):
+        if v and type(v) is str:
+            seen = set()
+            src_lst = v.split(",")
+            dst_lst = []
+            for it in src_lst:
+                name = it.strip()
+                if name:
+                    canon = name.lower()
+                    if canon not in seen:
+                        seen.add(canon)
+                        dst_lst.append(name)
+
+            return ", ".join(dst_lst)
+        else:
+            if v:
+                print("concatenated value has type " + str(type(v)), file=sys.stderr)
+
+            return self.convert_node(v, False)
 
     def get_unique_wid(self, detail):
         persons = self.get_entities(detail)
