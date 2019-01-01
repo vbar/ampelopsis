@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 from corrector import Corrector
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, psychiatrist_position_entity
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, prosecutor_position_entity, psychiatrist_position_entity
 from rulebook import Rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url, whitespace_rx
@@ -308,6 +308,11 @@ set municipality=%s""", (mayor, city, city))
             judge_position = judge_position_entity
             court_set = self.make_court_set(detail)
 
+        prosecutor_position = None
+        if prosecutor_position_entity in position_set:
+            position_set.remove(prosecutor_position_entity)
+            prosecutor_position = prosecutor_position_entity
+
         mayor_position_set = set()
         for pos in mayor_position_entities:
             if pos in position_list:
@@ -326,7 +331,11 @@ set municipality=%s""", (mayor, city, city))
                 position_set.remove(pos)
                 councillor_position_set.add(pos)
 
-        occupation_list = [] # judge is not included because it's required when present in input
+        occupation_list = []
+        # judge is not included because it's required when present in input
+        if prosecutor_position:
+            occupation_list.append(prosecutor_position)
+
         for occupation in (police_officer_position_entity, physician_position_entity, psychiatrist_position_entity):
             if occupation in position_set:
                 position_set.remove(occupation)
@@ -422,8 +431,12 @@ set municipality=%s""", (mayor, city, city))
         optional { ?w wdt:P106 ?o. }"""
             else:
                 if not l:
-                    political_constraint = 'wdt:P106 ?o;'
-                    mainline_block = 'optional { ?w wdt:P39 ?p. }'
+                    if not prosecutor_position:
+                        political_constraint = 'wdt:P106 ?o;'
+                        mainline_block = 'optional { ?w wdt:P39 ?p. }'
+                    else:
+                        mainline_block = """optional { ?w wdt:P39 ?p. }
+        optional { ?w wdt:P106 ?o. }"""
                 else:
                     political_constraint = 'wdt:P39 ?p; wdt:P106 ?o;'
 
@@ -431,6 +444,12 @@ set municipality=%s""", (mayor, city, city))
             vl = format_position_iterable(occupation_list)
             occ_clause = 'values ?o { %s }' % vl
             pos_clauses.append(occ_clause)
+
+            # prosecutor already is in occupation_list (and therefore
+            # in pos_clauses), but the occupation almost never matches
+            # - so we also try to match description...
+            if prosecutor_position:
+                pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
 
         l = len(pos_clauses)
         if l == 0:
