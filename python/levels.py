@@ -1,6 +1,6 @@
 import re
 from corrector import Corrector
-from named_entities import director_position_entity, judge_position_entity, physician_position_entity, rector_of_charles_university_position_entity
+from named_entities import director_position_entity, judge_position_entity, physician_position_entity, rector_of_charles_university_position_entity, researcher_position_entity
 from rulebook_util import get_org_name
 
 charles_university = {
@@ -48,20 +48,24 @@ class MuniLevel:
 class UniversityLevel:
     # currently set up for just Charles University, but can be
     # extended, if there are other rector entities...
-    def __init__(self):
+    def __init__(self, upper):
+        self.upper = upper
         self.university_corrector = Corrector(4, charles_university)
 
     def __call__(self, it):
         org_name = get_org_name(it)
         university = self.university_corrector.match(org_name)
-        found_rector = len(university)
+        found_uni = len(university)
 
         sought = []
-        if found_rector:
+        if found_uni and self.upper:
             sought.append(rector_of_charles_university_position_entity)
 
-        if found_rector or university_name_rx.search(org_name):
-            sought.extend([ 'Q212071', 'Q2113250', 'Q723682' ])
+        if found_uni or university_name_rx.search(org_name):
+            if self.upper:
+                sought.extend(('Q212071', 'Q2113250', 'Q723682'))
+            else:
+                sought.append(researcher_position_entity)
 
         return sought
 

@@ -56,8 +56,9 @@ class Rulebook:
             # "governing body member" doesn't sound very university-specific,
             # but is actually used either for universities, or regional
             # councils/obscure orgs not found in Wikidata
-            'člen řídícího orgánu': UniversityLevel(),
+            'člen řídícího orgánu': UniversityLevel(True),
 
+            'vedoucí zaměstnanec 2. stupně řízení': UniversityLevel(False),
             'vedoucí zaměstnanec 3. stupně řízení': director_level,
             'vedoucí zaměstnanec 4. stupně řízení': director_level,
 

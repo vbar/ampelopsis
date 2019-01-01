@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 from corrector import Corrector
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, prosecutor_position_entity, psychiatrist_position_entity
+from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, prosecutor_position_entity, psychiatrist_position_entity, researcher_position_entity
 from rulebook import Rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url, whitespace_rx
@@ -336,7 +336,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (police_officer_position_entity, physician_position_entity, psychiatrist_position_entity):
+        for occupation in (police_officer_position_entity, physician_position_entity, psychiatrist_position_entity, researcher_position_entity):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
