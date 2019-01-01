@@ -38,7 +38,7 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
                 if name_rx.search(it['l']['value']):
                     m = Pellet.datetime_rx.match(bindings[0]['b']['value'])
                     if m:
-                        anode = bindings[0].get('a')
+                        anode = it.get('a')
                         a = anode.get('value') if anode else None
                         p = Pellet(it['w']['value'], m.group(1), a)
                         pellets.append(p)
