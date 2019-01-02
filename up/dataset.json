@@ -1,0 +1,373 @@
+{
+    "name": "Centrální registr oznámení",
+    "datasetId": "centralniregistroznameni",
+    "origUrl": "https://cro.justice.cz/",
+    "sourcecodeUrl": "https://github.com/vbar/ampelopsis",
+    "description": null,
+    "betaversion" : false,
+    "allowWriteAccess" : true,
+    "jsonSchema": {
+	"description": "",
+	"type": "object",
+	"properties": {
+	  "Id": {
+	    "type": "string"
+	  },
+	  "wikidataId": {
+	    "type": "string"
+	  },
+	  "Url": {
+	    "type": "string"
+	  },
+	  "personUrl": {
+	    "type": "string"
+	  },
+	  "HsProcessType": {
+	    "type": "string"
+	  },
+	  "OsobaId": {
+	    "type": "string"
+	  },
+	  "Birthdate": {
+	    "type": "string",
+	    "format": "date-time"
+	  },
+	  "titleBefore": {
+	    "type": "string"
+	  },
+	  "Name": {
+	    "type": "string"
+	  },
+	  "Surname": {
+	    "type": "string"
+	  },
+	  "titleAfter": {
+	    "type": "string"
+	  },
+	  "fullName": {
+	    "type": "string"
+	  },
+	  "workingPositions": {
+	    "type": "array",
+	    "items": {
+	      "properties": {
+		"Id": {
+		  "type": "string"
+		},
+		"ovmId": {
+		  "type": "string"
+		},
+		"workingPosition": {
+		  "type": "object",
+		  "properties": {
+		    "Id": {
+		      "type": "string"
+		    },
+		    "created": {
+		      "type": "string"
+		    },
+		    "updated": {
+		      "type": "string"
+		    },
+		    "name": {
+		      "type": "string"
+		    },
+		    "order": {
+		      "type": "number"
+		    },
+		    "active": {
+		      "type": "boolean"
+		    },
+		    "organization": {
+		      "type": "object",
+		      "properties": {
+			"Id": {
+			  "type": "string"
+			},
+			"created": {
+			  "type": "string"
+			},
+			"name": {
+			  "type": "string"
+			},
+			"order": {
+			  "type": "number"
+			},
+			"active": {
+			  "type": "boolean"
+			}
+		      }
+		    },
+		    "visibility": {
+		      "type": "string"
+		    },
+		    "other": {
+		      "type": "boolean"
+		    },
+		    "deputy": {
+		      "type": "boolean"
+		    },
+		    "senator": {
+		      "type": "boolean"
+		    }
+		  }
+		},
+		"organization": {
+		  "type": "string"
+		},
+		"start": {
+		  "type": "string"
+		},
+		"created": {
+		  "type": "string"
+		},
+		"name": {
+		  "type": "string"
+		}
+	      }
+	    }
+	  },
+	  "statements": {
+	    "type": "array",
+	    "items": {
+	      "properties": {
+		"Id": {
+		  "type": "string"
+		},
+		"canOpen": {
+		  "type": "boolean"
+		},
+		"statementOfficial": {
+		  "type": "object",
+		  "properties": {
+		    "titleBefore": {
+		      "type": "string"
+		    },
+		    "firstName": {
+		      "type": "string"
+		    },
+		    "lastName": {
+		      "type": "string"
+		    },
+		    "titleAfter": {
+		      "type": "string"
+		    },
+		    "visibility": {
+		      "type": "string"
+		    }
+		  }
+		},
+		"type": {
+		  "type": "string"
+		},
+		"creationDate": {
+		  "type": "string"
+		},
+		"visibility": {
+		  "type": "string"
+		}
+	      }
+	    }
+	  },
+	  "active": {
+	    "type": "boolean"
+	  },
+	  "concatenatedWorkingPositions": {
+	    "type": "string"
+	  },
+	  "concatenatedWorkingPositionDates": {
+	    "type": "string"
+	  },
+	  "concatenatedWorkingPositionOrganizations": {
+	    "type": "string"
+	  },
+	  "hasRequestStatement": {
+	    "type": "boolean"
+	  },
+	  "hasSecretStatement": {
+	    "type": "boolean"
+	  },
+	  "judge": {
+	    "type": "boolean"
+	  },
+	    "workingFrom": {
+		"type": "string"
+	  }
+	}
+    },
+    "searchResultTemplate": {
+	"body": "<table class=\"table table-hover\">
+    <thead>
+	<tr>
+	    <th>ID</th>
+	    <th>Osoba</th>
+	    <th>Organizace</th>
+	    <th>Funkce</th>
+	</tr>
+    </thead>
+    <tbody>
+      {{ for item in model.Result }}
+	<tr>
+	    <td><a href=\"/data/Detail/centralniregistroznameni/{{item.Id}}\">{{item.Id}}</a></td>
+	    <td>
+	      {{ if item.personUrl }}
+		<a href=\"{{item.personUrl}}\">{{item.fullName}}</a>
+	      {{ else }}
+		{{item.fullName}}
+	      {{ end }}
+	    </td>
+	    <td>{{item.concatenatedWorkingPositionOrganizations}}</td>
+	    <td>{{item.concatenatedWorkingPositions}}</td>
+	</tr>
+      {{ end }}
+    </tbody>
+</table>"
+    },
+    "detailTemplate": {
+	"body": "<table class=\"table\">
+    <tbody>
+	<tr>
+	    <th>
+	      {{ if model.OsobaId }}
+		<a href=\"/osoba/{{model.OsobaId}}\">Osoba</a>
+	      {{ else }}
+		Osoba
+	      {{ end }}
+	    </th>
+	    <td>
+	      {{ if model.personUrl }}
+		<a href=\"{{model.personUrl}}\">{{model.fullName}}</a>
+	      {{ else }}
+		{{model.fullName}}
+	      {{ end }}
+	    </td>
+	</tr>
+	<tr>
+	    <th><a href=\"{{model.Url}}\">Zdrojová data</a></th>
+	    <td><a href=\"https://cro.justice.cz/verejnost/funkcionari/form/{{model.Id}}\">https://cro.justice.cz/verejnost/funkcionari/form/{{model.Id}}</a></td>
+	</tr>
+    </tbody>
+</table>
+{{ for statement in model.statements }}
+  <table class=\"table\">
+      <thead>
+	  <tr>
+	      <th width=\"33%\">
+		{{ case statement.type }}
+		  {{ when 'INGOING' }}
+		    Vstupní oznámení
+		  {{ when 'ONGOING' }}
+		    Průběžné oznámení
+		  {{ when 'OUTGOING' }}
+		    Výstupní oznámení
+		  {{ when 'POINT3' }}
+		    Oznámení podle Čl. II bodu 3 přechodného ustanovení zákona
+		  {{ when 'POINT4' }}
+		    Oznámení podle Čl. II bodu 4 přechodného ustanovení zákona
+		  {{ else }}
+		    {{statement.type}}
+		{{ end }}
+	      </th>
+	      <td>{{ date.format = '%F'; date.parse statement.creationDate | date.to_string '%d. %m. %Y' }}</td>
+	      <td>
+		{{ case statement.visibility }}
+		  {{ when 'PUBLIC' }}
+		    Veřejné
+		  {{ else }}
+		    {{statement.visibility}}
+		{{ end }}
+	      </td>
+	  </tr>
+      </thead>
+      <tbody>
+	 {{ if statement.naturalPersonBusinesses }}
+	   {{ if statement.naturalPersonBusinesses.size > 0 }}
+	     <tr>
+		 <th colspan=\"3\">Podnikání nebo provozování jiné samostatné výdělečné činnosti</th>
+	     </tr>
+	     {{ for business in statement.naturalPersonBusinesses }}
+	       <tr>
+		   <td>{{business.subject}}</td>
+		   <td>
+		     {{ if business.address }}
+		       {{ business.address.municipality }}, {{ business.address.street }}, {{ business.address.zip }}
+		     {{ end }}
+		   </td>
+		   <td>
+		     {{ if business.businessMethod }}
+		       {{ business.businessMethod.name }}
+		     {{ end }}
+		   </td>
+	       </tr>
+	     {{ end }}
+	   {{ end }}
+	 {{ end }}
+	 {{ if statement.organizationMember }}
+	   {{ if statement.organizationMember.size > 0 }}
+	     <tr>
+		 <th colspan=\"3\">Člen statutárního orgánu, člen řídícího, dozorčího nebo kontrolního orgánu podnikající právnické osoby</th>
+	     </tr>
+	     {{ for member in statement.organizationMember }}
+	       <tr>
+		   <td>
+		     {{ if member.type }}
+		       {{member.type.name}}
+		     {{ end }}
+		   </td>
+		   <td>
+		     {{ if member.legalPerson }}
+		       {{member.legalPerson.name}}
+		     {{ end }}
+		   </td>
+		   <td>
+		     {{ if member.legalPerson }}
+		       IČO {{member.legalPerson.identificationNumber}}
+		     {{ end }}
+		   </td>
+	       </tr>
+	     {{ end }}
+	   {{ end }}
+	 {{ end }}
+	 {{ if statement.realtiesBefore }}
+	   {{ if statement.realtiesBefore.size > 0 }}
+	     <tr>
+		 <th colspan=\"3\">Věci nemovité</th>
+	     </tr>
+	     {{ for realty in statement.realtiesBefore }}
+	       <tr>
+		   <td>
+		     {{ if realty.type }}
+		       {{ case realty.type.type }}
+			 {{ when 'LAND' }}
+			   pozemek
+			 {{ else }}
+			   {{realty.type.type}}
+		       {{ end }}
+		     {{ end }}
+		   </td>
+		   <td>&nbsp;</td>
+		   <td>{{ if realty.acquisition }}{{realty.acquisition.name}}{{ end }}</td>
+	       </tr>
+	     {{ end }}
+	   {{ end }}
+	 {{ end }}
+	 {{ if statement.chattels }}
+	   {{ if statement.chattels.size > 0 }}
+	     <tr>
+		 <th colspan=\"3\">Jiné věci movité</th>
+	     </tr>
+	     {{ for chattel in statement.chattels }}
+	       <tr>
+		   <td>{{ chattel.type ?? '???' }}</td>
+		   <td>{{ if chattel.price }}{{chattel.price}} kč{{ end }}</td>
+		   <td>{{ if chattel.chattelAcquisition }}{{chattel.chattelAcquisition.name}}{{ end }}</td>
+	       </tr>
+	     {{ end }}
+	   {{ end }}
+	 {{ end }}
+
+      </tbody>
+  </table>
+{{ end }}"
+    }
+}
