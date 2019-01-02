@@ -4,9 +4,12 @@ from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, Parliamen
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, prosecutor_position_entity, psychiatrist_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
 from rulebook_util import get_org_name
 
-# Mostly generic. Prague is not included because it is a city, and is
-# handled on a higher level (not using
-# region_councillor_position_entity - perhaps it should?)
+# Mostly generic; region_councillor_position_entity is used to mark
+# the region match, but rarely if ever matches anything. Q11027282
+# ("hetman") is a possible alternative, but doesn't match anybody new
+# either. Prague is not included because it is a city, and is handled
+# on a higher level (not using region_councillor_position_entity -
+# perhaps it should?)
 region2councillor = {
     'jihočeský kraj': ( 'Q55670007', region_councillor_position_entity ),
     'jihomoravský kraj': ( 'Q59583668', region_councillor_position_entity ),
