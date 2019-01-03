@@ -106,7 +106,8 @@ order by url""")
         elif type(in_node) is list:
             out_node = []
             for it in in_node:
-                out_node.append(self.convert_node(it, False))
+                if (type(it) is not dict) or len(it.keys()):
+                    out_node.append(self.convert_node(it, False))
         else:
             out_node = in_node
 
