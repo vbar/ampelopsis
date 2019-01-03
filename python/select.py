@@ -30,20 +30,17 @@ order by url""")
         found = False
         for statement in detail['statements']:
             for k in self.sel:
-                if (k in statement) and len(statement[k]):
-                    if k == 'chattels':
-                        # input data often contain non-empty array of empty objects...
-                        found = self.check_chattels(statement['chattels'])
-                    else:
-                        found = True
+                if (k in statement) and self.has_non_empty(statement[k]):
+                    found = True
 
             if found:
                 print(url)
                 return
 
-    def check_chattels(self, chattels):
-        for chattel in chattels:
-            if ('type' in chattel) or ('price' in chattel):
+    # input data often contain non-empty array of empty objects...
+    def has_non_empty(self, arr):
+        for item in arr:
+            if (type(item) is not dict) or len(item.keys()):
                 return True
 
         return False
@@ -58,7 +55,7 @@ def main():
         else:
             b = a
 
-        if b in ( 'legalBusinessAssociates', 'realtiesBefore', 'chattels' ):
+        if b in ( 'chattels', 'commercialPapers', 'legalBusinessAssociates', 'organizationMember', 'realtiesBefore' ):
             sel.add(b)
         else:
             raise Exception("unknown argument " + a)
