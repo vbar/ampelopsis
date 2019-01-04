@@ -28,6 +28,8 @@ city_district_rx = re.compile("^.+-([^-]{3,})$")
 
 date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
+physician_title_rx = re.compile("\\bmudr[.]\\b")
+
 def normalize_name(raw):
     name = name_char_rx.sub("", raw.strip())
     return name.lower()
@@ -217,6 +219,11 @@ set municipality=%s""", (mayor, city, city))
         # negative court set
         if detail['judge']:
             sought.add(judge_position_entity)
+
+        if 'titleBefore' in detail:
+            title_before = detail['titleBefore'].lower()
+            if physician_title_rx.search(title_before):
+                sought.add(physician_position_entity)
 
         lst = detail['workingPositions']
         for it in lst:
