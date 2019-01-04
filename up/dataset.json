@@ -437,11 +437,11 @@
 	   <tr>
 	       <th colspan=\"3\">Cenné papíry, zaknihované cenné papíry nebo práva s nimi spojená (předchozí)</th>
 	   </tr>
-	   {{ for paper in statement.commercialPapersBefore }}
+	   {{ for share in statement.commercialPapersBefore }}
 	     <tr>
-		 <td>{{ if paper.commercialPaperType }}{{paper.commercialPaperType.name}}{{ end }}</td>
+		 <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}</td>
 		 <td>&nbsp;</td>
-		 <td>{{paper.issuer}}</td>
+		 <td>{{share.issuer}}</td>
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
@@ -449,11 +449,11 @@
 	   <tr>
 	       <th colspan=\"3\">Cenné papíry, zaknihované cenné papíry nebo práva s nimi spojená</th>
 	   </tr>
-	   {{ for paper in statement.commercialPapers }}
+	   {{ for share in statement.commercialPapers }}
 	     <tr>
-		 <td>{{ if paper.commercialPaperType }}{{paper.commercialPaperType.name}}{{ end }}</td>
+		 <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}</td>
 		 <td>&nbsp;</td>
-		 <td>{{paper.issuer}}</td>
+		 <td>{{share.issuer}}</td>
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
@@ -466,6 +466,78 @@
 		 <td>{{ chattel.type ?? '???' }}</td>
 		 <td>{{ if chattel.price }}{{chattel.price}} kč{{ end }}</td>
 		 <td>{{ if chattel.chattelAcquisition }}{{chattel.chattelAcquisition.name}}{{ end }}</td>
+	     </tr>
+	   {{ end }}
+	 {{ end; end }}
+	 {{ if statement.corporationSharesBefore; if statement.corporationSharesBefore.size > 0 }}
+	   <tr>
+	       <th colspan=\"3\">Podíl v obchodní korporaci nepředstavovaný cenným papírem nebo zaknihovaným cenným papírem (předchozí)</th>
+	   </tr>
+	   {{ for share in statement.corporationSharesBefore }}
+	     <tr>
+		 <td>{{share.name}}, IČO {{share.identificationNumber}}</td>
+		 <td>
+		   {{ if share.address }}
+		     {{share.address.municipality}}, {{share.address.street}} {{share.address.orientationNumber}}, {{share.address.zip}}
+		   {{ end }}
+		 </td>
+		 <td>{{share.shareAmount}}%</td>
+	     </tr>
+	   {{ end }}
+	 {{ end; end }}
+	 {{ if statement.corporationShares; if statement.corporationShares.size > 0 }}
+	   <tr>
+	       <th colspan=\"3\">Podíl v obchodní korporaci nepředstavovaný cenným papírem nebo zaknihovaným cenným papírem</th>
+	   </tr>
+	   {{ for share in statement.corporationShares }}
+	     <tr>
+		 <td>{{share.name}}, IČO {{share.identificationNumber}}</td>
+		 <td>
+		   {{ if share.address }}
+		     {{share.address.municipality}}, {{share.address.street}} {{share.address.orientationNumber}}, {{share.address.zip}}
+		   {{ end }}
+		 </td>
+		 <td>{{share.shareAmount}}%</td>
+	     </tr>
+	   {{ end }}
+	 {{ end; end }}
+	 {{ if statement.incomes; if statement.incomes.size > 0 }}
+	   <tr>
+	       <th colspan=\"3\">Peněžité příjmy nebo jiné majetkové výhody a dary</th>
+	   </tr>
+	   {{ for income in statement.incomes }}
+	     <tr>
+		 <td>
+		   {{ if income.legalPerson }}
+		     {{income.legalPerson.name}}, IČO {{income.legalPerson.identificationNumber}}
+		   {{ end }}
+		 </td>
+		 <td>{{ if income.price }}{{income.price}} kč{{ end }}</td>
+		 <td>
+		   {{ if income.note }}
+		     {{income.note}}
+		   {{ else if income.specification }}
+		     {{income.specification}}
+		   {{ end }}
+		 </td>
+	     </tr>
+	   {{ end }}
+	 {{ end; end }}
+	 {{ if statement.liabilities; if statement.liabilities.size > 0 }}
+	   <tr>
+	       <th colspan=\"3\">Závazky, zejména půjčky a úvěry</th>
+	   </tr>
+	   {{ for liability in statement.liabilities }}
+	     <tr>
+		 <td>
+		   {{ if liability.legalPerson }}
+		     {{liability.legalPerson.name}}, IČO {{liability.legalPerson.identificationNumber}}
+		   {{ end }}
+		 </td>
+		 <td>{{ if liability.price }}{{liability.price}} kč{{ end }}</td>
+		 <td>
+		   {{liability.type}}
+		 </td>
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
