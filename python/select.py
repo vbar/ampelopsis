@@ -55,7 +55,8 @@ def main():
         else:
             b = a
 
-        if b in ( 'chattels', 'chattelsBefore', 'commercialPapers', 'commercialPapersBefore', 'corporationShares', 'corporationSharesBefore', 'incomes', 'legalBusinessAssociates', 'liabilities', 'media', 'naturalPersonBusinesses', 'organizationMember', 'realties', 'realtiesBefore' ):
+        # not in data: incomesBefore, legalBusinessAssociatesBefore, liabilitiesBefore
+        if b in ( 'chattels', 'chattelsBefore', 'commercialPapers', 'commercialPapersBefore', 'corporationShares', 'corporationSharesBefore', 'incomes', 'legalBusinessAssociates', 'liabilities', 'media', 'naturalPersonBusinesses', 'organizationMember', 'otherContracts', 'realties', 'realtiesBefore' ):
             sel.add(b)
         else:
             raise Exception("unknown argument " + a)
