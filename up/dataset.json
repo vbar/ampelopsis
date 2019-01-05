@@ -367,7 +367,7 @@
 	   </tr>
 	   {{ for business in statement.otherContracts }}
 	     <tr>
-		 <td>{{business.name}}</td>
+		 <td>{{business.name}}{{ if business.ICO }}, IČO <a href=\"/Subjekt/{{business.ICO}}\">{{business.ICO}}</a>{{ end }}</td>
 		 <td>
 		   {{ if business.address }}
 		     {{business.address.municipality}}, {{business.address.street}} {{business.address.orientationNumber}}, {{business.address.zip}}
