@@ -28,7 +28,7 @@ city_district_rx = re.compile("^.+-([^-]{3,})$")
 
 date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
-physician_title_rx = re.compile("\\bmudr[.]\\b")
+physician_title_rx = re.compile("\\bmudr\\b")
 
 def normalize_name(raw):
     name = name_char_rx.sub("", raw.strip())
