@@ -86,6 +86,8 @@ order by url""")
                     k = 'Name'
                 elif top_level and (k == 'lastName'):
                     k = 'Surname'
+                elif k == 'identificationNumber':
+                    k = 'ICO'
 
                 if k in ( 'concatenatedWorkingPositionOrganizations', 'concatenatedWorkingPositions'):
                     out_node[k] = self.convert_concatenated(v)
