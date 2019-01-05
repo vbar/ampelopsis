@@ -269,7 +269,11 @@
 		{{ end }}
 	      </th>
 	      <td width=\"33%\">
-		{{ date.format = '%F'; date.parse statement.creationDate | date.to_string '%d. %m. %Y' }}{{ if statement.fromDate || statement.toDate }}:
+		{{ date.format = '%F' }}
+		{{ if statement.creationDate }}
+		  {{ date.parse statement.creationDate | date.to_string '%d. %m. %Y' }}{{ if statement.fromDate || statement.toDate }}: {{ end }}
+		{{ end }}
+		{{ if statement.fromDate || statement.toDate }}
 		  {{ date.parse statement.fromDate | date.to_string '%d. %m. %Y' }} -
 		  {{ date.parse statement.toDate | date.to_string '%d. %m. %Y' }}
 		{{ end }}
@@ -317,7 +321,7 @@
 	     <tr>
 		 <td>
 		   {{ if business.legalPerson }}
-		     {{business.legalPerson.name}}, IČO {{business.legalPerson.identificationNumber}}
+		     {{business.legalPerson.name}}{{ if business.legalPerson.ICO }}, IČO <a href=\"/Subjekt/{{business.legalPerson.ICO}}\">{{business.legalPerson.ICO}}</a>{{ end }}
 		   {{ end }}
 		 </td>
 		 <td>
@@ -341,7 +345,7 @@
 	     <tr>
 		 <td>
 		   {{ if business.legalPerson }}
-		     {{business.legalPerson.name}}, IČO {{business.legalPerson.identificationNumber}}
+		     {{business.legalPerson.name}}{{ if business.legalPerson.ICO }}, IČO <a href=\"/Subjekt/{{business.legalPerson.ICO}}\">{{business.legalPerson.ICO}}</a>{{ end }}
 		   {{ end }}
 		 </td>
 		 <td>
@@ -457,6 +461,18 @@
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
+	 {{ if statement.chattelsBefore; if statement.chattelsBefore.size > 0 }}
+	   <tr>
+	       <th colspan=\"3\">Jiné věci movité (předchozí)</th>
+	   </tr>
+	   {{ for chattel in statement.chattelsBefore }}
+	     <tr>
+		 <td>{{ chattel.type ?? '???' }}</td>
+		 <td>{{ if chattel.price }}{{chattel.price}} kč{{ end }}</td>
+		 <td>{{ if chattel.chattelAcquisition }}{{chattel.chattelAcquisition.name}}{{ end }}</td>
+	     </tr>
+	   {{ end }}
+	 {{ end; end }}
 	 {{ if statement.chattels; if statement.chattels.size > 0 }}
 	   <tr>
 	       <th colspan=\"3\">Jiné věci movité</th>
@@ -475,7 +491,7 @@
 	   </tr>
 	   {{ for share in statement.corporationSharesBefore }}
 	     <tr>
-		 <td>{{share.name}}, IČO {{share.identificationNumber}}</td>
+		 <td>{{share.name}}{ if share.ICO }}, IČO <a href=\"/Subjekt/{{share.ICO}}\">{{share.ICO}}</a>{{ end }}</td>
 		 <td>
 		   {{ if share.address }}
 		     {{share.address.municipality}}, {{share.address.street}} {{share.address.orientationNumber}}, {{share.address.zip}}
@@ -491,7 +507,7 @@
 	   </tr>
 	   {{ for share in statement.corporationShares }}
 	     <tr>
-		 <td>{{share.name}}, IČO {{share.identificationNumber}}</td>
+		 <td>{{share.name}}{ if share.ICO }}, IČO <a href=\"/Subjekt/{{share.ICO}}\">{{share.ICO}}</a>{{ end }}</td>
 		 <td>
 		   {{ if share.address }}
 		     {{share.address.municipality}}, {{share.address.street}} {{share.address.orientationNumber}}, {{share.address.zip}}
@@ -509,7 +525,7 @@
 	     <tr>
 		 <td>
 		   {{ if income.legalPerson }}
-		     {{income.legalPerson.name}}, IČO {{income.legalPerson.identificationNumber}}
+		     {{income.legalPerson.name}}{{ if income.legalPerson.ICO }}, IČO <a href=\"/Subjekt/{{income.legalPerson.ICO}}\">{{income.legalPerson.ICO}}</a>{{ end }}
 		   {{ end }}
 		 </td>
 		 <td>{{ if income.price }}{{income.price}} kč{{ end }}</td>
@@ -531,7 +547,7 @@
 	     <tr>
 		 <td>
 		   {{ if liability.legalPerson }}
-		     {{liability.legalPerson.name}}, IČO {{liability.legalPerson.identificationNumber}}
+		     {{liability.legalPerson.name}}{{ if liability.legalPerson.ICO }}, IČO <a href=\"/Subjekt/{{liability.legalPerson.ICO}}\">{{liability.legalPerson.ICO}}</a>{{ end }}
 		   {{ end }}
 		 </td>
 		 <td>{{ if liability.price }}{{liability.price}} kč{{ end }}</td>
