@@ -16,6 +16,10 @@ WPN = 2
 
 MUNI = 4
 
+TITLE_BEFORE = 8
+
+TITLE_AFTER = 16
+
 class Scanner(JsonLookup):
     def __init__(self, cur, feature, show_all):
         JsonLookup.__init__(self, cur)
@@ -46,7 +50,13 @@ order by url""")
             if not self.has_answer(generic_url):
                 return
 
-        if self.feature == MUNI:
+        if self.feature == TITLE_BEFORE:
+            if 'titleBefore' in detail:
+                self.names.add(detail['titleBefore'].lower())
+        elif self.feature == TITLE_AFTER:
+            if 'titleAfter' in detail:
+                self.names.add(detail['titleAfter'].lower())
+        elif self.feature == MUNI:
             for mr in self.municipal_representatives:
                 sought = self.make_city_set(detail, mr)
                 self.names |= sought
@@ -98,13 +108,17 @@ def main():
             feature |= ORG
         elif a in ( '-m', '--muni' ):
             feature |= MUNI
+        elif a in ( '-tb', '--title-before' ):
+            feature |= TITLE_BEFORE
+        elif a in ( '-ta', '--title-after' ):
+            feature |= TITLE_AFTER
         else:
             raise Exception("invalid argument " + a)
 
     if feature == 0:
         feature = ORG
-    elif feature not in (ORG, WPN, MUNI):
-        raise Exception("--org-name, --pos-name and --muni modes cannot be used together")
+    elif feature not in (ORG, WPN, MUNI, TITLE_BEFORE):
+        raise Exception("--org-name, --pos-name, --title-before, --title-after and --muni modes cannot be used together")
 
     with make_connection() as conn:
         with conn.cursor() as cur:
