@@ -5,8 +5,6 @@ import sys
 from common import make_connection
 from json_lookup import JsonLookup
 
-CHATTELS = 1
-
 class Selector(JsonLookup):
     def __init__(self, cur, sel):
         JsonLookup.__init__(self, cur)
@@ -55,7 +53,7 @@ def main():
         else:
             b = a
 
-        # not in data: incomesBefore, legalBusinessAssociatesBefore, liabilitiesBefore
+        # not in data: incomesBefore, legalBusinessAssociatesBefore, liabilitiesBefore, mediaBefore
         if b in ( 'chattels', 'chattelsBefore', 'commercialPapers', 'commercialPapersBefore', 'corporationShares', 'corporationSharesBefore', 'incomes', 'legalBusinessAssociates', 'liabilities', 'media', 'naturalPersonBusinesses', 'organizationMember', 'otherContracts', 'realties', 'realtiesBefore' ):
             sel.add(b)
         else:
