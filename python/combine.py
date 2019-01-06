@@ -87,7 +87,14 @@ order by url""")
                 elif top_level and (k == 'lastName'):
                     k = 'Surname'
                 elif k == 'identificationNumber':
-                    k = 'ICO'
+                    # don't transform foreign ID
+                    addr = in_node.get('address')
+                    if addr:
+                        country = addr.get('country')
+                        if country:
+                            name = country.get('name')
+                            if name and (name.lower() == "česká republika"):
+                                k = 'ICO'
 
                 if k in ( 'concatenatedWorkingPositionOrganizations', 'concatenatedWorkingPositions'):
                     out_node[k] = self.convert_concatenated(v)
