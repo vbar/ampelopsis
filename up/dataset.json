@@ -361,6 +361,26 @@
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
+	 {{ if statement.media; if statement.media.size > 0 }}
+	   <tr>
+	       <th colspan=\"3\">Provozování rozhlasového nebo televizního vysílání nebo vydávání periodického tisku</th>
+	   </tr>
+	   {{ for medium in statement.media }}
+	     <tr>
+		 <td>{{medium.name}}</td>
+		 <td>
+		   {{ if medium.type }}
+		     {{medium.type.name}}
+		   {{ end }}
+		 </td>
+		 <td>
+		   {{ if medium.method }}
+		     {{medium.method.name}}
+		   {{ end }}
+		 </td>
+	     </tr>
+	   {{ end }}
+	 {{ end; end }}
 	 {{ if statement.otherContracts; if statement.otherContracts.size > 0 }}
 	   <tr>
 	       <th colspan=\"3\">Další činnost v pracovněprávním nebo obdobném vztahu nebo ve služebním poměru, nejde-li o vztah nebo poměr, v němž působí jako veřejný funkcionář</th>
@@ -443,9 +463,9 @@
 	   </tr>
 	   {{ for share in statement.commercialPapersBefore }}
 	     <tr>
-		 <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}</td>
-		 <td>&nbsp;</td>
 		 <td>{{share.issuer}}</td>
+		 <td>&nbsp;</td>
+		 <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}</td>
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
@@ -455,9 +475,9 @@
 	   </tr>
 	   {{ for share in statement.commercialPapers }}
 	     <tr>
-		 <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}</td>
-		 <td>&nbsp;</td>
 		 <td>{{share.issuer}}</td>
+		 <td>&nbsp;</td>
+		 <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}</td>
 	     </tr>
 	   {{ end }}
 	 {{ end; end }}
@@ -491,7 +511,7 @@
 	   </tr>
 	   {{ for share in statement.corporationSharesBefore }}
 	     <tr>
-		 <td>{{share.name}}{ if share.ICO }}, IČO <a href=\"/Subjekt/{{share.ICO}}\">{{share.ICO}}</a>{{ end }}</td>
+		 <td>{{share.name}}{{ if share.ICO }}, IČO <a href=\"/Subjekt/{{share.ICO}}\">{{share.ICO}}</a>{{ end }}</td>
 		 <td>
 		   {{ if share.address }}
 		     {{share.address.municipality}}, {{share.address.street}} {{share.address.orientationNumber}}, {{share.address.zip}}
@@ -507,7 +527,7 @@
 	   </tr>
 	   {{ for share in statement.corporationShares }}
 	     <tr>
-		 <td>{{share.name}}{ if share.ICO }}, IČO <a href=\"/Subjekt/{{share.ICO}}\">{{share.ICO}}</a>{{ end }}</td>
+		 <td>{{share.name}}{{ if share.ICO }}, IČO <a href=\"/Subjekt/{{share.ICO}}\">{{share.ICO}}</a>{{ end }}</td>
 		 <td>
 		   {{ if share.address }}
 		     {{share.address.municipality}}, {{share.address.street}} {{share.address.orientationNumber}}, {{share.address.zip}}
@@ -560,12 +580,19 @@
       </tbody>
   </table>
 {{ end }}
-{{ searching = 1 }}
+{{ found_secret = 0 }}
 {{ for wp in model.workingPositions }}
-  {{ if searching && wp.workingPosition; if wp.workingPosition.visibility; if wp.workingPosition.visibility == 'SECRET' }}
-    <p>Na tajná oznámení nelze nahlížet ani na základě žádosti podle zákona o střetu zájmů, ani na základě zákona upravujícího svobodný přístup k informacím.</p>
-    {{ searching = 0 }}
+  {{ if !found_secret && wp.workingPosition; if wp.workingPosition.visibility; if wp.workingPosition.visibility == 'SECRET' }}
+    {{ found_secret = 1 }}
   {{ end; end; end }}
+{{ end }}
+{{ if !found_secret }}
+  {{ for statement in model.statements }}
+    {{ if statement.visibility == 'SECRET'; found_secret = 1; end }}
+  {{ end }}
+{{ end }}
+{{ if found_secret }}
+  <p>Na tajná oznámení nelze nahlížet ani na základě žádosti podle zákona o střetu zájmů, ani na základě zákona upravujícího svobodný přístup k informacím.</p>
 {{ end }}"
     }
 }
