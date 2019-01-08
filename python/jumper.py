@@ -445,7 +445,8 @@ set municipality=%s""", (mayor, city, city))
                         mainline_block = """optional { ?w wdt:P39 ?p. }
         optional { ?w wdt:P106 ?o. }"""
                 else:
-                    political_constraint = 'wdt:P39 ?p; wdt:P106 ?o;'
+                    mainline_block = """optional { ?w wdt:P39 ?p. }
+        optional { ?w wdt:P106 ?o. }"""
 
         if l0:
             vl = format_position_iterable(occupation_list)
