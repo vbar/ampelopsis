@@ -32,6 +32,9 @@
 	    "type": "string",
 	    "format": "date-time"
 	  },
+	  "hasSecret": {
+	    "type": "boolean"
+	  },
 	  "titleBefore": {
 	    "type": "string"
 	  },
@@ -182,9 +185,6 @@
 	    "type": "string"
 	  },
 	  "hasRequestStatement": {
-	    "type": "boolean"
-	  },
-	  "hasSecretStatement": {
 	    "type": "boolean"
 	  },
 	  "judge": {
@@ -580,18 +580,7 @@
       </tbody>
   </table>
 {{ end }}
-{{ found_secret = 0 }}
-{{ for wp in model.workingPositions }}
-  {{ if !found_secret && wp.workingPosition; if wp.workingPosition.visibility; if wp.workingPosition.visibility == 'SECRET' }}
-    {{ found_secret = 1 }}
-  {{ end; end; end }}
-{{ end }}
-{{ if !found_secret }}
-  {{ for statement in model.statements }}
-    {{ if statement.visibility == 'SECRET'; found_secret = 1; end }}
-  {{ end }}
-{{ end }}
-{{ if found_secret }}
+{{ if model.hasSecret }}
   <p>Na tajná oznámení nelze nahlížet ani na základě žádosti podle zákona o střetu zájmů, ani na základě zákona upravujícího svobodný přístup k informacím.</p>
 {{ end }}"
     }
