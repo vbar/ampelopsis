@@ -98,10 +98,16 @@ order by url""")
 
                 if k in ( 'concatenatedWorkingPositionOrganizations', 'concatenatedWorkingPositions'):
                     out_node[k] = self.convert_concatenated(v)
+                elif k == 'hasSecretStatement':
+                    pass
                 else:
                     out_node[k] = self.convert_node(v, False)
             if top_level:
                 out_node['Url'] = self.url
+
+                if self.has_secret(in_node):
+                    out_node['hasSecret'] = True
+
                 wid = self.get_unique_wid(in_node)
                 if wid:
                     out_node['wikidataId'] = wid
@@ -121,6 +127,25 @@ order by url""")
             out_node = in_node
 
         return out_node
+
+    def has_secret(self, detail):
+        lst = detail['workingPositions']
+        for it in lst:
+            wp = it['workingPosition']
+            vis = wp.get('visibility')
+            if vis == 'SECRET':
+                return True
+
+        statements = detail.get('statements')
+        if statements:
+            for stm in statements:
+                off = stm.get('official')
+                if off:
+                    vis = off.get('visibility')
+                    if vis == 'SECRET':
+                        return True
+
+        return False
 
     def convert_concatenated(self, v):
         if v and type(v) is str:
