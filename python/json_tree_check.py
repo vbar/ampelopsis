@@ -18,8 +18,8 @@ class JsonTreeCheck:
             for it in in_node:
                 if self.walk(it):
                     return True
-        else:
-            return False
+
+        return False
 
     def normalize(self, v):
         if not type(v) is str:
