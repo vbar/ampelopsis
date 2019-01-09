@@ -1,6 +1,6 @@
 import re
 from corrector import Corrector
-from named_entities import director_position_entity, judge_position_entity, physician_position_entity, rector_of_charles_university_position_entity, researcher_position_entity
+from named_entities import Entity
 from rulebook_util import get_org_name
 
 charles_university = {
@@ -14,9 +14,8 @@ hospital_name_rx = re.compile("^nemocnice\\b")
 
 # A rulebook (q.v.) value marking the match as an MP position that
 # should also have its terms checked. Note that despite the name,
-# instances of this object can only be initialized with
-# mp_position_entity - adding senators' terms would require changes in
-# Jumper.
+# instances of this object can only be initialized with Entity.mp -
+# adding senators' terms would require changes in Jumper.
 class ParliamentLevel:
     def __init__(self, position):
         self.position = position
@@ -25,12 +24,12 @@ class ParliamentLevel:
         return self.position
 
 # Match for a judge. Not configurable - differs from simply using
-# judge_position_entity by allowing Jumper to recognize the class
-# name. Admittedly Jumper could also recognize judge_position_entity,
-# but just to keep the level processing somewhat regular...
+# Entity.judge by allowing Jumper to recognize the class
+# name. Admittedly Jumper could also recognize Entity.judge, but just
+# to keep the level processing somewhat regular...
 class JudgeLevel:
     def __call__(self, it):
-        return judge_position_entity
+        return Entity.judge
 
 # A rulebook (q.v.) value marking the match as a position that should
 # also match a city/village. Note that instances of this object can be
@@ -59,13 +58,13 @@ class UniversityLevel:
 
         sought = []
         if found_uni and self.upper:
-            sought.append(rector_of_charles_university_position_entity)
+            sought.append(Entity.rector_of_charles_university)
 
         if found_uni or university_name_rx.search(org_name):
             if self.upper:
                 sought.extend(('Q212071', 'Q2113250', 'Q723682'))
             else:
-                sought.append(researcher_position_entity)
+                sought.append(Entity.researcher)
 
         return sought
 
@@ -82,7 +81,7 @@ class DirectorLevel:
 
         entities = set()
         if hospital_name_rx.match(org_name):
-            entities.add(physician_position_entity)
+            entities.add(Entity.physician)
 
         orgs = self.org_corrector.match(org_name)
         for org in orgs:
@@ -93,7 +92,7 @@ class DirectorLevel:
                 entities.update(ent)
 
         if not len(entities):
-            entities.add(director_position_entity)
+            entities.add(Entity.director)
 
         return entities
 

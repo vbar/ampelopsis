@@ -1,30 +1,29 @@
 import re
 
 from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, UniversityLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entity, director_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, prosecutor_position_entity, psychiatrist_position_entity, rector_of_charles_university_position_entity, region_councillor_position_entity
+from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook_util import get_org_name
 
-# Mostly generic; region_councillor_position_entity is used to mark
-# the region match, but rarely if ever matches anything. Q11027282
-# ("hetman") is a possible alternative, but doesn't match anybody new
-# either. Prague is not included because it is a city, and is handled
-# on a higher level (not using region_councillor_position_entity -
-# perhaps it should?)
+# Mostly generic; Entity.region_councillor is used to mark the region
+# match, but rarely if ever matches anything. Q11027282 ("hetman") is
+# a possible alternative, but doesn't match anybody new either. Prague
+# is not included because it is a city, and is handled on a higher
+# level (not using Entity.region_councillor - perhaps it should?)
 region2councillor = {
-    'jihočeský kraj': ( 'Q55670007', region_councillor_position_entity ),
-    'jihomoravský kraj': ( 'Q59583668', region_councillor_position_entity ),
-    'karlovarský kraj': region_councillor_position_entity,
-    'kraj vysočina': region_councillor_position_entity,
-    'krajský úřad středočeského kraje': region_councillor_position_entity,
-    'královéhradecký kraj': ( 'Q59539134', region_councillor_position_entity ),
-    'liberecký kraj': region_councillor_position_entity,
-    'moravskoslezský kraj': ( 'Q55973189', region_councillor_position_entity ),
-    'olomoucký kraj': region_councillor_position_entity,
-    'pardubický kraj': region_councillor_position_entity,
-    'plzeňský kraj': region_councillor_position_entity,
-    'středočeský kraj': region_councillor_position_entity,
-    'ústecký kraj': region_councillor_position_entity,
-    'zlínský kraj': region_councillor_position_entity,
+    'jihočeský kraj': ( 'Q55670007', Entity.region_councillor ),
+    'jihomoravský kraj': ( 'Q59583668', Entity.region_councillor ),
+    'karlovarský kraj': Entity.region_councillor,
+    'kraj vysočina': Entity.region_councillor,
+    'krajský úřad středočeského kraje': Entity.region_councillor,
+    'královéhradecký kraj': ( 'Q59539134', Entity.region_councillor ),
+    'liberecký kraj': Entity.region_councillor,
+    'moravskoslezský kraj': ( 'Q55973189', Entity.region_councillor ),
+    'olomoucký kraj': Entity.region_councillor,
+    'pardubický kraj': Entity.region_councillor,
+    'plzeňský kraj': Entity.region_councillor,
+    'středočeský kraj': Entity.region_councillor,
+    'ústecký kraj': Entity.region_councillor,
+    'zlínský kraj': Entity.region_councillor,
 }
 
 unknown_council_set = set([
@@ -39,7 +38,7 @@ unknown_council_set = set([
 # occupation must be special-cased in Jumper
 organization2occupation = {
     'kancelář prezidenta republiky': 'Q15712674',
-    'psychiatrická nemocnice bohnice': psychiatrist_position_entity,
+    'psychiatrická nemocnice bohnice': Entity.psychiatrist,
 }
 
 # Maps it['workingPosition']['name'], where it is an item of cro
@@ -53,7 +52,7 @@ class Rulebook:
         director_level = DirectorLevel(organization2occupation)
 
         # police director is not the same as police officer, but implies it
-        police_entities = ( director_position_entity, police_officer_position_entity )
+        police_entities = ( Entity.director, Entity.police_officer )
 
         self.rulebook = {
             # "governing body member" doesn't sound very university-specific,
@@ -67,11 +66,11 @@ class Rulebook:
 
             # apparently doesn't include deputy ministers (but does include
             # premier)
-            'člen vlády': minister_position_entity,
+            'člen vlády': Entity.minister,
 
-            'náměstek člena vlády': deputy_minister_position_entity,
-            'náměstek pro řízení sekce': deputy_minister_position_entity,
-            'poslanec': ParliamentLevel(mp_position_entity),
+            'náměstek člena vlády': Entity.deputy_minister,
+            'náměstek pro řízení sekce': Entity.deputy_minister,
+            'poslanec': ParliamentLevel(Entity.mp),
             'senátor': 'Q18941264',
             'starosta': MuniLevel(mayor_position_entities),
             'místostarosta / zástupce starosty': MuniLevel(deputy_mayor_position_entities),
@@ -83,7 +82,7 @@ class Rulebook:
             'člen bankovní rady české národní banky': ( 'Q28598459', 'Q25505764' ),
 
             'soudce': JudgeLevel(),
-            'státní zástupce': prosecutor_position_entity,
+            'státní zástupce': Entity.prosecutor,
             'ředitel bezpečnostního sboru': police_entities,
             # ředitel odboru/sekce doesn't match any more directors
 

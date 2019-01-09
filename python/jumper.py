@@ -5,7 +5,7 @@ import re
 from corrector import Corrector
 from json_tree_check import JsonTreeCheck
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
-from named_entities import councillor_position_entities, deputy_mayor_position_entities, judge_position_entity, mayor_position_entities, minister_position_entity, mp_position_entity, physician_position_entity, police_officer_position_entity, prosecutor_position_entity, psychiatrist_position_entity, researcher_position_entity
+from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
 from rulebook_util import get_org_name
 from urlize import create_query_url, whitespace_rx
@@ -216,15 +216,14 @@ set municipality=%s""", (mayor, city, city))
         sought = set()
 
         # will probably (but not provably) also be handled by
-        # rulebook; judge_position_entity should work outside rulebook
-        # (unlike e.g. mp_position_entity) because judges w/o
-        # JudgeLevel matches are considered non-prominent and get a
-        # negative court set
+        # rulebook; Entity.judge should work outside rulebook (unlike
+        # e.g. Entity.mp) because judges w/o JudgeLevel matches are
+        # considered non-prominent and get a negative court set
         if detail['judge']:
-            sought.add(judge_position_entity)
+            sought.add(Entity.judge)
 
         if self.physician_check.walk(detail):
-            sought.add(physician_position_entity)
+            sought.add(Entity.physician)
 
         lst = detail['workingPositions']
         for it in lst:
@@ -300,26 +299,26 @@ set municipality=%s""", (mayor, city, city))
         position_list = list(position_set)
 
         minister_position = None
-        if minister_position_entity in position_set:
-            position_set.remove(minister_position_entity)
-            minister_position = minister_position_entity
+        if Entity.minister in position_set:
+            position_set.remove(Entity.minister)
+            minister_position = Entity.minister
 
         mp_position = None
-        if mp_position_entity in position_set:
+        if Entity.mp in position_set:
             # not removed from position_set
-            mp_position = mp_position_entity
+            mp_position = Entity.mp
 
         judge_position = None
         court_set = None
-        if judge_position_entity in position_set:
-            position_set.remove(judge_position_entity)
-            judge_position = judge_position_entity
+        if Entity.judge in position_set:
+            position_set.remove(Entity.judge)
+            judge_position = Entity.judge
             court_set = self.make_court_set(detail)
 
         prosecutor_position = None
-        if prosecutor_position_entity in position_set:
-            position_set.remove(prosecutor_position_entity)
-            prosecutor_position = prosecutor_position_entity
+        if Entity.prosecutor in position_set:
+            position_set.remove(Entity.prosecutor)
+            prosecutor_position = Entity.prosecutor
 
         mayor_position_set = set()
         for pos in mayor_position_entities:
@@ -344,7 +343,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (police_officer_position_entity, physician_position_entity, psychiatrist_position_entity, researcher_position_entity):
+        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
