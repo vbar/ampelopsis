@@ -129,7 +129,7 @@ class Jumper:
         self.rulebook = Rulebook()
 
         today = datetime.now()
-        self.last_year = today.year - 1
+        self.last_year = today.year - 2
 
         self.physician_check = JsonTreeCheck('titleBefore', physician_title_rx)
 
