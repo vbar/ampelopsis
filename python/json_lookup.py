@@ -36,7 +36,7 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
             bindings = doc['results']['bindings']
             for it in bindings:
                 if name_rx.search(it['l']['value']):
-                    m = Pellet.datetime_rx.match(bindings[0]['b']['value'])
+                    m = Pellet.datetime_rx.match(it['b']['value'])
                     if m:
                         anode = it.get('a')
                         a = anode.get('value') if anode else None
