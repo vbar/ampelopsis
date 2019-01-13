@@ -17,7 +17,7 @@ name_char_rx = re.compile("[^\\w ./-]")
 city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|mo|městský úřad|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úmo|úřad městyse|ves|statutární město|zastupitelstvo obce|zastupitelstvo města) ")
 
 # '-' by itself would split not only Frýdek-Místek (doesn't really
-# matter because SPARQL queries match on string start anyway) but also
+# matter for SPARQL queries matching on string start) but also
 # Praha-Řeporyje (more problematic); to handle abbreviations, we want
 # to stop before the first '.'
 city_stop_rx = re.compile("[.,;()]| - |\\bse sídlem\\b")
@@ -122,6 +122,14 @@ def make_mayor_of_query_url():
         filter(lang(?l) = "cs")
 }""" % vl
     return create_query_url(query)
+
+def wrap_pos_clause(bare_clause, occ_exists):
+    pos_branch = []
+    if occ_exists:
+        pos_branch.append('?w wdt:P39 ?p.')
+
+    pos_branch.append(bare_clause)
+    return ''.join(pos_branch)
 
 class Jumper:
     def __init__(self):
@@ -348,10 +356,12 @@ set municipality=%s""", (mayor, city, city))
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
 
+        l0 = len(occupation_list)
+
         pos_clauses = []
         if minister_position:
             np = 'wd:' + minister_position
-            pos_clauses.append('?p wdt:P279/wdt:P279 %s.' % np)
+            pos_clauses.append(wrap_pos_clause('?p wdt:P279/wdt:P279 %s.' % np, l0))
 
         min_year = None
         if mp_position:
@@ -368,7 +378,8 @@ set municipality=%s""", (mayor, city, city))
                     position_set.add(mayor)
 
             if len(city_set):
-                pos_clauses.append(format_mayor_bare_clause(mayor_position_set, city_set))
+                bare_clause = format_mayor_bare_clause(mayor_position_set, city_set)
+                pos_clauses.append(wrap_pos_clause(bare_clause, l0))
 
         deputy_mayor_city_set = set()
         if len(deputy_mayor_position_set):
@@ -400,18 +411,19 @@ set municipality=%s""", (mayor, city, city))
 
         if len(deputy_mayor_city_set):
             assert len(deputy_mayor_position_set)
-            pos_clauses.append(format_councillor_bare_clause(deputy_mayor_position_set, deputy_mayor_city_set))
+            bare_clause = format_councillor_bare_clause(deputy_mayor_position_set, deputy_mayor_city_set)
+            pos_clauses.append(wrap_pos_clause(bare_clause, l0))
 
         if len(councillor_city_set):
             assert len(councillor_position_set)
-            pos_clauses.append(format_councillor_bare_clause(councillor_position_set, councillor_city_set))
+            bare_clause = format_councillor_bare_clause(councillor_position_set, councillor_city_set)
+            pos_clauses.append(wrap_pos_clause(bare_clause, l0))
 
         if len(position_set):
             vl = format_position_iterable(position_set)
-            pos_clauses.append('values ?p { %s }' % vl)
+            pos_clauses.append(wrap_pos_clause('values ?p { %s }' % vl, l0))
 
         l = len(pos_clauses)
-        l0 = len(occupation_list)
 
         # judge is such a specific feature we require it when present
         # in input data (rather than or-ing it with political
@@ -445,18 +457,17 @@ set municipality=%s""", (mayor, city, city))
                     else:
                         loc_occ = True
                 else:
-                    political_constraint ='wdt:P39 ?p;'
                     loc_occ = True
 
         if l0:
-            occ_clauses = []
+            occ_branch = []
             if loc_occ:
-                occ_clauses.append('?w wdt:P106 ?o.')
+                occ_branch.append('?w wdt:P106 ?o.')
 
             vl = format_position_iterable(occupation_list)
-            occ_clauses.append('values ?o { %s }' % vl)
+            occ_branch.append('values ?o { %s }' % vl)
 
-            pos_clauses.append(''.join(occ_clauses))
+            pos_clauses.append(''.join(occ_branch))
 
             # prosecutor already is in occupation_list (and therefore
             # in pos_clauses), but the occupation almost never matches
