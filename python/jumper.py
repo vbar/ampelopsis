@@ -419,6 +419,7 @@ set municipality=%s""", (mayor, city, city))
         # the policeman & doctor case...
         political_constraint = ''
         mainline_block = ''
+        loc_occ = False
         if judge_position:
             if not l:
                 political_constraint = 'wdt:P106 ?o;'
@@ -442,16 +443,20 @@ set municipality=%s""", (mayor, city, city))
                         political_constraint = 'wdt:P106 ?o;'
                         mainline_block = 'optional { ?w wdt:P39 ?p. }'
                     else:
-                        mainline_block = """optional { ?w wdt:P39 ?p. }
-        optional { ?w wdt:P106 ?o. }"""
+                        loc_occ = True
                 else:
-                    mainline_block = """optional { ?w wdt:P39 ?p. }
-        optional { ?w wdt:P106 ?o. }"""
+                    political_constraint ='wdt:P39 ?p;'
+                    loc_occ = True
 
         if l0:
+            occ_clauses = []
+            if loc_occ:
+                occ_clauses.append('?w wdt:P106 ?o.')
+
             vl = format_position_iterable(occupation_list)
-            occ_clause = 'values ?o { %s }' % vl
-            pos_clauses.append(occ_clause)
+            occ_clauses.append('values ?o { %s }' % vl)
+
+            pos_clauses.append(''.join(occ_clauses))
 
             # prosecutor already is in occupation_list (and therefore
             # in pos_clauses), but the occupation almost never matches
