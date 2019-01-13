@@ -7,7 +7,7 @@ from json_tree_check import JsonTreeCheck
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
-from rulebook_util import get_org_name
+from rulebook_util import get_org_name, school_name_rx
 from urlize import create_query_url, whitespace_rx
 
 # we could include single quote, but there probably aren't any Czech
@@ -250,7 +250,27 @@ set municipality=%s""", (mayor, city, city))
             # wp['name'] 'poslanec', and senators 'senátor'), and
             # adding MP terms wouldn't work outside rulebook anyway...
 
+        if self.check_school(detail):
+            sought.add(Entity.pedagogue)
+            # could also add researcher here, but it doesn't match
+            # anybody new...
+
         return sought
+
+    def check_school(self, detail):
+        for statement in detail['statements']:
+            incomes = statement.get('incomes')
+            if incomes:
+                for income in incomes:
+                    legal = income.get('legalPerson')
+                    if legal:
+                        nm = legal.get('name')
+                        if nm:
+                            org_name = nm.lower()
+                            if school_name_rx.search(org_name):
+                                return True
+
+        return False
 
     def make_court_set(self, detail):
         sought = set()
@@ -351,7 +371,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher):
+        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.pedagogue):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
