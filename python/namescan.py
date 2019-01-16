@@ -5,6 +5,7 @@
 import json
 import os
 import sys
+from coincidence import CoincidenceAggregator
 from common import make_connection
 from json_lookup import JsonLookup
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
@@ -20,6 +21,8 @@ TITLE_BEFORE = 8
 
 TITLE_AFTER = 16
 
+DEEP_ORG = 32
+
 class Scanner(JsonLookup):
     def __init__(self, cur, feature, show_all):
         JsonLookup.__init__(self, cur)
@@ -27,6 +30,8 @@ class Scanner(JsonLookup):
         self.municipal_representatives = ( mayor_position_entities[0], deputy_mayor_position_entities[0], councillor_position_entities[0] )
         self.show_all = show_all
         self.names = set()
+        if feature == DEEP_ORG:
+            self.coin_agg = CoincidenceAggregator('name', 'address')
 
     def run(self):
         self.cur.execute("""select url
@@ -60,6 +65,9 @@ order by url""")
             for mr in self.municipal_representatives:
                 sought = self.make_city_set(detail, mr)
                 self.names |= sought
+        elif self.feature == DEEP_ORG:
+            sought = self.coin_agg.walk(detail)
+            self.names |= sought
         else:
             lst = detail['workingPositions']
             for it in lst:
@@ -112,13 +120,15 @@ def main():
             feature |= TITLE_BEFORE
         elif a in ( '-ta', '--title-after' ):
             feature |= TITLE_AFTER
+        elif a == '--deep-org':
+            feature |= DEEP_ORG
         else:
             raise Exception("invalid argument " + a)
 
     if feature == 0:
         feature = ORG
-    elif feature not in (ORG, WPN, MUNI, TITLE_BEFORE):
-        raise Exception("--org-name, --pos-name, --title-before, --title-after and --muni modes cannot be used together")
+    elif feature not in (ORG, WPN, MUNI, TITLE_BEFORE, TITLE_AFTER, DEEP_ORG):
+        raise Exception("--org-name, --deep-org, --pos-name, --title-before, --title-after and --muni modes cannot be used together")
 
     with make_connection() as conn:
         with conn.cursor() as cur:
