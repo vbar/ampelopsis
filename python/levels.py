@@ -1,7 +1,7 @@
 import re
 from corrector import Corrector
 from named_entities import Entity
-from rulebook_util import get_org_name, school_name_rx
+from rulebook_util import get_org_name, university_name_rx
 
 charles_university = {
     'univerzita karlova',
@@ -58,7 +58,7 @@ class UniversityLevel:
         if found_uni and self.upper:
             sought.append(Entity.rector_of_charles_university)
 
-        if found_uni or school_name_rx.search(org_name):
+        if found_uni or university_name_rx.search(org_name):
             # Entity.pedagogue could be added here, but it causes
             # false matches on upper level (although they might be
             # worth it?) and doesn't match anybody new on the lower
