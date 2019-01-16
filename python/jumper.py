@@ -270,6 +270,17 @@ set municipality=%s""", (mayor, city, city))
                             if school_name_rx.search(org_name):
                                 return True
 
+            others = statement.get('otherContracts')
+            if others:
+                for other in others:
+                    tp = other.get('type')
+                    if tp and tp.get('type') == 'EMPLOYMENT_RELATIONSHIP':
+                        nm = other.get('name')
+                        if nm:
+                            org_name = nm.lower()
+                            if school_name_rx.search(org_name):
+                                return True
+
         return False
 
     def make_court_set(self, detail):
