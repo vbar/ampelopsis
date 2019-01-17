@@ -33,7 +33,6 @@ class Entity:
     # not particularly special but do repeat
     deputy_minister = 'Q15735113'
     director = 'Q1162163'
-    region_councillor = 'Q27830328'
     rector_of_charles_university = 'Q12049166'
 
 # mayors are special because there's so many the name match may
@@ -59,4 +58,16 @@ councillor_position_entities = (
     # (regional politicians apparently tend to have other positions as
     # well), so for now we don't bother
     'Q19602879'
+)
+
+region_councillor_entities = (
+    # generic "zastupitel kraje" rarely if ever matches anything
+    'Q27830328',
+
+    # "hejtman" is a possible alternative
+    'Q11027282',
+
+    # "náměstek hejtmana" is probably the only entity in this list
+    # that actually matches someone new...
+    'Q30103103'
 )

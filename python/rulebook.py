@@ -1,29 +1,29 @@
 import re
 
-from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, UniversityLevel
-from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
+from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, RegionCouncilLevel, UniversityLevel
+from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities, region_councillor_entities
 from rulebook_util import get_org_name
 
-# Mostly generic; Entity.region_councillor is used to mark the region
-# match, but rarely if ever matches anything. Q11027282 ("hetman") is
-# a possible alternative, but doesn't match anybody new either. Prague
-# is not included because it is a city, and is handled on a higher
-# level (not using Entity.region_councillor - perhaps it should?)
+# Specific regional representative entities match better than the
+# generic region_councillor_entities (which are also added inside
+# RegionCouncilLevel), but mostly they aren't available. Prague is not
+# included because it is a city, and is handled on a higher level (not
+# using even Q27830328 - perhaps it should?)
 region2councillor = {
-    'jihočeský kraj': ( 'Q55670007', Entity.region_councillor ),
-    'jihomoravský kraj': ( 'Q59583668', Entity.region_councillor ),
-    'karlovarský kraj': Entity.region_councillor,
-    'kraj vysočina': Entity.region_councillor,
-    'krajský úřad středočeského kraje': Entity.region_councillor,
-    'královéhradecký kraj': ( 'Q59539134', Entity.region_councillor ),
-    'liberecký kraj': Entity.region_councillor,
-    'moravskoslezský kraj': ( 'Q55973189', Entity.region_councillor ),
-    'olomoucký kraj': Entity.region_councillor,
-    'pardubický kraj': Entity.region_councillor,
-    'plzeňský kraj': Entity.region_councillor,
-    'středočeský kraj': Entity.region_councillor,
-    'ústecký kraj': Entity.region_councillor,
-    'zlínský kraj': Entity.region_councillor,
+    'jihočeský kraj': RegionCouncilLevel('Q55670007'),
+    'jihomoravský kraj': RegionCouncilLevel('Q59583668'),
+    'karlovarský kraj': region_councillor_entities,
+    'kraj vysočina': region_councillor_entities,
+    'krajský úřad středočeského kraje': region_councillor_entities,
+    'královéhradecký kraj': RegionCouncilLevel('Q59539134'),
+    'liberecký kraj': region_councillor_entities,
+    'moravskoslezský kraj': RegionCouncilLevel('Q55973189'),
+    'olomoucký kraj': region_councillor_entities,
+    'pardubický kraj': region_councillor_entities,
+    'plzeňský kraj': region_councillor_entities,
+    'středočeský kraj': region_councillor_entities,
+    'ústecký kraj': region_councillor_entities,
+    'zlínský kraj': region_councillor_entities,
 }
 
 unknown_council_set = set([

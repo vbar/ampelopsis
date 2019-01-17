@@ -1,7 +1,7 @@
 import re
 from corrector import Corrector
-from named_entities import Entity
-from rulebook_util import get_org_name, university_name_rx
+from named_entities import Entity, region_councillor_entities
+from rulebook_util import convert_answer_to_iterable, get_org_name, university_name_rx
 
 charles_university = {
     'univerzita karlova',
@@ -98,6 +98,18 @@ class DirectorLevel:
 
         return entities
 
+# values of region2councillor map, for the keys (regions) for which a
+# specific entity exists; see CouncilLevel
+class RegionCouncilLevel:
+    def __init__(self, local_entity):
+        assert local_entity
+        self.local_entity = local_entity
+
+    def __call__(self, dummy):
+        entities = set(region_councillor_entities)
+        entities.add(self.local_entity)
+        return entities
+
 # Match for a city council, or some other council; currently we just
 # check regions (and drop some obscure orgs).
 class CouncilLevel(MuniLevel):
@@ -116,16 +128,14 @@ class CouncilLevel(MuniLevel):
             return []
 
         if self.region_corrector.is_correct(org_name):
-            return self.region2councillor[org_name]
+            return convert_answer_to_iterable(self.region2councillor[org_name], it)
 
         region_entities = set()
         regions = self.region_corrector.match(org_name)
         for reg in regions:
             ent = self.region2councillor[reg]
-            if isinstance(ent, str):
-                region_entities.add(ent)
-            else:
-                region_entities.update(ent)
+            entities = convert_answer_to_iterable(ent, it)
+            region_entities.update(entities)
 
         if len(region_entities):
             return region_entities

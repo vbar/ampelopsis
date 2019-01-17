@@ -7,7 +7,7 @@ from json_tree_check import JsonTreeCheck
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
-from rulebook_util import get_org_name, school_name_rx
+from rulebook_util import convert_answer_to_iterable, get_org_name, school_name_rx
 from urlize import create_query_url, whitespace_rx
 
 # we could include single quote, but there probably aren't any Czech
@@ -34,15 +34,6 @@ physician_title_rx = re.compile("\\bmudr\\b")
 def normalize_name(raw):
     name = name_char_rx.sub("", raw.strip())
     return name.lower()
-
-def convert_answer_to_iterable(answer, it):
-    if callable(answer): # technically we could have a cycle, but hopefully nobody will need that...
-        answer = answer(it)
-
-    if isinstance(answer, str):
-        return (answer,)
-    else: # must be iterable
-        return answer
 
 def convert_city_set_to_dict(city_set):
     city_dict = {}
