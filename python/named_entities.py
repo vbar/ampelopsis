@@ -22,6 +22,7 @@ class Entity:
     physician = 'Q39631'
     psychiatrist = 'Q211346'
     researcher = 'Q1650915'
+    university_teacher = 'Q1622272'
 
     # Prosecutor not only isn't a position; it may not be linked at all.
     # We try to (also) match it from description.

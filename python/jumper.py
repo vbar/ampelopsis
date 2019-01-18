@@ -373,7 +373,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.pedagogue):
+        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.university_teacher, Entity.pedagogue):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)

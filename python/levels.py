@@ -67,6 +67,7 @@ class UniversityLevel:
                 sought.extend(('Q212071', 'Q2113250', 'Q723682'))
             else:
                 sought.append(Entity.researcher)
+                sought.append(Entity.university_teacher)
 
         return sought
 
