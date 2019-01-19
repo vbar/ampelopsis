@@ -31,6 +31,8 @@ date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
 physician_title_rx = re.compile("\\bmudr\\b")
 
+manager_title_rx = re.compile("\\bmba\\b")
+
 def normalize_name(raw):
     name = name_char_rx.sub("", raw.strip())
     return name.lower()
@@ -131,6 +133,7 @@ class Jumper:
         self.last_year = today.year - 2
 
         self.physician_check = JsonTreeCheck('titleBefore', physician_title_rx)
+        self.manager_check = JsonTreeCheck('titleAfter', manager_title_rx)
 
         self.city2mayor = {}
 
@@ -223,6 +226,9 @@ set municipality=%s""", (mayor, city, city))
 
         if self.physician_check.walk(detail):
             sought.add(Entity.physician)
+
+        if self.manager_check.walk(detail):
+            sought.add(Entity.manager)
 
         lst = detail['workingPositions']
         for it in lst:
@@ -373,7 +379,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.university_teacher, Entity.pedagogue):
+        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.university_teacher, Entity.pedagogue, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)

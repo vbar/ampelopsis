@@ -12,17 +12,17 @@ class Entity:
     # without Q19803234, so we ignore it.
     mp = 'Q19803234'
 
-    # Judges, policemen, doctors and researchers are special because
-    # (unlike other matched persons) they aren't
-    # politicians. Constitutional judge (Q59773473) is also used, but
-    # doesn't match anybody new - it's enough to match the
-    # description...
+    # Judges, policemen, doctors etc. are special because (unlike
+    # other matched persons) they aren't politicians. Constitutional
+    # judge (Q59773473) is also used, but doesn't match anybody new -
+    # it's enough to match the description...
     judge = 'Q16533'
     police_officer = 'Q384593'
     physician = 'Q39631'
     psychiatrist = 'Q211346'
     researcher = 'Q1650915'
     university_teacher = 'Q1622272'
+    manager = 'Q2462658'
 
     # Prosecutor not only isn't a position; it may not be linked at all.
     # We try to (also) match it from description.
