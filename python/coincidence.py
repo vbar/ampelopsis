@@ -24,11 +24,11 @@ class CoincidenceAggregator:
                 if (k == self.pri_name) and (type(v) is str):
                     pri_val = v
                     if sec_flag:
-                        self.names.add(pri_val)
+                        self.add_name(pri_val)
                 elif k == self.sec_name:
                     sec_flag = True
                     if pri_val is not None:
-                        self.names.add(pri_val)
+                        self.add_name(pri_val)
 
                     self.do_walk(v)
                 else:
@@ -36,6 +36,9 @@ class CoincidenceAggregator:
         elif type(in_node) is list:
             for it in in_node:
                 self.do_walk(it)
+
+    def add_name(self, raw):
+        self.names.add(raw.strip())
 
 def main():
     with make_connection() as conn:
