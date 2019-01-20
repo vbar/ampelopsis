@@ -10,7 +10,7 @@ class Seeder:
     def __init__(self, cur):
         self.cur = cur
         self.canon = make_canonicalizer()
-        
+
     def add_host(self, hostname):
         canon_host = self.canon.canonicalize_host(hostname)
         self.cur.execute("""insert into tops(hostname) values(%s)
@@ -18,7 +18,7 @@ on conflict do nothing
 returning hostname""", (canon_host,))
         if self.cur.fetchone() is None:
             print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
-    
+
     def add_url(self, url):
         self.cur.execute("""insert into field(url)
 values(%s)
@@ -30,7 +30,7 @@ returning id""", (url,))
         else:
             self.cur.execute("""insert into nodes(url_id, depth)
 values(%s, 0)""", (row[0], ))
-                             
+
     def add_work(self, url, url_id):
         pr = urlparse(url)
         hostname = self.canon.canonicalize_host(pr.hostname)
@@ -40,7 +40,15 @@ on conflict do nothing
 returning url_id""", (url_id, 0, hostname))
         if self.cur.fetchone() is None:
             print("URL %s already in queue" % (url_id,), file=sys.stderr)
-    
+
+    def run(self):
+        self.cur.execute("""select url, id from field
+where checkd is null
+order by id""")
+        rows = self.cur.fetchall()
+        for row in rows:
+            self.add_work(*row)
+
 def main():
     top_protocols = get_option('top_protocols', 'http')
     protocols = re.split('\\s+', top_protocols)
@@ -57,14 +65,7 @@ def main():
                     for protocol in protocols:
                         seeder.add_url("%s://%s" % (protocol, a))
 
-            cur.execute("""select url, id from field
-where checkd is null
-order by id""")
-            rows = cur.fetchall()
-            for row in rows:
-                seeder.add_work(*row)
-                
+            seeder.run()
+
 if __name__ == "__main__":
     main()
-
-
