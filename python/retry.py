@@ -12,8 +12,12 @@ set checkd=null
 where id in (
         select url_id
         from download_error
+        union
+        select url_id
+        from parse_error
 )""")
             cur.execute("delete from download_error")
+            cur.execute("delete from parse_error")
 
             kicker = Kicker(cur)
             kicker.run()
