@@ -5,7 +5,7 @@
 import json
 import os
 import sys
-from coincidence import CoincidenceAggregator
+from coincidence import CoincidenceAggregatorMultiplePrimary
 from common import make_connection
 from json_lookup import JsonLookup
 from named_entities import councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
@@ -31,7 +31,7 @@ class Scanner(JsonLookup):
         self.show_all = show_all
         self.names = set()
         if feature == DEEP_ORG:
-            self.coin_agg = CoincidenceAggregator('name', 'address')
+            self.coin_agg = CoincidenceAggregatorMultiplePrimary(('name', 'subject'), 'address')
 
     def run(self):
         self.cur.execute("""select url
