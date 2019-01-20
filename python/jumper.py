@@ -29,10 +29,6 @@ city_district_rx = re.compile("^.+-([^-]{3,})$")
 
 date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
-physician_title_rx = re.compile("\\bmudr\\b")
-
-manager_title_rx = re.compile("\\bmba\\b")
-
 def normalize_name(raw):
     name = name_char_rx.sub("", raw.strip())
     return name.lower()
@@ -132,8 +128,8 @@ class Jumper:
         today = datetime.now()
         self.last_year = today.year - 2
 
-        self.physician_check = JsonTreeCheck('titleBefore', physician_title_rx)
-        self.manager_check = JsonTreeCheck('titleAfter', manager_title_rx)
+        self.physician_check = JsonTreeCheck('titleBefore', re.compile("\\bmudr\\b"))
+        self.manager_check = JsonTreeCheck('titleAfter', re.compile("\\bmba\\b"))
 
         self.city2mayor = {}
 
