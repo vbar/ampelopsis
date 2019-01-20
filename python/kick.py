@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from common import get_option, make_connection
+from common import make_connection
 
 class Kicker:
     def __init__(self, cur):
