@@ -21,7 +21,12 @@ class Entity:
     physician = 'Q39631'
     psychiatrist = 'Q211346'
     researcher = 'Q1650915'
+
+    # Q462390 "docent" is also possible, but isn't that common (to be
+    # expected, considering it's no longer issued), doesn't match
+    # anybody new and causes timeouts, too...
     university_teacher = 'Q1622272'
+
     manager = 'Q2462658'
 
     # Prosecutor not only isn't a position; it may not be linked at all.
