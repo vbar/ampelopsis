@@ -41,7 +41,7 @@ returning url_id""", (url_id, 0, hostname))
         if self.cur.fetchone() is None:
             print("URL %s already in queue" % (url_id,), file=sys.stderr)
 
-    def run(self):
+    def seed_queue(self):
         self.cur.execute("""select url, id from field
 where checkd is null
 order by id""")
@@ -65,7 +65,7 @@ def main():
                     for protocol in protocols:
                         seeder.add_url("%s://%s" % (protocol, a))
 
-            seeder.run()
+            seeder.seed_queue()
 
 if __name__ == "__main__":
     main()
