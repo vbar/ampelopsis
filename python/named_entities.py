@@ -13,10 +13,9 @@ class Entity:
     mp = 'Q19803234'
 
     # Judges, policemen, doctors etc. are special because (unlike
-    # other matched persons) they aren't politicians. Constitutional
-    # judge (Q59773473) is also used, but doesn't match anybody new -
-    # it's enough to match the description...
+    # other matched persons) they aren't politicians.
     judge = 'Q16533'
+    constitutional_judge = 'Q59773473'
     police_officer = 'Q384593'
     physician = 'Q39631'
     psychiatrist = 'Q211346'

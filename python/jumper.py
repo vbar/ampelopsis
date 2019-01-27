@@ -159,7 +159,7 @@ class Jumper:
         # genitive.
         self.court2stem = {
             'nejvyšší soud': 'nejvyššího soudu', # do not match nejvyšší správní soud - that's considered non-prominent
-            'ústavní soud': 'ústavní', # ústavního
+            'ústavní soud': 'ústavní', # ústavního; note the specific value is also used below
             'vrchní soud v praze': 'vrchní', # vrchního
             'vrchní soud v olomouci': 'vrchní',
         }
@@ -463,8 +463,12 @@ set municipality=%s""", (mayor, city, city))
             else:
                 political_constraint = 'wdt:P39 ?p; wdt:P106 ?o;'
 
-            np = 'wd:' + judge_position
-            mainline_block += 'values ?o { %s }' % np
+            judge_positions = [ judge_position ]
+            if 'ústavní' in court_set:
+                judge_positions.append(Entity.constitutional_judge)
+
+            vl = format_position_iterable(judge_positions)
+            mainline_block += 'values ?o { %s }' % vl
         else:
             if not l0:
                 if specific:
