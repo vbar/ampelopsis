@@ -1,0 +1,6 @@
+[root]
+dbuser = ampelopsis
+dbpass = changeme
+comp_param =
+max_num_conn = 2
+mime_whitelist = *
