@@ -16,7 +16,12 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         self.load(cur)
 
     def get_entities(self, detail):
-        pellets = self.get_pellets(detail)
+        try:
+            pellets = self.get_pellets(detail)
+        except:
+            print("unparseable query result", file=sys.stderr)
+            return []
+
         persons = set(p.wikidataId for p in pellets)
         return list(persons)
 
