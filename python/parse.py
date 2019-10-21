@@ -4,6 +4,7 @@ import re
 import select
 import sys
 from urllib.parse import urlparse, urlunparse
+from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
 from host_check import HostCheck
 from mem_cache import MemCache
@@ -23,17 +24,17 @@ class PolyParser(VolumeHolder, HostCheck):
             self.preference = NoveltyPreference(int(get_option('novelty_high_mark', "20000")), int(get_option('novelty_low_mark', "15000")))
         else:
             self.preference = BreathPreference()
-            
+
         self.single_action = single_action
         self.conn = conn
         self.notification_threshold = int(get_option('parse_notification_threshold', "1000"))
-        
+
         page_limit = get_option("page_limit", None)
         self.page_limit = int(page_limit) if page_limit else None
         self.page_count = 0
 
         self.max_url_len = int(get_option("max_url_len", "512"))
-        
+
         # ignore case flag would be better dynamic, but Python 3.5.2
         # doesn't support that...
         url_blacklist_rx = get_option("url_blacklist_rx", "[.](?:jpe?g|pdf|png)$")
@@ -50,31 +51,38 @@ order by nameval""")
             rows = self.cur.fetchall()
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
-        
+
     def parse_all(self):
         row = self.pop_work_item()
         while row:
             url_id = row[0]
-            
+
             url = self.get_url(url_id)
             if not url:
                 print("URL %d not found" % (url_id,), file=sys.stderr)
             else:
                 volume_id = self.get_volume_id(url_id)
                 self.parse(url_id, url, volume_id)
-                
+
             row = self.pop_work_item()
 
         self.preference.mark_batch()
-        
+
     def cond_notify(self):
+        live = False
         if not self.single_action:
             self.cur.execute("""select count(*)
 from download_queue""")
             row = self.cur.fetchone()
-            if row[0] > 0:
-                self.cur.execute("""notify download_ready""")
-            
+            live = row[0] > 0
+            if live:
+                self.do_notify()
+
+        return live
+
+    def do_notify(self):
+        self.cur.execute("""notify download_ready""")
+
     def wait(self):
         self.cur.execute("""LISTEN parse_ready""")
         print("waiting for notification...")
@@ -83,7 +91,7 @@ from download_queue""")
         print("got %d notification(s)" % (len(self.conn.notifies),))
         while self.conn.notifies:
             self.conn.notifies.pop()
-            
+
     def parse(self, url_id, url, volume_id):
         print("parsing " + url + "...", file=sys.stderr)
         reader = self.open_page(url_id, volume_id)
@@ -93,18 +101,18 @@ from download_queue""")
                 parser.parse_links(reader)
             finally:
                 reader.close()
-        
+
         self.cur.execute("""update field
 set parsed=localtimestamp
 where id=%s""", (url_id,))
 
     def is_done(self):
         return self.page_limit and (self.page_count >= self.page_limit)
-    
+
     def pop_work_item(self):
         if self.is_done():
             return None
-        
+
         # https://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/
         self.cur.execute("""delete from parse_queue
 where url_id = (
@@ -120,9 +128,9 @@ returning url_id""")
             self.page_count += 1
             if not (self.page_count % self.notification_threshold):
                 self.cond_notify()
-                
+
         return row
-    
+
     def add_link(self, url):
         pr = urlparse(url.strip())
         if pr.hostname: # may not exist even for valid links, e.g. mailto:
@@ -156,7 +164,7 @@ returning id""", (clean_url,))
         row = self.cur.fetchone()
         if row is None:
             return None
-        
+
         url_id = row[0]
         if self.comp_param and clean_pr[4]:
             clean_params = get_param_set(clean_pr[4])
@@ -176,27 +184,33 @@ returning id""", (simple_url,))
 set checkd=localtimestamp
 where id=%s""", (url_id,))
                     url_id = None
-                    
+
         return url_id
 
-                    
+
 def main():
     single_action = (len(sys.argv) == 2) and (sys.argv[1] == '--single-action')
-    
+
     with make_connection() as conn:
         with conn.cursor() as cur:
             parser = PolyParser(single_action, conn, cur)
             try:
                 while not parser.is_done():
+                    act_inc(cur)
                     parser.parse_all()
+                    global_live = act_dec(cur)
                     if single_action:
                         break
                     else:
-                        parser.cond_notify()
-                        parser.wait()
+                        future_live = parser.cond_notify()
+                        if global_live or future_live:
+                            parser.wait()
+                        else:
+                            parser.do_notify()
+                            print("all done")
+                            break
             finally:
                 parser.close()
-            
+
 if __name__ == "__main__":
     main()
-        

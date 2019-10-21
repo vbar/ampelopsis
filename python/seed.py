@@ -3,6 +3,7 @@
 import re
 import sys
 from urllib.parse import urlparse
+from act_util import act_reset
 from common import get_option, make_connection
 from host_check import make_canonicalizer
 
@@ -54,6 +55,9 @@ def main():
     protocols = re.split('\\s+', top_protocols)
     with make_connection() as conn:
         with conn.cursor() as cur:
+            # maybe check here whether download and/or parse is running? it shouldn't...
+            act_reset(cur)
+
             seeder = Seeder(cur)
             for a in sys.argv[1:]:
                 if a.startswith('http'):
