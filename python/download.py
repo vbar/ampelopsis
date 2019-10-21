@@ -8,6 +8,7 @@ import re
 import select
 import sys
 from urllib.parse import urlparse, urlunparse
+from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection
 from download_base import DownloadBase
 
@@ -153,12 +154,19 @@ on conflict do nothing""", (url_id, new_url_id))
         return (new_url_id, known)
 
     def cond_notify(self):
+        live = False
         if not self.single_action:
             self.cur.execute("""select count(*)
 from parse_queue""")
             row = self.cur.fetchone()
-            if row[0] > 0:
-                self.cur.execute("""notify parse_ready""")
+            live = row[0] > 0
+            if live:
+                self.do_notify()
+
+        return live
+
+    def do_notify(self):
+        self.cur.execute("""notify parse_ready""")
 
     def wait(self):
         self.cur.execute("""LISTEN download_ready""")
@@ -313,12 +321,19 @@ def main():
         with conn.cursor() as cur:
             retriever = Retriever(single_action, conn, cur)
             while True:
+                act_inc(cur)
                 retriever.retrieve()
+                global_live = act_dec(cur)
                 if single_action:
                     break
                 else:
-                    retriever.cond_notify()
-                    retriever.wait()
+                    future_live = retriever.cond_notify()
+                    if global_live or future_live:
+                        retriever.wait()
+                    else:
+                        retriever.do_notify()
+                        print("all done")
+                        break
 
 if __name__ == "__main__":
     main()

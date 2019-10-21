@@ -5,6 +5,7 @@ import re
 import select
 import sys
 from urllib.parse import urlparse, urlunparse
+from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
 from host_check import HostCheck
 from mem_cache import MemCache
@@ -74,12 +75,19 @@ order by nameval""")
         self.preference.mark_batch()
 
     def cond_notify(self):
+        live = False
         if not self.single_action:
             self.cur.execute("""select count(*)
 from download_queue""")
             row = self.cur.fetchone()
-            if row[0] > 0:
-                self.cur.execute("""notify download_ready""")
+            live = row[0] > 0
+            if live:
+                self.do_notify()
+
+        return live
+
+    def do_notify(self):
+        self.cur.execute("""notify download_ready""")
 
     def wait(self):
         self.cur.execute("""LISTEN parse_ready""")
@@ -211,12 +219,19 @@ def main():
             parser = PolyParser(single_action, conn, cur)
             try:
                 while not parser.is_done():
+                    act_inc(cur)
                     parser.parse_all()
+                    global_live = act_dec(cur)
                     if single_action:
                         break
                     else:
-                        parser.cond_notify()
-                        parser.wait()
+                        future_live = parser.cond_notify()
+                        if global_live or future_live:
+                            parser.wait()
+                        else:
+                            parser.do_notify()
+                            print("all done")
+                            break
             finally:
                 parser.close()
 
