@@ -512,10 +512,7 @@ set municipality=%s""", (mayor, city, city))
         elif l == 1:
             pos_clause = pos_clauses[0]
         else:
-            # unions tend to time out; put a filter inside to make
-            # them more selective
-            local_filter = 'filter(lang(?l) = "cs" && %s)' % name_cond
-            pos_clause = ' union '.join('{ %s%s }' % (local_filter, pc) for pc in pos_clauses)
+            pos_clause = ' union '.join('{ %s }' % pc for pc in pos_clauses)
 
         extra_block = ''
         if min_year:
@@ -544,26 +541,15 @@ set municipality=%s""", (mayor, city, city))
 
         judge_cond = ''
         if judge_position:
-            # unbound ?g matches iff the judge is non-prominent
             if len(court_set):
-                judge_cond = format_court_set(court_set)
+                base_cond = format_court_set(court_set)
             else:
                 # non-prominent judge
-                judge_cond = self.neg_court_cond
+                base_cond = self.neg_court_cond
 
-        if (l <= 1) or judge_cond:
-            global_filter = 'filter(lang(?l) = "cs"'
-            if l <= 1:
-                global_filter += ' && '
-                global_filter += name_cond
-
-            if judge_cond:
-                global_filter += ' && '
-                global_filter += judge_cond
-
-            global_filter += ')'
-        else:
-            global_filter = ''
+            # preceded by name_cond; unbound ?g matches iff the judge
+            # is non-prominent
+            judge_cond = ' && ' + base_cond
 
         # person (wikidata ID), article, birth, label, general description, position, occupation
         query = """select ?w ?a ?b ?l ?g ?p ?o {
@@ -580,8 +566,9 @@ set municipality=%s""", (mayor, city, city))
                 ?w schema:description ?g.
                 filter(lang(?g) = "cs")
         }
-        %s %s %s
-}""" % (political_constraint, death_clause, mainline_block, global_filter, pos_clause, extra_block)
+        filter(lang(?l) = "cs" && %s%s)
+        %s %s
+}""" % (political_constraint, death_clause, mainline_block, name_cond, judge_cond, pos_clause, extra_block)
         return create_query_url(query)
 
 if __name__ == "__main__":
