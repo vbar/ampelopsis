@@ -120,8 +120,8 @@ set checkd=localtimestamp
 where id=%s""", (eff_id,))
 
         if has_body:
-            self.cur.execute("""insert into parse_queue(url_id)
-values(%s)""", (eff_id,))
+            self.cur.execute("""insert into parse_queue(url_id) values(%s)
+on conflict(url_id) do nothing""", (eff_id,))
 
     def add_redirect(self, url_id, new_url):
         known = False
