@@ -324,7 +324,7 @@ set municipality=%s""", (mayor, city, city))
 
         return year
 
-    def make_query_url(self, detail, position_set):
+    def make_query_urls(self, detail, position_set):
         name_cond = 'contains(lcase(?l), "%s")' % self.make_person_name(detail)
 
         specific = len(position_set)
@@ -504,16 +504,6 @@ set municipality=%s""", (mayor, city, city))
                 pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
 
         l = len(pos_clauses)
-        if l == 0:
-            # no restriction; can happen even when the original
-            # position set is non-empty - if that causes false
-            # positives, we'll have to revisit...
-            pos_clause = ''
-        elif l == 1:
-            pos_clause = pos_clauses[0]
-        else:
-            pos_clause = ' union '.join('{ %s }' % pc for pc in pos_clauses)
-
         extra_block = ''
         if min_year:
             assert mp_position
@@ -521,17 +511,23 @@ set municipality=%s""", (mayor, city, city))
 
             # ?t is already taken; 'coalesce(?f, ?u) >=
             # "%d-01-01"^^xsd:dateTime' might be more efficient...
-            base_cond = 'year(coalesce(?f, ?u)) >= %d' % min_year
+            # wd:Q42409353 is the current legislature (for politicians
+            # who started long ago and didn't finish yet) - IOW it'll
+            # stop working for the next one...
+            base_cond = 'year(coalesce(?f, ?u)) >= %d || ?e = %s' % (min_year, 'wd:Q42409353')
             # mp_position is in position set...
             if (l == 1) and (len(position_set) == 1):
                 # ...so position set == mp_position
                 cond = base_cond
             else:
+                # FIXME: this should be split for the (now distinct)
+                # queries having and not-having mp_position
                 np = 'wd:' + mp_position
                 cond = '?p != %s || %s' % (np, base_cond)
 
             extra_block = """optional { ?w p:P39/pq:P580 ?f. }
         optional { ?w p:P39/pq:P582 ?u. }
+        optional { ?w p:P39/pq:P2937 ?e. }
         filter(%s)""" % cond
 
         death_clause = ''
@@ -551,8 +547,20 @@ set municipality=%s""", (mayor, city, city))
             # is non-prominent
             judge_cond = ' && ' + base_cond
 
-        # person (wikidata ID), article, birth, label, general description, position, occupation
-        query = """select ?w ?a ?b ?l ?g ?p ?o {
+        if l == 0:
+            # no restriction; can happen even when the original
+            # position set is non-empty - if that causes false
+            # positives, we'll have to revisit...
+            pos_clauses.append("")
+
+        # it would be much cleaner to have a single query per source
+        # doc, but they're getting too complex for wikidata, so the
+        # current model is a list of queries, locally combined into a
+        # union
+        urls = []
+        for pos_clause in pos_clauses:
+            # person (wikidata ID), article, birth, label, general description, position, occupation
+            query = """select ?w ?a ?b ?l ?g ?p ?o {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;
                 %s
@@ -569,7 +577,16 @@ set municipality=%s""", (mayor, city, city))
         filter(lang(?l) = "cs" && %s%s)
         %s %s
 }""" % (political_constraint, death_clause, mainline_block, name_cond, judge_cond, pos_clause, extra_block)
-        return create_query_url(query)
+            urls.append(create_query_url(query))
+
+        return urls
+
+    def make_query_single_url(self, detail, position_set):
+        urls = self.make_query_urls(detail, position_set)
+        if len(urls) != 1:
+            raise Exception("got %d urls when 1 expected" % len(urls))
+
+        return urls[0]
 
 if __name__ == "__main__":
     # needed by seed.sh

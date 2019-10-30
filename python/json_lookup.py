@@ -35,8 +35,8 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
 
     def get_pellets(self, detail):
         pellets = []
-        doc = self.get_query_document(detail)
-        if doc:
+        docs = self.get_query_documents(detail)
+        for doc in docs:
             name_rx = self.make_name_rx(detail)
             bindings = doc['results']['bindings']
             for it in bindings:
@@ -55,13 +55,17 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         return re.compile("\\b" + re.escape(name) + "\\b", re.IGNORECASE)
 
     # only matches w/ specific position(s)
-    def get_query_document(self, detail):
+    def get_query_documents(self, detail):
         position_set = self.make_position_set(detail)
         if not len(position_set):
-            return None
+            return []
 
-        url = self.make_query_url(detail, position_set)
-        return self.get_document(url)
+        docs = []
+        urls = self.make_query_urls(detail, position_set)
+        for url in urls:
+            docs.append(self.get_document(url))
+
+        return docs
 
     def get_document(self, url):
         url_id = self.get_url_id(url)

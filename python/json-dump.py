@@ -13,15 +13,17 @@ def main():
             for a in sys.argv[1:]:
                 detail = lookup.get_document(a)
                 position_set = lookup.make_position_set(detail)
-                qurl = lookup.make_query_url(detail, position_set)
-                print_query(qurl)
-                leaf = lookup.get_document(qurl)
-                if leaf:
-                    json.dump(leaf, sys.stdout, ensure_ascii=False)
-                    print("")
+                qurls = lookup.make_query_urls(detail, position_set)
+                for qurl in qurls:
+                    print_query(qurl)
+
+                    leaf = lookup.get_document(qurl)
+                    if leaf:
+                        json.dump(leaf, sys.stdout, ensure_ascii=False)
+                        print("")
 
                 if len(position_set):
-                    qurl = lookup.make_query_url(detail, set())
+                    qurl = lookup.make_query_single_url(detail, set())
                     leaf = lookup.get_document(qurl)
                     if leaf:
                         print("")

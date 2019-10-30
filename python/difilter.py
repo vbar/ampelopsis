@@ -53,35 +53,36 @@ order by url""")
             return
 
         found = False
-        specific_url = None
+        specific_urls = []
         generic_url = None
         position_set = self.make_position_set(detail)
         l = len(position_set)
         if (self.mode & OVERSPECIFIED) and l:
-            specific_url = self.make_query_url(detail, position_set)
-            generic_url = self.make_query_url(detail, set())
-            if not self.has_answer(specific_url) and self.has_answer(generic_url):
+            specific_urls = self.make_query_urls(detail, position_set)
+            suha = any(self.has_answer(su) for su in specific_urls)
+            generic_url = self.make_query_single_url(detail, set())
+            if not suha and self.has_answer(generic_url):
                 found = True
 
         if (self.mode & UNDERSPECIFIED) and not l:
-            generic_url = self.make_query_url(detail, set())
+            generic_url = self.make_query_single_url(detail, set())
             if self.has_answer(generic_url):
                 found = True
 
         if not self.mode:
             if l:
-                specific_url = self.make_query_url(detail, position_set)
-                if self.has_answer(specific_url):
+                specific_urls = self.make_query_urls(detail, position_set)
+                if any(self.has_answer(su) for su in specific_urls):
                     found = True
 
-            generic_url = self.make_query_url(detail, set())
+            generic_url = self.make_query_single_url(detail, set())
             if self.has_answer(generic_url):
                 found = True
 
         if found:
             print(url)
             if self.verbose:
-                if specific_url:
+                for specific_url in specific_urls:
                     self.print_qa(specific_url)
 
                 self.print_qa(generic_url)

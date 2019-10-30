@@ -84,9 +84,10 @@ class JsonParser:
 
         position_set = self.jumper.make_position_set(doc)
         if len(position_set):
-            url = self.jumper.make_query_url(doc, position_set)
-            self.owner.add_link(url)
+            urls = self.jumper.make_query_urls(doc, position_set)
+            for url in urls:
+                self.owner.add_link(url)
 
         if self.jump_links == 2:
-            url = self.jumper.make_query_url(doc, set())
+            url = self.jumper.make_query_single_url(doc, set())
             self.owner.add_link(url)

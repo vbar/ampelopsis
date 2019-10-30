@@ -51,7 +51,7 @@ order by url""")
             return
 
         if not self.show_all:
-            generic_url = self.make_query_url(detail, set())
+            generic_url = self.make_query_single_url(detail, set())
             if not self.has_answer(generic_url):
                 return
 
