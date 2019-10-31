@@ -84,7 +84,7 @@ from download_queue""")
         self.cur.execute("""notify download_ready""")
 
     def wait(self):
-        self.cur.execute("""LISTEN parse_ready""")
+        self.cur.execute("""listen parse_ready""")
         print("waiting for notification...")
         select.select([self.conn], [], [])
         self.conn.poll()
