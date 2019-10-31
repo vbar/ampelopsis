@@ -5,7 +5,6 @@ from io import BytesIO
 import os
 import pycurl
 import re
-import select
 import sys
 from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
@@ -83,10 +82,8 @@ class Target:
 
 class Retriever(DownloadBase):
     def __init__(self, single_action, conn, cur):
-        DownloadBase.__init__(self, cur)
+        DownloadBase.__init__(self, conn, cur, single_action)
 
-        self.single_action = single_action
-        self.conn = conn
         self.max_num_conn = int(get_option('max_num_conn', "10"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
         self.user_agent = get_option('user_agent', None)
@@ -152,30 +149,6 @@ returning id""", (new_url,))
 on conflict do nothing""", (url_id, new_url_id))
 
         return (new_url_id, known)
-
-    def cond_notify(self):
-        live = False
-        if not self.single_action:
-            self.cur.execute("""select count(*)
-from parse_queue""")
-            row = self.cur.fetchone()
-            live = row[0] > 0
-            if live:
-                self.do_notify()
-
-        return live
-
-    def do_notify(self):
-        self.cur.execute("""notify parse_ready""")
-
-    def wait(self):
-        self.cur.execute("""LISTEN download_ready""")
-        print("waiting for notification...")
-        select.select([self.conn], [], [])
-        self.conn.poll()
-        print("got %d notification(s)" % (len(self.conn.notifies),))
-        while self.conn.notifies:
-            self.conn.notifies.pop()
 
     # adapted from https://github.com/pycurl/pycurl/blob/master/examples/retriever-multi.py
     def retrieve(self):
