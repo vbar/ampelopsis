@@ -337,7 +337,7 @@ set municipality=%s""", (mayor, city, city))
 
         mp_position = None
         if Entity.mp in position_set:
-            # not removed from position_set
+            position_set.remove(Entity.mp)
             mp_position = Entity.mp
 
         judge_position = None
@@ -387,12 +387,21 @@ set municipality=%s""", (mayor, city, city))
             np = 'wd:' + minister_position
             pos_clauses.append(wrap_pos_clause('?p wdt:P279/wdt:P279 %s.' % np, l0))
 
-        min_year = None
         if mp_position:
             min_year = self.fold_min_start(detail, mp_position)
-            # should have filtered on year here but that times out
-            # when nested in a union, so we handle it not by a
-            # position clause but by a filter on top level
+            # ?t is already taken; 'coalesce(?f, ?u) >=
+            # "%d-01-01"^^xsd:dateTime' might be more efficient...
+            # wd:Q42409353 is the current legislature (for politicians
+            # who started long ago and didn't finish yet) - IOW it'll
+            # stop working for the next one...
+            base_cond = 'year(coalesce(?f, ?u)) >= %d || ?e = %s' % (min_year, 'wd:Q42409353')
+            np = 'wd:' + mp_position
+            extra_clause = """values ?p { %s }
+        optional { ?w p:P39/pq:P580 ?f. }
+        optional { ?w p:P39/pq:P582 ?u. }
+        optional { ?w p:P39/pq:P2937 ?e. }
+        filter(%s)""" % (np, base_cond)
+            pos_clauses.append(wrap_pos_clause(extra_clause, l0))
 
         if len(mayor_position_set):
             city_set = self.make_city_set(detail, mayor_position_entities[0])
@@ -504,31 +513,6 @@ set municipality=%s""", (mayor, city, city))
                 pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
 
         l = len(pos_clauses)
-        extra_block = ''
-        if min_year:
-            assert mp_position
-            assert l
-
-            # ?t is already taken; 'coalesce(?f, ?u) >=
-            # "%d-01-01"^^xsd:dateTime' might be more efficient...
-            # wd:Q42409353 is the current legislature (for politicians
-            # who started long ago and didn't finish yet) - IOW it'll
-            # stop working for the next one...
-            base_cond = 'year(coalesce(?f, ?u)) >= %d || ?e = %s' % (min_year, 'wd:Q42409353')
-            # mp_position is in position set...
-            if (l == 1) and (len(position_set) == 1):
-                # ...so position set == mp_position
-                cond = base_cond
-            else:
-                # FIXME: this should be split for the (now distinct)
-                # queries having and not-having mp_position
-                np = 'wd:' + mp_position
-                cond = '?p != %s || %s' % (np, base_cond)
-
-            extra_block = """optional { ?w p:P39/pq:P580 ?f. }
-        optional { ?w p:P39/pq:P582 ?u. }
-        optional { ?w p:P39/pq:P2937 ?e. }
-        filter(%s)""" % cond
 
         death_clause = ''
         if specific:
@@ -575,8 +559,8 @@ set municipality=%s""", (mayor, city, city))
                 filter(lang(?g) = "cs")
         }
         filter(lang(?l) = "cs" && %s%s)
-        %s %s
-}""" % (political_constraint, death_clause, mainline_block, name_cond, judge_cond, pos_clause, extra_block)
+        %s
+}""" % (political_constraint, death_clause, mainline_block, name_cond, judge_cond, pos_clause)
             urls.append(create_query_url(query))
 
         return urls
