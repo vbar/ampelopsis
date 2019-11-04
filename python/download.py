@@ -22,6 +22,7 @@ class Target:
         self.retrieve_body = True
         self.http_code = None
         self.http_phrase = None
+        self.retry_after = None
 
     def write_header(self, data):
         if self.header_target.write(data) != len(data):
@@ -37,6 +38,8 @@ class Target:
 
             if (name == 'content-type') and not self.owner.is_acceptable(value):
                 self.retrieve_body = False
+            elif name == 'retry-after':
+                self.retry_after = value
         else:
             line_list = header_line.split()
             l = len(line_list)
@@ -152,8 +155,13 @@ on conflict do nothing""", (url_id, new_url_id))
 
     # adapted from https://github.com/pycurl/pycurl/blob/master/examples/retriever-multi.py
     def retrieve(self):
+        avail = self.get_available_hosts()
+        if not len(avail):
+            return False
+
         self.cur.execute("""select count(*)
-from download_queue""")
+from download_queue
+where host_id = any(%s)""", (sorted(avail),))
         row = self.cur.fetchone()
         num_conn = row[0]
         if not num_conn:
@@ -220,8 +228,10 @@ from download_queue""")
                     target = c.target
                     m.remove_handle(c)
                     eff_url = c.getinfo(pycurl.EFFECTIVE_URL)
+                    eff_hostname = None
                     if target.url != eff_url:
                         pr = urlparse(eff_url)
+                        eff_hostname = pr.hostname
                         clean_pr = (pr.scheme, get_netloc(pr), pr.path, pr.params, pr.query, '')
                         clean_url = urlunparse(clean_pr)
                         if target.url != clean_url:
@@ -231,9 +241,24 @@ from download_queue""")
                                 target.retrieve_body = False
 
                     msg = "got " + eff_url
+                    added_hold = False
                     if target.http_code != 200:
                         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
 values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.http_phrase))
+
+                        if target.retry_after is not None:
+                            # Retry-After is specified for a couple of
+                            # HTTP error codes; if it accompanies some
+                            # other error, we can still try the same
+                            # reaction...
+                            if eff_hostname is None:
+                                pr = urlparse(target.url)
+                                eff_hostname = pr.hostname
+
+                            if eff_hostname is None:
+                                print("cannot parse " + target.url, file=sys.stderr)
+                            else:
+                                added_hold = self.add_hold(eff_hostname, target.retry_after)
 
                         if target.http_code is None:
                             msg += " with no HTTP status"
@@ -241,6 +266,9 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                             msg += " with %d" % target.http_code
 
                     print(msg, file=sys.stderr)
+                    if added_hold:
+                        print("added hold on " + eff_hostname, file=sys.stderr)
+
                     target.close()
                     c.target = None
                     freelist.append(c)
@@ -301,7 +329,7 @@ def main():
                     break
                 else:
                     future_live = retriever.cond_notify()
-                    if global_live or future_live:
+                    if global_live or future_live or retriever.has_holds():
                         retriever.wait()
                     else:
                         retriever.do_notify()
