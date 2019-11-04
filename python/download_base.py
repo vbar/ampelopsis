@@ -123,14 +123,14 @@ from parse_queue""")
         timeout = self.get_interval()
         self.cur.execute("""listen download_ready""")
         if timeout is None:
-            print("waiting for notification...")
+            print("waiting for notification...", file=sys.stderr)
             select.select([self.conn], [], [])
         else:
-            print("waiting for %d second(s)..." % timeout)
+            print("waiting for %d second(s)..." % timeout, file=sys.stderr)
             select.select([self.conn], [], [], timeout)
 
         self.conn.poll()
-        print("got %d notification(s)" % (len(self.conn.notifies),))
+        print("got %d notification(s)" % (len(self.conn.notifies),), file=sys.stderr)
         while self.conn.notifies:
             self.conn.notifies.pop()
 
