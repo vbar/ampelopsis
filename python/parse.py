@@ -91,10 +91,10 @@ from download_queue""")
 
     def wait(self):
         self.cur.execute("""listen parse_ready""")
-        print("waiting for notification...")
+        print("waiting for notification...", file=sys.stderr)
         select.select([self.conn], [], [])
         self.conn.poll()
-        print("got %d notification(s)" % (len(self.conn.notifies),))
+        print("got %d notification(s)" % (len(self.conn.notifies),), file=sys.stderr)
         while self.conn.notifies:
             self.conn.notifies.pop()
 
@@ -193,7 +193,7 @@ values(%s, localtimestamp)
 on conflict do nothing
 returning id""", (simple_url,))
                 if self.cur.fetchone() is None:
-                    print("skipping %s - simplification already exists" % (clean_url,))
+                    print("skipping %s - simplification already exists" % (clean_url,), file=sys.stderr)
                     self.cur.execute("""update field
 set checkd=localtimestamp
 where id=%s""", (url_id,))
@@ -232,7 +232,7 @@ def main():
                             parser.wait()
                         else:
                             parser.do_notify()
-                            print("all done")
+                            print("all done", file=sys.stderr)
                             break
             finally:
                 parser.close()

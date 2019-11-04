@@ -333,7 +333,7 @@ def main():
                         retriever.wait()
                     else:
                         retriever.do_notify()
-                        print("all done")
+                        print("all done", file=sys.stderr)
                         break
 
 if __name__ == "__main__":
