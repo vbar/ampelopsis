@@ -44,7 +44,7 @@ class JsonParser:
 
     def process_mayor_of(self, doc):
         if self.jumper:
-            print("filling jumper after it's been loaded", file=sys.stderr)
+            raise Exception("filling jumper after it's been loaded")
         else:
             self.jumper = Jumper()
 
@@ -81,6 +81,12 @@ class JsonParser:
         # enrich from Wikidata
         if not self.jumper:
             self.jumper = self.owner.get_jumper()
+            if not self.jumper:
+                # we could have failed to process the mayor-of URL;
+                # that would be a problem, because we need the
+                # information from it to link many following
+                # URLs...
+                raise Exception("jumper not set")
 
         position_set = self.jumper.make_position_set(doc)
         if len(position_set):
