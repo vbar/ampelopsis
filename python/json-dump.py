@@ -14,7 +14,13 @@ def main():
                 detail = lookup.get_document(a)
                 position_set = lookup.make_position_set(detail)
                 qurls = lookup.make_query_urls(detail, position_set)
+                first = True
                 for qurl in qurls:
+                    if first:
+                        first = False
+                    else:
+                        print("")
+
                     print_query(qurl)
 
                     leaf = lookup.get_document(qurl)
@@ -26,7 +32,9 @@ def main():
                     qurl = lookup.make_query_single_url(detail, set())
                     leaf = lookup.get_document(qurl)
                     if leaf:
-                        print("")
+                        if not first:
+                            print("")
+
                         print_query(qurl)
                         json.dump(leaf, sys.stdout, ensure_ascii=False)
                         print("")
