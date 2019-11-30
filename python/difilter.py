@@ -14,6 +14,8 @@ UNDERSPECIFIED = 1
 
 OVERSPECIFIED = 2
 
+VARIABLE = 4
+
 class DiFilter(JsonLookup):
     def __init__(self, cur, mode, verbose, req_org_name=None, req_pos_name=None):
         JsonLookup.__init__(self, cur)
@@ -69,7 +71,12 @@ order by url""")
             if self.has_answer(generic_url):
                 found = True
 
-        if not self.mode:
+        if self.mode == VARIABLE:
+            if l:
+                persons = self.get_entities(detail)
+                if len(persons) > 1:
+                    found = True
+        elif not self.mode:
             if l:
                 specific_urls = self.make_query_urls(detail, position_set)
                 if any(self.has_answer(su) for su in specific_urls):
@@ -116,7 +123,8 @@ order by url""")
 
         return False
 
-    # doesn't respect filtering in JsonLookup.get_entities - should it?
+    # doesn't respect filtering in JsonLookup.get_entities - that's
+    # accessed by the VARIABLE mode
     def has_answer(self, url):
         assert (self.black is None) or (self.white is None)
 
@@ -198,9 +206,14 @@ def main():
             modes.append(UNDERSPECIFIED)
         elif (a == '-o') or (a == '--over'):
             modes.append(OVERSPECIFIED)
+        elif a == '--var': # -v is already taken
+            if len(modes):
+                raise Exception("--var is incompatible with --over/--under/--all")
+
+            modes.append(VARIABLE)
         elif (a == '-a') or (a == '--all'):
             if len(modes):
-                raise Exception("--all is incompatible with --over/--under")
+                raise Exception("--all is incompatible with --over/--under/--var")
 
             modes.append(0)
         else:
