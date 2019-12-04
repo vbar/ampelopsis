@@ -18,3 +18,11 @@ class Pellet:
             major = 1 if pr.hostname == "cs.wikipedia.org" else 0
 
         return ( major, self.wikidataId )
+
+    def is_birth_date_exact(self):
+        # it would be cleaner to use the date precision (which exists
+        # in wikidata), but we aren't requesting it...
+        return (self.birthDate[5:7] == "01") and (self.birthDate[8:10] == "01")
+
+    def get_birth_year(self):
+        return int(self.birthDate[:4])

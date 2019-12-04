@@ -8,6 +8,26 @@ from jumper import Jumper
 from pellet import Pellet
 from volume_holder import VolumeHolder
 
+# Multiple birth dates exist in wikidata (see e.g. Q12022907). We
+# consider the date useable if either all birth dates, or at least all
+# birth dates with day precision (dates with year precision are
+# typically from Czech National Authority Database and suspect) agree
+# on a year.
+class BirthAggregator:
+    def __init__(self):
+        self.full = set() # int years
+        self.exact = set() # int years
+
+    def add_birth_year(self, pellet):
+        year = pellet.get_birth_year()
+        self.full.add(year)
+        if pellet.is_birth_date_exact():
+            self.exact.add(year)
+
+    def has_single_birth_year(self):
+        return (len(self.full) == 1) or (len(self.exact) == 1)
+
+
 class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
     def __init__(self, cur):
         VolumeHolder.__init__(self)
@@ -25,11 +45,48 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         persons = set(p.wikidataId for p in pellets)
         return list(persons)
 
+    def get_persons(self, detail):
+        try:
+            pellets = self.get_pellets(detail)
+        except:
+            print("unparseable query result", file=sys.stderr)
+            return []
+
+        wid2years = {} # str -> BirthAggregator
+        for p in pellets:
+            bagg = wid2years.get(p.wikidataId)
+            if bagg is None:
+                bagg = BirthAggregator()
+                wid2years[p.wikidataId] = bagg
+
+            bagg.add_birth_year(p)
+
+        for wid, bagg in wid2years.items():
+            if not bagg.has_single_birth_year():
+                print("multiple birth years", file=sys.stderr)
+                return []
+
+        persons = set(p.wikidataId for p in pellets)
+        return list(persons)
+
     def get_attributes(self, detail):
         pellets = self.get_pellets(detail)
         if len(pellets):
+            # One attribute (aboutLink) can be preferred by sorting...
             pellets.sort(key=lambda p: p.get_key(), reverse=True)
-            return pellets[0]
+            first = pellets[0]
+
+            # ...but we also want to prefer exact birthDate, and for
+            # that we may have to patch the returned pellet.
+            bd = None
+            for p in pellets:
+                if p.is_birth_date_exact():
+                    bd = p.birthDate
+
+            if bd:
+                first.birthDate = bd
+
+            return first
         else:
             return None
 

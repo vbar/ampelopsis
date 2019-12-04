@@ -56,7 +56,7 @@ order by url""")
         doc = json.loads(buf.decode('utf-8'))
 
         if prep:
-            persons = self.get_entities(doc)
+            persons = self.get_persons(doc)
             for person in persons:
                 c = self.multiplicity.get(person, 0)
                 self.multiplicity[person] = c + 1
@@ -168,7 +168,7 @@ order by url""")
             return self.convert_node(v, False)
 
     def get_unique_wid(self, detail):
-        persons = self.get_entities(detail)
+        persons = self.get_persons(detail)
 
         l = len(persons)
         if not l:
