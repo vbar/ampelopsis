@@ -6,9 +6,10 @@ from urllib.parse import urlparse
 class Pellet:
     datetime_rx = re.compile('^([0-9]{4}-[0-9]{2}-[0-9]{2}T00:00:00)Z$')
 
-    def __init__(self, wikidataId, birthDate, aboutLink):
+    def __init__(self, wikidataId, birthDate, datePrecision, aboutLink):
         self.wikidataId = wikidataId
         self.birthDate = birthDate
+        self.datePrecision = datePrecision
         self.aboutLink = aboutLink
 
     def get_key(self):
@@ -20,9 +21,7 @@ class Pellet:
         return ( major, self.wikidataId )
 
     def is_birth_date_exact(self):
-        # it would be cleaner to use the date precision (which exists
-        # in wikidata), but we aren't requesting it...
-        return (self.birthDate[5:7] == "01") and (self.birthDate[8:10] == "01")
+        return self.datePrecision == 11
 
     def get_birth_year(self):
         return int(self.birthDate[:4])

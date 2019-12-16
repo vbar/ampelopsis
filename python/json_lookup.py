@@ -79,12 +79,14 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
             # ...but we also want to prefer exact birthDate, and for
             # that we may have to patch the returned pellet.
             bd = None
+            prec = None
             for p in pellets:
                 if p.is_birth_date_exact():
                     bd = p.birthDate
-
+                    prec = p.datePrecision
             if bd:
                 first.birthDate = bd
+                first.datePrecision = prec
 
             return first
         else:
@@ -102,7 +104,8 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
                     if m:
                         anode = it.get('a')
                         a = anode.get('value') if anode else None
-                        p = Pellet(it['w']['value'], m.group(1), a)
+                        n = int(it['n']['value'])
+                        p = Pellet(it['w']['value'], m.group(1), n, a)
                         pellets.append(p)
 
         return pellets

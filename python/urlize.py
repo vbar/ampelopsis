@@ -14,12 +14,12 @@ token_rx_subset = "=<>|&"
 
 # characters preceded by space in regularized form that don't have the
 # space in pressed form
-open_rx_set = "[{}?!%s]" % token_rx_subset
+open_rx_set = "[][{}?!%s]" % token_rx_subset
 
 # characters followed by space in regularized form that don't have the
 # space in pressed form; '.' isn't included because it's valid in
 # string constants (inside name)
-close_rx_set = "[{},;%s]" % token_rx_subset
+close_rx_set = "[][{},;%s]" % token_rx_subset
 
 open_rx = re.compile(" (%s)" % open_rx_set)
 
@@ -39,7 +39,7 @@ def normalize_url_param(path):
     # Must be a subset of safe chars in normalize_url_component. OTOH
     # this function quotes a single parameter, so the chars cannot
     # contain '?', '&' or ';'.
-    q = parse.quote(path, safe="/(){}:!|\"")
+    q = parse.quote(path, safe="/()[]{}:!|\"")
     return space_rx.sub('+', q)
 
 def create_query_url(query):

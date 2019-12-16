@@ -514,9 +514,7 @@ set municipality=%s""", (mayor, city, city))
 
         l = len(pos_clauses)
 
-        death_clause = ''
-        if specific:
-             death_clause = """optional { ?w wdt:P570 ?d. }
+        death_clause = """optional { ?w wdt:P570 ?d. }
         filter(!bound(?d) || year(?d) >= %d)""" % self.last_year
 
         judge_cond = ''
@@ -543,12 +541,14 @@ set municipality=%s""", (mayor, city, city))
         # union
         urls = []
         for pos_clause in pos_clauses:
-            # person (wikidata ID), article, birth, label, general description, position, occupation
-            query = """select ?w ?a ?b ?l ?g ?p ?o {
+            # person (wikidata ID), article, birth date, birth date
+            # precision, label, general description, position,
+            # occupation
+            query = """select ?w ?a ?b ?n ?l ?g ?p ?o {
         ?w wdt:P27 wd:Q213;
                 rdfs:label ?l;
                 %s
-                wdt:P569 ?b.
+                p:P569/psv:P569 [ wikibase:timeValue ?b; wikibase:timePrecision ?n ].
         %s%s
         optional {
                 ?a schema:about ?w;
