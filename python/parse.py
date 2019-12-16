@@ -54,7 +54,7 @@ order by nameval""")
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
 
-        self.dupl_err_rep = get_option("dupl_err_rep", False)
+        self.parse_err_rsp = get_option("parse_err_rsp", False)
 
         self.jumper = None
 
@@ -63,9 +63,21 @@ order by nameval""")
         while row:
             url_id = row[0]
 
-            url = self.get_url(url_id)
+            url = None
+            response_code = None
+            if not self.parse_err_rsp:
+                url_state = self.get_url_state(url_id)
+                if url_state:
+                    url = url_state[0]
+                    response_code = url_state[1]
+            else:
+                url = self.get_url(url_id)
+
             if not url:
                 print("URL %d not found" % (url_id,), file=sys.stderr)
+            elif response_code is not None:
+                print("not parsing %s downloaded with %d" % (url, response_code), file=sys.stderr)
+                self.mark_parsed(url_id)
             else:
                 volume_id = self.get_volume_id(url_id)
                 self.parse(url_id, url, volume_id)
@@ -105,23 +117,34 @@ from download_queue""")
             try:
                 parser = JsonParser(self, url)
                 parser.parse_links(reader)
-            except decoder.JSONDecodeError as ex:
+            except Exception as ex:
+                msg = "%s: %s" % (type(ex), ex.msg if hasattr(ex, 'msg') else str(ex))
                 self.cur.execute("""insert into parse_error(url_id, error_message, failed)
 values(%s, %s, localtimestamp)
 on conflict(url_id) do update
-set error_message=%s, failed=localtimestamp""", (url_id, ex.msg, ex.msg))
+set error_message=%s, failed=localtimestamp""", (url_id, msg, msg))
             finally:
                 reader.close()
-        elif self.dupl_err_rep:
+        else:
             self.cur.execute("""insert into parse_error(url_id, error_message, failed)
 values(%s, 'page not found', localtimestamp)""", (url_id,))
 
-        self.cur.execute("""update field
-set parsed=localtimestamp
-where id=%s""", (url_id,))
+        self.mark_parsed(url_id)
 
     def is_done(self):
         return self.page_limit and (self.page_count >= self.page_limit)
+
+    def get_url_state(self, url_id):
+        self.cur.execute("""select url, error_code
+from field
+left join download_error on id=url_id
+where id=%s""", (url_id,))
+        return self.cur.fetchone()
+
+    def mark_parsed(self, url_id):
+        self.cur.execute("""update field
+set parsed=localtimestamp
+where id=%s""", (url_id,))
 
     def pop_work_item(self):
         if self.is_done():
