@@ -340,6 +340,11 @@ set municipality=%s""", (mayor, city, city))
             position_set.remove(Entity.mp)
             mp_position = Entity.mp
 
+        ambassador_position = None
+        if Entity.ambassador in position_set:
+            position_set.remove(Entity.ambassador)
+            ambassador_position = Entity.ambassador
+
         judge_position = None
         court_set = None
         if Entity.judge in position_set:
@@ -375,7 +380,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.university_teacher, Entity.pedagogue, Entity.manager):
+        for occupation in (Entity.diplomat, Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.university_teacher, Entity.pedagogue, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
@@ -386,6 +391,10 @@ set municipality=%s""", (mayor, city, city))
         if minister_position:
             np = 'wd:' + minister_position
             pos_clauses.append(wrap_pos_clause('?p wdt:P279/wdt:P279 %s.' % np, l0))
+
+        if ambassador_position:
+            np = 'wd:' + ambassador_position
+            pos_clauses.append(wrap_pos_clause('?p wdt:P279 %s.' % np, l0))
 
         if mp_position:
             min_year = self.fold_min_start(detail, mp_position)

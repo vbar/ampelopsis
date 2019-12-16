@@ -55,6 +55,9 @@ class Rulebook:
         # police director is not the same as police officer, but implies it
         police_entities = ( Entity.director, Entity.police_officer )
 
+        # analogically ambassador implies diplomat
+        diplomat_entities = ( Entity.ambassador, Entity.diplomat )
+
         self.rulebook = {
             # "governing body member" doesn't sound very university-specific,
             # but is actually used either for universities, or regional
@@ -90,7 +93,7 @@ class Rulebook:
             # 2nd level exists but doesn't match anybody new
             'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
 
-            'vedoucí zastupitelského úřadu': 'Q121998',
+            'vedoucí zastupitelského úřadu': diplomat_entities,
         }
 
     def get(self, raw):

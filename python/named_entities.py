@@ -12,21 +12,25 @@ class Entity:
     # without Q19803234, so we ignore it.
     mp = 'Q19803234'
 
+    # Ambassadors are special because they're normally ambassadors
+    # somewhere - IOW their position is a subclass of ambassador.
+    ambassador = 'Q121998'
+
     # Judges, policemen, doctors etc. are special because (unlike
     # other matched persons) they aren't politicians.
     judge = 'Q16533'
     constitutional_judge = 'Q59773473'
+    diplomat = 'Q193391'
     police_officer = 'Q384593'
     physician = 'Q39631'
     psychiatrist = 'Q211346'
     researcher = 'Q1650915'
+    manager = 'Q2462658'
 
     # Q462390 "docent" is also possible, but isn't that common (to be
     # expected, considering it's no longer issued), doesn't match
     # anybody new and causes timeouts, too...
     university_teacher = 'Q1622272'
-
-    manager = 'Q2462658'
 
     # Prosecutor not only isn't a position; it may not be linked at all.
     # We try to (also) match it from description.
