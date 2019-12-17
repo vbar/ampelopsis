@@ -130,6 +130,7 @@ class Jumper:
 
         self.tree_check = TreeCheck()
         self.tree_check.add('titleBefore', 'mudr', Entity.physician)
+        self.tree_check.add('titleBefore', 'mvdr', Entity.veterinarian)
         # MDDr. is also possible but rare, and wikidata doesn't have
         # the politically active dentists at all...
         self.tree_check.add('titleAfter', 'mba', Entity.manager)
@@ -380,7 +381,7 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.diplomat, Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.researcher, Entity.university_teacher, Entity.pedagogue, Entity.manager):
+        for occupation in (Entity.diplomat, Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.veterinarian, Entity.researcher, Entity.university_teacher, Entity.pedagogue, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
