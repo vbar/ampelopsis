@@ -3,7 +3,7 @@
 from datetime import datetime
 import re
 from corrector import Corrector
-from json_tree_check import JsonTreeCheck
+from tree_check import TreeCheck
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
@@ -128,8 +128,11 @@ class Jumper:
         today = datetime.now()
         self.last_year = today.year - 2
 
-        self.physician_check = JsonTreeCheck('titleBefore', re.compile("\\bmudr\\b"))
-        self.manager_check = JsonTreeCheck('titleAfter', re.compile("\\bmba\\b"))
+        self.tree_check = TreeCheck()
+        self.tree_check.add('titleBefore', 'mudr', Entity.physician)
+        # MDDr. is also possible but rare, and wikidata doesn't have
+        # the politically active dentists at all...
+        self.tree_check.add('titleAfter', 'mba', Entity.manager)
 
         self.city2mayor = {}
 
@@ -220,11 +223,8 @@ set municipality=%s""", (mayor, city, city))
         if detail['judge']:
             sought.add(Entity.judge)
 
-        if self.physician_check.walk(detail):
-            sought.add(Entity.physician)
-
-        if self.manager_check.walk(detail):
-            sought.add(Entity.manager)
+        entities = self.tree_check.find(detail)
+        sought |= entities
 
         lst = detail['workingPositions']
         for it in lst:
