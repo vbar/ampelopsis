@@ -26,6 +26,7 @@ class Entity:
     psychiatrist = 'Q211346'
     veterinarian = 'Q202883'
     archaeologist = 'Q3621491'
+    academic = 'Q3400985'
     researcher = 'Q1650915'
     manager = 'Q2462658'
 
