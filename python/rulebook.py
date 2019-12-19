@@ -40,6 +40,7 @@ organization2occupation = {
     'úřad vlády': 'Q15712674',
     # 'kancelář prezidenta republiky' should have something as well...
     'psychiatrická nemocnice bohnice': Entity.psychiatrist,
+    'archeologické centrum olomouc p.o.': Entity.archaeologist
 }
 
 # Maps it['workingPosition']['name'], where it is an item of cro
@@ -63,6 +64,8 @@ class Rulebook:
             # but is actually used either for universities, or regional
             # councils/obscure orgs not found in Wikidata
             'člen řídícího orgánu': UniversityLevel(True),
+
+            'člen statutárního orgánu': director_level,
 
             'vedoucí zaměstnanec 2. stupně řízení': UniversityLevel(False),
             'vedoucí zaměstnanec 3. stupně řízení': director_level,
