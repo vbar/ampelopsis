@@ -39,6 +39,7 @@ unknown_council_set = set([
 organization2occupation = {
     'úřad vlády': 'Q15712674',
     # 'kancelář prezidenta republiky' should have something as well...
+    'ředitelství silnic a dálnic čr': ('Q63486417', Entity.director),
     'psychiatrická nemocnice bohnice': Entity.psychiatrist,
     'archeologické centrum olomouc p.o.': Entity.archaeologist
 }
