@@ -21,7 +21,7 @@ class Pellet:
         return ( major, self.wikidataId )
 
     def is_birth_date_exact(self):
-        return self.datePrecision == 11
+        return self.datePrecision >= 11
 
     def get_birth_year(self):
         return int(self.birthDate[:4])
