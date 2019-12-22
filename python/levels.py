@@ -66,6 +66,8 @@ class UniversityLevel:
             if self.upper:
                 sought.extend(('Q212071', 'Q2113250', 'Q723682'))
             else:
+                # Q43845 "professor" occupation could also be added
+                # here, but it doesn't match anybody new...
                 sought.append(Entity.academic)
                 sought.append(Entity.researcher)
                 sought.append(Entity.university_teacher)
