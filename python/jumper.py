@@ -7,7 +7,7 @@ from tree_check import TreeCheck
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
-from rulebook_util import convert_answer_to_iterable, get_org_name, school_name_rx
+from rulebook_util import convert_answer_to_iterable, get_org_name, reduce_substrings_to_shortest, school_name_rx
 from urlize import create_query_url, whitespace_rx
 
 # we could include single quote, but there probably aren't any Czech
@@ -26,6 +26,8 @@ city_stop_rx = re.compile("[.,;()]| - |\\bse sídlem\\b")
 # the city name. 3 is a stricter limit than elsewhere, but are there
 # any 2-letter district names?
 city_district_rx = re.compile("^.+-([^-]{3,})$")
+
+school_tail_rx = re.compile(" [asv]$")
 
 date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
 
@@ -55,6 +57,17 @@ def convert_city_set_to_dict(city_set):
 
     return city_dict
 
+def check_school(raw_name):
+    if not raw_name:
+        return None
+
+    org_name = normalize_name(raw_name)
+    m = school_name_rx.search(org_name)
+    if not m:
+        return None
+
+    return school_tail_rx.sub("", m.group(1))
+
 def format_position_iterable(position_iterable):
     return ' '.join('wd:' + p for p in sorted(position_iterable))
 
@@ -75,6 +88,11 @@ def format_city_set(city_set):
         match_fnc = city_dict[local_name]
         terms.append('%s(lcase(?t), "%s")' % (match_fnc, local_name))
 
+    cond = ' || '.join(terms)
+    return cond if len(terms) < 2 else '(%s)' % cond
+
+def format_school_set(school_set):
+    terms = [ 'contains(lcase(?k), "%s")' % stem for stem in sorted(school_set) ]
     cond = ' || '.join(terms)
     return cond if len(terms) < 2 else '(%s)' % cond
 
@@ -133,6 +151,8 @@ class Jumper:
         self.tree_check.add('titleBefore', 'mvdr', Entity.veterinarian)
         # MDDr. is also possible but rare, and wikidata doesn't have
         # the politically active dentists at all...
+        self.tree_check.add('titleBefore', 'paedr', Entity.pedagogue)
+        self.tree_check.add('titleBefore', 'paeddr', Entity.pedagogue)
         self.tree_check.add('titleAfter', 'mba', Entity.manager)
 
         self.city2mayor = {}
@@ -244,38 +264,36 @@ set municipality=%s""", (mayor, city, city))
             # wp['name'] 'poslanec', and senators 'senátor'), and
             # adding MP terms wouldn't work outside rulebook anyway...
 
-        if self.check_school(detail):
+        school_set = self.find_schools(detail)
+        if len(school_set):
             sought.add(Entity.pedagogue)
-            # could also add researcher here, but it doesn't match
-            # anybody new...
+            # could also add other entities here, but they aren't
+            # special-cased in make_query_urls...
 
         return sought
 
-    def check_school(self, detail):
+    def find_schools(self, detail):
+        school_set = set()
         for statement in detail['statements']:
             incomes = statement.get('incomes')
             if incomes:
                 for income in incomes:
                     legal = income.get('legalPerson')
                     if legal:
-                        nm = legal.get('name')
-                        if nm:
-                            org_name = nm.lower()
-                            if school_name_rx.search(org_name):
-                                return True
+                        school_name = check_school(legal.get('name'))
+                        if school_name:
+                            school_set.add(school_name)
 
             others = statement.get('otherContracts')
             if others:
                 for other in others:
                     tp = other.get('type')
                     if tp and tp.get('type') == 'EMPLOYMENT_RELATIONSHIP':
-                        nm = other.get('name')
-                        if nm:
-                            org_name = nm.lower()
-                            if school_name_rx.search(org_name):
-                                return True
+                        school_name = check_school(other.get('name'))
+                        if school_name:
+                            school_set.add(school_name)
 
-        return False
+        return school_set
 
     def make_court_set(self, detail):
         sought = set()
@@ -381,12 +399,23 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.diplomat, Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.pedagogue, Entity.manager):
+        for occupation in (Entity.diplomat, Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
 
+        school_names = set()
+        if Entity.pedagogue in position_set:
+            school_names = reduce_substrings_to_shortest(self.find_schools(detail))
+            # teachers w/o school are treated like other occupations
+            # (until they cause false positives, at which point
+            # they'll be removed from whatever's producing them)
+            if not len(school_names):
+                occupation_list.append(Entity.pedagogue)
+
         l0 = len(occupation_list)
+        if len(school_names):
+            l0 += 1
 
         pos_clauses = []
         if minister_position:
@@ -511,16 +540,25 @@ set municipality=%s""", (mayor, city, city))
             if loc_occ:
                 occ_branch.append('?w wdt:P106 ?o.')
 
-            vl = format_position_iterable(occupation_list)
-            occ_branch.append('values ?o { %s }' % vl)
+            if len(occupation_list):
+                vl = format_position_iterable(occupation_list)
+                occ_branch.append('values ?o { %s }' % vl)
 
-            pos_clauses.append(''.join(occ_branch))
+                pos_clauses.append(''.join(occ_branch))
 
-            # prosecutor already is in occupation_list (and therefore
-            # in pos_clauses), but the occupation almost never matches
-            # - so we also try to match description...
-            if prosecutor_position:
-                pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
+                # prosecutor already is in occupation_list (and therefore
+                # in pos_clauses), but the occupation almost never matches
+                # - so we also try to match description...
+                if prosecutor_position:
+                    pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
+
+            if len(school_names):
+                np = 'wd:' + Entity.pedagogue
+                school_clause = format_school_set(school_names)
+                teacher_occ = """values ?o { %s }
+        ?w wdt:P108/rdfs:label ?k.
+        filter(lang(?k) = "cs" && %s)""" % (np, school_clause)
+                pos_clauses.append(teacher_occ)
 
         l = len(pos_clauses)
 
