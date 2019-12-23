@@ -42,6 +42,8 @@ class Entity:
     # like researcher, but also applies to lower-level/private schools
     pedagogue = 'Q1231865'
 
+    politician = 'Q82955'
+
     # not particularly special but do repeat
     deputy_minister = 'Q15735113'
     director = 'Q1162163'

@@ -399,7 +399,15 @@ set municipality=%s""", (mayor, city, city))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
-        for occupation in (Entity.diplomat, Entity.police_officer, Entity.physician, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
+        # doctors by themselves produce false positives, so we always
+        # combine them with other occupations
+        physician_flag = False
+        if Entity.physician in position_set:
+            position_set.remove(Entity.physician)
+            occupation_list.append(Entity.politician)
+            physician_flag = True
+
+        for occupation in (Entity.diplomat, Entity.police_officer, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
@@ -535,30 +543,39 @@ set municipality=%s""", (mayor, city, city))
                 else:
                     loc_occ = True
 
-        if l0:
+        lol = len(occupation_list)
+        if lol:
             occ_branch = []
             if loc_occ:
-                occ_branch.append('?w wdt:P106 ?o.')
+                if physician_flag:
+                    np = 'wd:' + Entity.physician
+                    occ_branch.append('?w wdt:P106 %s, ?o.' % np)
+                else:
+                    occ_branch.append('?w wdt:P106 ?o.')
 
-            if len(occupation_list):
-                vl = format_position_iterable(occupation_list)
-                occ_branch.append('values ?o { %s }' % vl)
+            vl = format_position_iterable(occupation_list)
+            occ_branch.append('values ?o { %s }' % vl)
 
-                pos_clauses.append(''.join(occ_branch))
+            if physician_flag and not loc_occ:
+                np = 'wd:' + Entity.physician
+                occ_branch.append('?w wdt:P106 %s.' % np)
 
-                # prosecutor already is in occupation_list (and therefore
-                # in pos_clauses), but the occupation almost never matches
-                # - so we also try to match description...
-                if prosecutor_position:
-                    pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
+            pos_clauses.append(''.join(occ_branch))
 
-            if len(school_names):
-                np = 'wd:' + Entity.pedagogue
-                school_clause = format_school_set(school_names)
-                teacher_occ = """values ?o { %s }
+            # prosecutor already is in occupation_list (and therefore
+            # in pos_clauses), but the occupation almost never matches
+            # - so we also try to match description...
+            if prosecutor_position:
+                pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
+
+        if len(school_names):
+            occ_clause = '?w wdt:P106 ?o.' if loc_occ and not lol else ''
+            np = 'wd:' + Entity.pedagogue
+            school_expr = format_school_set(school_names)
+            teacher_occ = """%svalues ?o { %s }
         ?w wdt:P108/rdfs:label ?k.
-        filter(lang(?k) = "cs" && %s)""" % (np, school_clause)
-                pos_clauses.append(teacher_occ)
+        filter(lang(?k) = "cs" && %s)""" % (occ_clause, np, school_expr)
+            pos_clauses.append(teacher_occ)
 
         l = len(pos_clauses)
 
