@@ -82,6 +82,7 @@ class Rulebook:
             'senátor': 'Q18941264',
             'starosta': MuniLevel(mayor_position_entities),
             'místostarosta / zástupce starosty': MuniLevel(deputy_mayor_position_entities),
+            'hejtman': council_level,
             'člen zastupitelstva': council_level,
             'člen rady': council_level,
 
