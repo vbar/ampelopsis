@@ -148,7 +148,8 @@ from parse_queue""")
 
         now = int(time.time() + 0.5)
         interval = mn - now
-        return interval if interval > 0 else 1
+        # sleep until after hold expires
+        return interval + 1 if interval > 0 else 1
 
     def cond_expire(self):
         now = int(time.time() + 0.5)
