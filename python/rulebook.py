@@ -11,7 +11,11 @@ from rulebook_util import get_org_name
 # using even Q27830328 - perhaps it should?)
 region2councillor = {
     'jihočeský kraj': RegionCouncilLevel('Q55670007'),
+
+    # there's also Q59576479, but since jihomoravský kraj doesn't
+    # match anything in the first place...
     'jihomoravský kraj': RegionCouncilLevel('Q59583668'),
+
     'karlovarský kraj': region_councillor_entities,
     'kraj vysočina': region_councillor_entities,
     'krajský úřad středočeského kraje': region_councillor_entities,
