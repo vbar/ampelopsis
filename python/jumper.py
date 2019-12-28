@@ -543,8 +543,7 @@ set municipality=%s""", (mayor, city, city))
                 else:
                     loc_occ = True
 
-        lol = len(occupation_list)
-        if lol:
+        if len(occupation_list):
             occ_branch = []
             if loc_occ:
                 if physician_flag:
@@ -569,7 +568,7 @@ set municipality=%s""", (mayor, city, city))
                 pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
 
         if len(school_names):
-            occ_clause = '?w wdt:P106 ?o.' if loc_occ and not lol else ''
+            occ_clause = '?w wdt:P106 ?o.' if loc_occ else ''
             np = 'wd:' + Entity.pedagogue
             school_expr = format_school_set(school_names)
             teacher_occ = """%svalues ?o { %s }
