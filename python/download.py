@@ -153,6 +153,10 @@ on conflict do nothing""", (url_id, new_url_id))
 
         return (new_url_id, known)
 
+    def retrieve_all(self):
+        while self.retrieve():
+            pass
+
     # adapted from https://github.com/pycurl/pycurl/blob/master/examples/retriever-multi.py
     def retrieve(self):
         avail = self.get_available_hosts()
@@ -167,7 +171,8 @@ where host_id = any(%s)""", (sorted(avail),))
         if not num_conn:
             return False
 
-        if num_conn > self.max_num_conn:
+        full = num_conn >= self.max_num_conn
+        if full:
             num_conn = self.max_num_conn
 
         m = pycurl.CurlMulti()
@@ -303,7 +308,7 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
             c.close()
 
         m.close()
-        return True
+        return full
 
     def report_error(self, target, errno, errmsg):
         if (errno == 23) and not target.retrieve_body:
@@ -323,7 +328,7 @@ def main():
             retriever = Retriever(single_action, conn, cur)
             while True:
                 act_inc(cur)
-                retriever.retrieve()
+                retriever.retrieve_all()
                 global_live = act_dec(cur)
                 if single_action:
                     break
