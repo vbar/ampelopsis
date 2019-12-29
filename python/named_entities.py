@@ -28,6 +28,7 @@ class Entity:
     archaeologist = 'Q3621491'
     academic = 'Q3400985'
     researcher = 'Q1650915'
+    engineer = 'Q81096'
     manager = 'Q2462658'
 
     # Q462390 "docent" is also possible, but isn't that common (to be
@@ -42,6 +43,9 @@ class Entity:
     # like researcher, but also applies to lower-level/private schools
     pedagogue = 'Q1231865'
 
+    # most matched persons are politicians (and we don't generally
+    # require this to match them), but it's used to filter common
+    # occupations
     politician = 'Q82955'
 
     # not particularly special but do repeat

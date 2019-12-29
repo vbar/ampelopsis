@@ -153,6 +153,7 @@ class Jumper:
         # the politically active dentists at all...
         self.tree_check.add('titleBefore', 'paedr', Entity.pedagogue)
         self.tree_check.add('titleBefore', 'paeddr', Entity.pedagogue)
+        self.tree_check.add('titleBefore', 'ing', Entity.engineer)
         self.tree_check.add('titleAfter', 'mba', Entity.manager)
 
         self.city2mayor = {}
@@ -407,6 +408,12 @@ set municipality=%s""", (mayor, city, city))
             occupation_list.append(Entity.politician)
             physician_flag = True
 
+        engineer_flag = False
+        if Entity.engineer in position_set:
+            position_set.remove(Entity.engineer)
+            # not added to occupation_list
+            engineer_flag = True
+
         for occupation in (Entity.diplomat, Entity.police_officer, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
@@ -566,6 +573,16 @@ set municipality=%s""", (mayor, city, city))
             # - so we also try to match description...
             if prosecutor_position:
                 pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
+
+        # engineers (unlike doctors, whose titles are a more prominent
+        # part of their identity) get a separate query
+        if engineer_flag:
+            np = 'wd:' + Entity.engineer
+            np2 = 'wd:' + Entity.politician
+            occ_tail = ', ?o' if loc_occ else ''
+            eng_occ = """?w wdt:P106 %s%s.
+        values ?o { %s }""" % (np, occ_tail, np2)
+            pos_clauses.append(eng_occ)
 
         if len(school_names):
             occ_clause = '?w wdt:P106 ?o.' if loc_occ else ''
