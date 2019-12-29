@@ -421,6 +421,7 @@ set municipality=%s""", (mayor, city, city))
 
         school_names = set()
         if Entity.pedagogue in position_set:
+            position_set.remove(Entity.pedagogue)
             school_names = reduce_substrings_to_shortest(self.find_schools(detail))
             # teachers w/o school are treated like other occupations
             # (until they cause false positives, at which point
