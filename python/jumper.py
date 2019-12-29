@@ -150,9 +150,10 @@ class Jumper:
         self.tree_check.add('titleBefore', 'mudr', Entity.physician)
         self.tree_check.add('titleBefore', 'mvdr', Entity.veterinarian)
         # MDDr. is also possible but rare, and wikidata doesn't have
-        # the politically active dentists at all...
-        self.tree_check.add('titleBefore', 'paedr', Entity.pedagogue)
-        self.tree_check.add('titleBefore', 'paeddr', Entity.pedagogue)
+        # the politically active dentists at all. Neither does
+        # arch. match any new architects. PaedDr. causes false
+        # positives - pedagogues require a school match, or some other
+        # restriction...
         self.tree_check.add('titleBefore', 'ing', Entity.engineer)
         self.tree_check.add('titleAfter', 'mba', Entity.manager)
 
