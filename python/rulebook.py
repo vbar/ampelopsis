@@ -1,6 +1,6 @@
 import re
 
-from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, RegionCouncilLevel, UniversityLevel
+from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, PoliceLevel, RegionCouncilLevel, UniversityLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities, region_councillor_entities
 from rulebook_util import get_org_name
 
@@ -58,10 +58,7 @@ class Rulebook:
 
         director_level = DirectorLevel(organization2occupation)
 
-        # police director is not the same as police officer, but implies it
-        police_entities = ( Entity.director, Entity.police_officer )
-
-        # analogically ambassador implies diplomat
+        # analogically to police officer, ambassador implies diplomat
         diplomat_entities = ( Entity.ambassador, Entity.diplomat )
 
         self.rulebook = {
@@ -96,11 +93,11 @@ class Rulebook:
 
             'soudce': JudgeLevel(),
             'státní zástupce': Entity.prosecutor,
-            'ředitel bezpečnostního sboru': police_entities,
+            'ředitel bezpečnostního sboru': PoliceLevel(False),
             # ředitel odboru/sekce doesn't match any more directors
 
             # 2nd level exists but doesn't match anybody new
-            'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': police_entities,
+            'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': PoliceLevel(True),
 
             'vedoucí zastupitelského úřadu': diplomat_entities,
         }

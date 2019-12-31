@@ -3,6 +3,10 @@
 # position set, which is then used without special-casing the entity)
 # generally just hardcode the Wikidata name.
 class Entity:
+    # so far used only for police "president", but there might be
+    # others...
+    president = 'Q30461'
+
     # ministers are special because their position is a subclass of
     # minister - normally minister of <resort> of Czech Republic
     minister = 'Q83307'

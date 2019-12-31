@@ -74,6 +74,16 @@ class UniversityLevel:
 
         return sought
 
+class PoliceLevel:
+    def __init__(self, top):
+        # police director is not the same as police officer, but implies it
+        self.entities = [ Entity.director, Entity.police_officer ]
+        if top:
+            self.entities.append(Entity.president)
+
+    def __call__(self, it):
+        return self.entities
+
 class DirectorLevel:
     def __init__(self, organization2occupation):
         self.organization2occupation = organization2occupation
