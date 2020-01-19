@@ -29,6 +29,10 @@ close_rx = re.compile("(%s) " % close_rx_set)
 
 pressed_close_rx = re.compile("(%s)(?![ %s])" % (close_rx_set, token_rx_subset))
 
+# doesn't include values because wikidata might fail on values
+# not preceded by a space, e.g. on https://query.wikidata.org/sparql?format=json&query=select%3Fw%3Fl%3Fp%3Fo{%3Fw+wdt:P27+wd:Q213%3Brdfs:label%3Fl%3Bwdt:P39%3Fp.%3Fw+wdt:P106%3Fo.filter(lang(%3Fl)%3D"cs"%26%26contains(lcase(%3Fl)%2C"jaroslav+%C4%8Dech"))%3Fw+wdt:P106+wd:Q81096.values%3Fo{wd:Q82955}}
+word_rx = re.compile(" (filter|optional|\"cs\")")
+
 begin_rx = re.compile("^([^{]+{) ")
 
 clause_rx = re.compile(" (} union {) ")
@@ -46,7 +50,8 @@ def create_query_url(query):
     mq = whitespace_rx.sub(" ", query.strip())
     half = open_rx.sub("\\1", mq)
     shorter = close_rx.sub("\\1", half)
-    return query_url_head + normalize_url_param(shorter)
+    shortest = word_rx.sub("\\1", shorter)
+    return query_url_head + normalize_url_param(shortest)
 
 def reflate(q):
     half = pressed_close_rx.sub("\\1 ", q)
