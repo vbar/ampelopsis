@@ -16,6 +16,10 @@ class Entity:
     # without Q19803234, so we ignore it.
     mp = 'Q19803234'
 
+    # input data don't distinguish parliamentary functions, but
+    # wikidata (at least occasionally) do...
+    mp_speaker = 'Q5068060'
+
     # Ambassadors are special because they're normally ambassadors
     # somewhere - IOW their position is a subclass of ambassador.
     ambassador = 'Q121998'
@@ -46,6 +50,7 @@ class Entity:
 
     # like researcher, but also applies to lower-level/private schools
     pedagogue = 'Q1231865'
+    teacher = 'Q37226'
 
     # most matched persons are politicians (and we don't generally
     # require this to match them), but it's used to filter common

@@ -145,6 +145,7 @@ class Jumper:
 
         today = datetime.now()
         self.last_year = today.year - 2
+        self.year_precision = 9
 
         self.tree_check = TreeCheck()
         self.tree_check.add('titleBefore', 'mudr', Entity.physician)
@@ -451,12 +452,12 @@ set municipality=%s""", (mayor, city, city))
             # who started long ago and didn't finish yet) - IOW it'll
             # stop working for the next one...
             base_cond = 'year(coalesce(?f, ?u)) >= %d || ?e = %s' % (min_year, 'wd:Q42409353')
-            np = 'wd:' + mp_position
+            mp_values = format_position_iterable((mp_position, Entity.mp_speaker))
             extra_clause = """values ?p { %s }
         optional { ?w p:P39/pq:P580 ?f. }
         optional { ?w p:P39/pq:P582 ?u. }
         optional { ?w p:P39/pq:P2937 ?e. }
-        filter(%s)""" % (np, base_cond)
+        filter(%s)""" % (mp_values, base_cond)
             pos_clauses.append(wrap_pos_clause(extra_clause, l0))
 
         if len(mayor_position_set):
@@ -588,15 +589,18 @@ set municipality=%s""", (mayor, city, city))
 
         if len(school_names):
             occ_clause = '?w wdt:P106 ?o.' if loc_occ else ''
-            np = 'wd:' + Entity.pedagogue
+            teacher_entities = (Entity.pedagogue, Entity.teacher)
+            teacher_values = format_position_iterable(teacher_entities)
             school_expr = format_school_set(school_names)
             teacher_occ = """%svalues ?o { %s }
         ?w wdt:P108/rdfs:label ?k.
-        filter(lang(?k) = "cs" && %s)""" % (occ_clause, np, school_expr)
+        filter(lang(?k) = "cs" && %s)""" % (occ_clause, teacher_values, school_expr)
             pos_clauses.append(teacher_occ)
 
         l = len(pos_clauses)
 
+        # combining the conditions into the main (name) filter slows
+        # down download more than 3x...
         death_clause = """optional { ?w wdt:P570 ?d. }
         filter(!bound(?d) || year(?d) >= %d)""" % self.last_year
 
@@ -641,9 +645,9 @@ set municipality=%s""", (mayor, city, city))
                 ?w schema:description ?g.
                 filter(lang(?g) = "cs")
         }
-        filter(lang(?l) = "cs" && %s%s)
+        filter(xsd:integer(?n) > %d && lang(?l) = "cs" && %s%s)
         %s
-}""" % (political_constraint, death_clause, mainline_block, name_cond, judge_cond, pos_clause)
+}""" % (political_constraint, death_clause, mainline_block, self.year_precision - 1, name_cond, judge_cond, pos_clause)
             urls.append(create_query_url(query))
 
         return urls
