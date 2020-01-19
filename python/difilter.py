@@ -61,14 +61,16 @@ order by url""")
         l = len(position_set)
         if (self.mode & OVERSPECIFIED) and l:
             specific_urls = self.make_query_urls(detail, position_set)
-            suha = any(self.has_answer(su) for su in specific_urls)
+            suha, focused = self.has_specific_answer_focus(specific_urls)
             generic_url = self.make_query_single_url(detail, set())
-            if not suha and self.has_answer(generic_url):
+            af, ff = self.has_answer_focus(generic_url)
+            if focused and not suha and ff and af:
                 found = True
 
         if (self.mode & UNDERSPECIFIED) and not l:
             generic_url = self.make_query_single_url(detail, set())
-            if self.has_answer(generic_url):
+            af, ff = self.has_answer_focus(generic_url)
+            if ff and af:
                 found = True
 
         if self.mode == VARIABLE:
@@ -79,11 +81,13 @@ order by url""")
         elif not self.mode:
             if l:
                 specific_urls = self.make_query_urls(detail, position_set)
-                if any(self.has_answer(su) for su in specific_urls):
+                suha, focused = self.has_specific_answer_focus(specific_urls)
+                if focused and suha:
                     found = True
 
             generic_url = self.make_query_single_url(detail, set())
-            if self.has_answer(generic_url):
+            af, ff = self.has_answer_focus(generic_url)
+            if ff and af:
                 found = True
 
         if found:
@@ -123,18 +127,36 @@ order by url""")
 
         return False
 
+
+    def has_specific_answer_focus(self, specific_urls):
+        suha = False
+        focused = False
+        for su in specific_urls:
+            af, ff = self.has_answer_focus(su)
+            if af:
+                suha = True
+
+            if ff:
+                focused = True
+
+            if suha and focused:
+                return (True, True)
+
+        return (suha, focused)
+
     # doesn't respect filtering in JsonLookup.get_entities - that's
     # accessed by the VARIABLE mode
-    def has_answer(self, url):
+    def has_answer_focus(self, url):
         assert (self.black is None) or (self.white is None)
 
         doc = self.get_document(url)
         if not doc:
-            return False
+            return (False, False)
 
         bindings = doc['results']['bindings']
+        answer_flag = bool(len(bindings))
         if (self.black is None) and (self.white is None):
-            return len(bindings)
+            return (answer_flag, True)
 
         for it in bindings:
             for vn in ('p', 'o'):
@@ -147,11 +169,11 @@ order by url""")
                             pos = m.group(1)
                             if self.white is None:
                                 if not(pos in self.black):
-                                    return True
+                                    return (True, True)
                             elif pos in self.white:
-                                return True
+                                return (True, True)
 
-        return False
+        return (answer_flag, False)
 
 
 def main():
