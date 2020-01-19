@@ -3,8 +3,9 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-from common import make_connection
+from common import get_option, make_connection, schema
 from json_lookup import JsonLookup
+from schema_manager import SchemaManager
 
 flag_legend = ("generic", "generic failure", "specific", "specific failure")
 
@@ -106,15 +107,15 @@ where url=%s""", (url,))
         return int(raw_time)
 
 
-def main():
-    with make_connection() as conn:
-        with conn.cursor() as cur:
-            scanner = Scanner(cur)
-            scanner.run()
-            times = scanner.get_times()
-
+def get_times(cur):
+    scanner = Scanner(cur)
+    scanner.run()
+    times = scanner.get_times()
     print("%d timed URLs found" % len(times), file=sys.stderr)
+    return times
 
+
+def plot_times(title, marker, times):
     series = [] # of list of int
     for i in range(8):
         series.append([])
@@ -126,14 +127,30 @@ def main():
         xseries.append(i)
         yseries.append(tpl[0])
 
-    lines = []
+    segments = []
     colors = ('g', 'r', 'b', 'm')
     for i in range(4):
         idx = 2 * i
-        ln = plt.scatter(series[idx], series[idx + 1], marker='.', color=colors[i])
-        lines.append(ln)
+        ln = plt.scatter(series[idx], series[idx + 1], marker=marker, color=colors[i])
+        segments.append(ln)
 
-    plt.legend(tuple(lines), flag_legend, scatterpoints=1)
+    plt.legend(segments, flag_legend, scatterpoints=1, title=title)
+
+
+def main():
+    time_data = [] # of (title, marker, times)
+    with make_connection() as conn:
+        with conn.cursor() as cur:
+            old_schema = get_option("old_schema", None)
+            if old_schema:
+                with SchemaManager(old_schema, cur):
+                    time_data.append((old_schema, 'x', get_times(cur)))
+
+            time_data.append((schema, '.', get_times(cur)))
+
+    for p in time_data:
+        plot_times(*p)
+
     plt.show()
 
 if __name__ == "__main__":
