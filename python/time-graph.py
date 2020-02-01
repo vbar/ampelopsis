@@ -1,12 +1,17 @@
 #!/usr/bin/python3
 
+import os
+import pickle
 import sys
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
-from common import get_option, make_connection, schema
+from common import get_option, get_parent_directory, make_connection, schema
 from json_lookup import JsonLookup
 from schema_manager import SchemaManager
+
+REMOVE_DUMP = 1
+STORE_DUMP = 2
 
 flag_legend = ("generic", "generic failure", "specific", "specific failure")
 
@@ -108,11 +113,29 @@ where url=%s""", (url,))
         return int(raw_time)
 
 
-def get_times(cur):
-    scanner = Scanner(cur)
-    scanner.run()
-    times = scanner.get_times()
-    print("%d timed URLs found" % len(times), file=sys.stderr)
+def get_times(cur, dump_flags):
+    cache_dir = os.path.join(get_parent_directory(), "cache")
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    cache_file = os.path.join(cache_dir, schema + ".dump")
+    cached = os.path.exists(cache_file)
+    if cached and (dump_flags & REMOVE_DUMP):
+        os.remove(cache_file)
+        cached = False
+
+    if cached:
+        with open(cache_file, 'rb') as f:
+            times = pickle.load(f)
+    else:
+        scanner = Scanner(cur)
+        scanner.run()
+        times = scanner.get_times()
+        if dump_flags & STORE_DUMP:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(times, f)
+
+    print("%d timed URLs found for %s" % (len(times), schema), file=sys.stderr)
     return times
 
 
@@ -140,15 +163,30 @@ def plot_times(title, marker, times):
 
 
 def main():
+    dump_flags = 0
+    for a in sys.argv[1:]:
+        if a in ('-r', '--remove'):
+            if dump_flags & REMOVE_DUMP:
+                raise Exception("repeated argument: " + a)
+
+            dump_flags |= REMOVE_DUMP
+        elif a in ('-s', '--store'):
+            if dump_flags & STORE_DUMP:
+                raise Exception("repeated argument: " + a)
+
+            dump_flags |= STORE_DUMP
+        else:
+            raise Exception("unknown argument: " + a)
+
     time_data = [] # of (title, marker, times)
     with make_connection() as conn:
         with conn.cursor() as cur:
             old_schema = get_option("old_schema", None)
             if old_schema:
                 with SchemaManager(old_schema, cur):
-                    time_data.append((old_schema, 'x', get_times(cur)))
+                    time_data.append((old_schema, 'x', get_times(cur, dump_flags)))
 
-            time_data.append((schema, '.', get_times(cur)))
+            time_data.append((schema, '.', get_times(cur, dump_flags)))
 
     # legend based on https://stackoverflow.com/questions/24787041/multiple-titles-in-legend-in-matplotlib
     handles = []
