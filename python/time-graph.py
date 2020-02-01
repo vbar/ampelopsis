@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
 from common import get_option, make_connection, schema
@@ -117,7 +118,7 @@ def get_times(cur):
 
 def plot_times(title, marker, times):
     series = [] # of list of int
-    for i in range(8):
+    for i in range(2 * len(flag_legend)): # x- & y- series for every segment
         series.append([])
 
     for i, tpl in enumerate(times):
@@ -129,12 +130,13 @@ def plot_times(title, marker, times):
 
     segments = []
     colors = ('g', 'r', 'b', 'm')
-    for i in range(4):
+    assert len(colors) == len(flag_legend)
+    for i in range(len(flag_legend)):
         idx = 2 * i
         ln = plt.scatter(series[idx], series[idx + 1], marker=marker, color=colors[i])
         segments.append(ln)
 
-    plt.legend(segments, flag_legend, scatterpoints=1, title=title)
+    return segments
 
 
 def main():
@@ -148,8 +150,20 @@ def main():
 
             time_data.append((schema, '.', get_times(cur)))
 
+    # legend based on https://stackoverflow.com/questions/24787041/multiple-titles-in-legend-in-matplotlib
+    handles = []
+    labels = []
+    title_proxy = Rectangle((0,0), 0, 0, color='w')
     for p in time_data:
-        plot_times(*p)
+        segments = plot_times(*p)
+        assert len(segments) == len(flag_legend)
+        handles.append(title_proxy)
+        labels.append("$%s$" % p[0])
+        for i in range(len(flag_legend)):
+            handles.append(segments[i])
+            labels.append(flag_legend[i])
+
+    plt.legend(handles, labels)
 
     plt.show()
 
