@@ -28,6 +28,8 @@ class Scanner(JsonLookup):
         JsonLookup.__init__(self, cur)
         self.doc_count = 0
         self.query_count = 0
+        self.seen = set() # of url_id
+        self.skip_count = 0
         self.times = [] # of (time, flags)
 
     def run(self):
@@ -41,6 +43,8 @@ order by url""")
         rows = self.cur.fetchall()
         for row in rows:
             self.scan(row[0])
+
+        print("%d duplicate URLs skipped" % self.skip_count, file=sys.stderr)
 
     def get_times(self):
         return sorted(self.times)
@@ -79,6 +83,12 @@ where url=%s""", (url,))
 
         url_id = row[0]
         error = row[1]
+        if url_id in self.seen:
+            self.skip_count += 1
+            return
+        else:
+            self.seen.add(url_id)
+
         volume_id = self.get_volume_id(url_id)
         t = self.get_time(url_id, volume_id)
         if t is not None:
