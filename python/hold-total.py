@@ -16,6 +16,7 @@ class Scanner(JsonLookup):
         self.query_count = 0
         # duplicated from DownloadBase
         self.relative_rx = re.compile("^([0-9]{1,3})$")
+        self.seen = set() # of url_id
         self.count429 = [0, 0]
         self.sum429 = [0, 0]
 
@@ -68,6 +69,11 @@ where url=%s and error_code=429""", (url,))
             return
 
         url_id = row[0]
+        if url_id in self.seen:
+            return
+        else:
+            self.seen.add(url_id)
+
         volume_id = self.get_volume_id(url_id)
         t = self.get_retry_after(url_id, volume_id)
         if t is None:
