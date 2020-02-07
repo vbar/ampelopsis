@@ -6,7 +6,7 @@ import sys
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
-from common import get_option, get_parent_directory, make_connection, schema
+import common
 from json_lookup import JsonLookup
 from schema_manager import SchemaManager
 
@@ -124,11 +124,11 @@ where url=%s""", (url,))
 
 
 def get_times(cur, dump_flags):
-    cache_dir = os.path.join(get_parent_directory(), "cache")
+    cache_dir = os.path.join(common.get_parent_directory(), "cache")
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
 
-    cache_file = os.path.join(cache_dir, schema + ".dump")
+    cache_file = os.path.join(cache_dir, common.schema + ".dump")
     cached = os.path.exists(cache_file)
     if cached and (dump_flags & REMOVE_DUMP):
         os.remove(cache_file)
@@ -145,7 +145,7 @@ def get_times(cur, dump_flags):
             with open(cache_file, 'wb') as f:
                 pickle.dump(times, f)
 
-    print("%d timed URLs found for %s" % (len(times), schema), file=sys.stderr)
+    print("%d timed URLs found for %s" % (len(times), common.schema), file=sys.stderr)
     return times
 
 
@@ -189,14 +189,14 @@ def main():
             raise Exception("unknown argument: " + a)
 
     time_data = [] # of (title, marker, times)
-    with make_connection() as conn:
+    with common.make_connection() as conn:
         with conn.cursor() as cur:
-            old_schema = get_option("old_schema", None)
+            old_schema = common.get_option("old_schema", None)
             if old_schema:
                 with SchemaManager(old_schema, cur):
                     time_data.append((old_schema, 'x', get_times(cur, dump_flags)))
 
-            time_data.append((schema, '.', get_times(cur, dump_flags)))
+            time_data.append((common.schema, '.', get_times(cur, dump_flags)))
 
     # legend based on https://stackoverflow.com/questions/24787041/multiple-titles-in-legend-in-matplotlib
     handles = []
