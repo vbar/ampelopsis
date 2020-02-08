@@ -4,6 +4,7 @@ import re
 import sys
 from common import make_connection
 from json_lookup import JsonLookup
+from jumper import make_meta_query_url
 
 GENERIC_INDEX = 0
 
@@ -33,7 +34,15 @@ order by url""")
             self.scan(row[0])
 
     def dump(self):
-        print("%d+%d error responses requesting total of %d+%d wait seconds" %
+        self.cur.execute("""select max(checkd) - max(ch)
+from field, (
+        select checkd ch
+        from field where url=%s
+) sq""", (make_meta_query_url(),))
+        row = self.cur.fetchone()
+        print("download duration: %s" % row[0])
+
+        print("%d+%d Too Many Requests error responses requesting total of %d+%d wait seconds" %
               (self.count429[GENERIC_INDEX], self.count429[SPECIFIC_INDEX],
                self.sum429[GENERIC_INDEX], self.sum429[SPECIFIC_INDEX]))
 
