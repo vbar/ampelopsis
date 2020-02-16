@@ -13,7 +13,7 @@ from schema_manager import SchemaManager
 REMOVE_DUMP = 1
 STORE_DUMP = 2
 
-flag_legend = ("generic", "generic failure", "specific", "specific failure")
+flag_legend = ("specific", "specific failure", "generic", "generic failure")
 
 def get_flags(specific_flag, error):
     f = 0 if specific_flag else 2
