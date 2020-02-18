@@ -118,15 +118,23 @@ def format_councillor_bare_clause(councillor_position_iterable, city_set):
         ?w p:P39/pq:P642/rdfs:label ?t.
         filter(lang(?t) = "cs" && %s)""" % (vl, filter_expr)
 
-def make_mayor_of_query_url():
+def make_meta_query_url():
     vl = format_position_iterable(mayor_position_entities)
-    query = """select ?q ?j ?l ?p {
-        ?q wdt:P279 ?p;
-                wdt:P1001 ?j.
-        values ?p { %s }
-        ?j wdt:P17 wd:Q213;
-                rdfs:label ?l.
-        filter(lang(?l) = "cs")
+    query = """select ?q ?j ?l ?p ?t {
+        {
+                ?q wdt:P279 ?p;
+                        wdt:P1001 ?j.
+                values ?p { %s }
+                ?j wdt:P17 wd:Q213;
+                        rdfs:label ?l.
+                filter(lang(?l) = "cs")
+        } union {
+                ?t p:P31 ?s.
+                ?s ps:P31 wd:Q15238777;
+                  pq:P642 wd:Q2347172.
+                optional { ?t p:P156 ?n. }
+                filter(!bound(?n))
+        }
 }""" % vl
     return create_query_url(query)
 
@@ -144,7 +152,7 @@ class Jumper:
         self.rulebook = Rulebook()
 
         today = datetime.now()
-        self.last_year = today.year - 2
+        self.recent_year = today.year - 2
         self.year_precision = 9
 
         self.tree_check = TreeCheck()
@@ -159,6 +167,7 @@ class Jumper:
         self.tree_check.add('titleAfter', 'mba', Entity.manager)
 
         self.city2mayor = {}
+        self.last_legislature = None
 
         # hardcoded, for now - Wikidata probably doesn't have a a city
         # assembly member entity for any Czech city beside Prague...
@@ -205,6 +214,13 @@ order by wd_entity""")
         for row in rows:
             self.city2mayor[row[0]] = row[1]
 
+        cur.execute("""select wd_entity
+from cro_last_legislature
+where id=1""")
+        row = cur.fetchone()
+        if row:
+            self.last_legislature = row[0]
+
     def store(self, cur):
         for city, mayor in self.city2mayor.items():
             cur.execute("""insert into cro_mayor_of(wd_entity, municipality)
@@ -212,10 +228,19 @@ values(%s, %s)
 on conflict(wd_entity) do update
 set municipality=%s""", (mayor, city, city))
 
+        if self.last_legislature:
+            cur.execute("""insert into cro_last_legislature(id, wd_entity)
+values(1, %s)
+on conflict(id) do update
+set wd_entity=%s""", (self.last_legislature, self.last_legislature))
+
     def add_muni_mayor(self, city, mayor):
         norm_muni = self.normalize_city(city)
         if len(norm_muni) > 1:
             self.city2mayor[norm_muni] = mayor
+
+    def add_last_legislature(self, leg_ent):
+        self.last_legislature = leg_ent
 
     def normalize_city(self, raw):
         name = raw.lower()
@@ -448,10 +473,11 @@ set municipality=%s""", (mayor, city, city))
             min_year = self.fold_min_start(detail, mp_position)
             # ?t is already taken; 'coalesce(?f, ?u) >=
             # "%d-01-01"^^xsd:dateTime' might be more efficient...
-            # wd:Q42409353 is the current legislature (for politicians
-            # who started long ago and didn't finish yet) - IOW it'll
-            # stop working for the next one...
-            base_cond = 'year(coalesce(?f, ?u)) >= %d || ?e = %s' % (min_year, 'wd:Q42409353')
+            base_cond = 'year(coalesce(?f, ?u)) > %d' % (min_year - 1)
+            if self.last_legislature:
+                np = 'wd:' + self.last_legislature
+                base_cond += ' || ?e = %s' % np
+
             mp_values = format_position_iterable((mp_position, Entity.mp_speaker))
             extra_clause = """values ?p { %s }
         optional { ?w p:P39/pq:P580 ?f. }
@@ -602,7 +628,7 @@ set municipality=%s""", (mayor, city, city))
         # combining the conditions into the main (name) filter slows
         # down download more than 3x...
         death_clause = """optional { ?w wdt:P570 ?d. }
-        filter(!bound(?d) || year(?d) >= %d)""" % self.last_year
+        filter(!bound(?d) || year(?d) > %d)""" % (self.recent_year - 1)
 
         judge_cond = ''
         if judge_position:
@@ -661,4 +687,4 @@ set municipality=%s""", (mayor, city, city))
 
 if __name__ == "__main__":
     # needed by seed.sh
-    print(make_mayor_of_query_url())
+    print(make_meta_query_url())

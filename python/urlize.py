@@ -29,9 +29,12 @@ close_rx = re.compile("(%s) " % close_rx_set)
 
 pressed_close_rx = re.compile("(%s)(?![ %s])" % (close_rx_set, token_rx_subset))
 
+# doesn't include optional because wikidata fails to retrieve last
+# legislature (by the meta query) when the optional clasue there isn't
+# preceded by a space
 # doesn't include values because wikidata might fail on values
 # not preceded by a space, e.g. on https://query.wikidata.org/sparql?format=json&query=select%3Fw%3Fl%3Fp%3Fo{%3Fw+wdt:P27+wd:Q213%3Brdfs:label%3Fl%3Bwdt:P39%3Fp.%3Fw+wdt:P106%3Fo.filter(lang(%3Fl)%3D"cs"%26%26contains(lcase(%3Fl)%2C"jaroslav+%C4%8Dech"))%3Fw+wdt:P106+wd:Q81096.values%3Fo{wd:Q82955}}
-word_rx = re.compile(" (filter|optional|\"cs\")")
+word_rx = re.compile(" (filter|\"cs\")")
 
 begin_rx = re.compile("^([^{]+{) ")
 

@@ -2,20 +2,21 @@ import json
 import re
 import sys
 from common import get_option
-from jumper import Jumper, make_mayor_of_query_url
+from jumper import Jumper, make_meta_query_url
 
 class JsonParser:
     core_url_head = "https://cro.justice.cz/verejnost/api/funkcionari"
 
     def __init__(self, owner, url):
         self.owner = owner
+        self.entity_rx = re.compile('/(Q[0-9]+)$')
         self.jumper = None
         self.jump_links = int(get_option('jump_links', "1"))
         if (self.jump_links < 0) or (self.jump_links > 2):
             raise Exception("invalid option jump_links")
 
         schema = (
-            ( "^" + re.escape(make_mayor_of_query_url()) + '$', self.process_mayor_of ),
+            ( "^" + re.escape(make_meta_query_url()) + '$', self.process_meta_query ),
             ( "^" + self.core_url_head + "\\?order=DESC&page=(?P<page>\\d+)&pageSize=(?P<page_size>\\d+)&sort=created$", self.process_overview ),
             ( "^" + self.core_url_head + "/[0-9a-fA-F-]+$", self.process_detail )
         )
@@ -42,7 +43,7 @@ class JsonParser:
 
         self.process(doc)
 
-    def process_mayor_of(self, doc):
+    def process_meta_query(self, doc):
         if self.jumper:
             raise Exception("filling jumper after it's been loaded")
         else:
@@ -50,9 +51,17 @@ class JsonParser:
 
         bindings = doc['results']['bindings']
         for it in bindings:
-            m = re.search('/(Q[0-9]+)$', it['q']['value'])
-            if m:
-                self.jumper.add_muni_mayor(it['l']['value'], m.group(1))
+            tdict = it.get('t')
+            if tdict:
+                m = self.entity_rx.search(tdict['value'])
+                if m:
+                    self.jumper.add_last_legislature(m.group(1))
+                else:
+                    raise Exception("unexpected result for last legislature: " + tdict['value'])
+            else:
+                m = self.entity_rx.search(it['q']['value'])
+                if m:
+                    self.jumper.add_muni_mayor(it['l']['value'], m.group(1))
 
         self.owner.set_jumper(self.jumper)
 
