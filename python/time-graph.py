@@ -78,7 +78,7 @@ left join download_error on id=url_id
 where url=%s""", (url,))
         row = self.cur.fetchone()
         if not row:
-            print("URL %s not found" % url)
+            print("URL %s not found" % url, file=sys.stderr)
             return
 
         url_id = row[0]
