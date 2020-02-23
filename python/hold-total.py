@@ -42,6 +42,11 @@ from field, (
         row = self.cur.fetchone()
         print("download duration: %s" % row[0])
 
+        self.cur.execute("""select count(*)
+from download_error""")
+        row = self.cur.fetchone()
+        print("%d total download errors" % row[0])
+
         print("%d+%d Too Many Requests error responses requesting total of %d+%d wait seconds" %
               (self.count429[GENERIC_INDEX], self.count429[SPECIFIC_INDEX],
                self.sum429[GENERIC_INDEX], self.sum429[SPECIFIC_INDEX]))
