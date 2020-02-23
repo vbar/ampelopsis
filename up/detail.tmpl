@@ -1,0 +1,436 @@
+<table class="table">    
+  <tbody> 
+    <tr>     
+      <th>
+        {{ if model.OsobaId }}  
+        <a href="/osoba/{{model.OsobaId}}">Osoba
+        </a>
+        {{ else }}  Osoba
+        {{ end }}     
+      </th>
+      <td>
+        {{ if model.personUrl }}  
+        <a href="{{model.personUrl}}">{{model.fullName}}
+        </a>
+        {{ else }}
+        {{model.fullName}}
+        {{ end }}     
+      </td>
+    </tr>
+    <tr>     
+      <th>
+        <a href="{{model.Url}}">Zdrojová data
+        </a>
+      </th>
+      <td>
+        <a href="https://cro.justice.cz/verejnost/funkcionari/form/{{model.Id}}">https://cro.justice.cz/verejnost/funkcionari/form/{{model.Id}}
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+{{ for statement in model.statements | array.sort 'creationDate' }}  
+<table class="table">      
+  <thead>   
+    <tr>       
+      <th width="33%">
+        {{ case statement.type }}
+        {{ when 'INGOING' }}      Vstupní oznámení
+        {{ when 'ONGOING' }}      Průběžné oznámení
+        {{ when 'OUTGOING' }}      Výstupní oznámení
+        {{ when 'POINT3' }}      Oznámení podle Čl. II bodu 3 přechodného ustanovení zákona
+        {{ when 'POINT4' }}      Oznámení podle Čl. II bodu 4 přechodného ustanovení zákona
+        {{ else }}
+        {{statement.type}}
+        {{ end }}       
+      </th>
+      <td width="{{ if statement.lastModified }}40%{{ else }}33%{{ end }}">
+        {{ date.format = '%F' }}
+        {{ if statement.creationDate }}
+        {{ date.parse statement.creationDate | date.to_string '%d. %m. %Y' }}{{ if statement.lastModified }} (změněno {{ date.parse statement.lastModified | date.to_string '%d. %m. %Y' }}){{ end }}{{ if statement.fromDate || statement.toDate }}:
+        {{ end }}
+        {{ end }}
+        {{ if statement.fromDate || statement.toDate }}
+        {{ date.parse statement.fromDate | date.to_string '%d. %m. %Y' }} -
+        {{ date.parse statement.toDate | date.to_string '%d. %m. %Y' }}
+        {{ end }}       
+      </td>
+      <td>
+        {{ case statement.visibility }}
+        {{ when 'PUBLIC' }}      Veřejné
+        {{ when 'REQUEST' }}      Na žádost
+        {{ when 'SECRET' }}      Tajné
+        {{ else }}
+        {{statement.visibility}}
+        {{ end }}       
+      </td>
+    </tr>
+  </thead>
+  <tbody>
+    {{ if statement.naturalPersonBusinesses; if statement.naturalPersonBusinesses.size > 0 }}    
+    <tr>        
+      <th colspan="3">Podnikání nebo provozování jiné samostatné výdělečné činnosti
+      </th>
+    </tr>
+    {{ for business in statement.naturalPersonBusinesses }}      
+    <tr>   
+      <td>{{business.subject}}
+      </td>
+      <td>
+        {{ if business.address }}
+        {{business.address.municipality}},
+        {{business.address.street}}
+        {{business.address.orientationNumber}},
+        {{business.address.zip}}
+        {{ end }}   
+      </td>
+      <td>
+        {{ if business.businessMethod }}
+        {{ business.businessMethod.name }}
+        {{ end }}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.legalBusinessAssociates; if statement.legalBusinessAssociates.size > 0 }}    
+    <tr>        
+      <th colspan="3">Společník nebo člen podnikající právnické osoby
+      </th>
+    </tr>
+    {{ for business in statement.legalBusinessAssociates }}      
+    <tr>   
+      <td>
+        {{ if business.legalPerson }}
+        {{business.legalPerson.name}}{{ if business.legalPerson.ICO }}, IČO 
+        <a href="/Subjekt/{{business.legalPerson.ICO}}">{{business.legalPerson.ICO}}
+        </a>
+{{ end }}
+        {{ end }}   
+      </td>
+      <td>
+        {{ if business.legalPerson; if business.legalPerson.address }}
+        {{business.legalPerson.address.municipality}},
+        {{business.legalPerson.address.street}}
+        {{business.legalPerson.address.orientationNumber}},
+        {{business.legalPerson.address.zip}}
+        {{ end; end }}   
+      </td>
+      <td>
+        {{ if business.type }}
+        {{business.type.name}}
+        {{ end }}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.organizationMember; if statement.organizationMember.size > 0 }}    
+    <tr>        
+      <th colspan="3">Člen statutárního orgánu, člen řídícího, dozorčího nebo kontrolního orgánu podnikající právnické osoby
+      </th>
+    </tr>
+    {{ for business in statement.organizationMember }}      
+    <tr>   
+      <td>
+        {{ if business.legalPerson }}
+        {{business.legalPerson.name}}{{ if business.legalPerson.ICO }}, IČO 
+        <a href="/Subjekt/{{business.legalPerson.ICO}}">{{business.legalPerson.ICO}}
+        </a>
+{{ end }}
+        {{ end }}   
+      </td>
+      <td>
+        {{ if business.legalPerson; if business.legalPerson.address }}
+        {{business.legalPerson.address.municipality}},
+        {{business.legalPerson.address.street}}
+        {{business.legalPerson.address.orientationNumber}},
+        {{business.legalPerson.address.zip}}
+        {{ end; end }}   
+      </td>
+      <td>
+        {{ if business.type }}
+        {{business.type.name}}
+        {{ end }}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.media; if statement.media.size > 0 }}    
+    <tr>        
+      <th colspan="3">Provozování rozhlasového nebo televizního vysílání nebo vydávání periodického tisku
+      </th>
+    </tr>
+    {{ for medium in statement.media }}      
+    <tr>   
+      <td>{{medium.name}}
+      </td>
+      <td>
+        {{ if medium.type }}
+        {{medium.type.name}}
+        {{ end }}   
+      </td>
+      <td>
+        {{ if medium.method }}
+        {{medium.method.name}}
+        {{ end }}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.otherContracts; if statement.otherContracts.size > 0 }}    
+    <tr>        
+      <th colspan="3">Další činnost v pracovněprávním nebo obdobném vztahu nebo ve služebním poměru, nejde-li o vztah nebo poměr, v němž působí jako veřejný funkcionář
+      </th>
+    </tr>
+    {{ for business in statement.otherContracts }}      
+    <tr>   
+      <td>{{business.name}}{{ if business.ICO }}, IČO 
+        <a href="/Subjekt/{{business.ICO}}">{{business.ICO}}
+        </a>
+{{ end }}
+      </td>
+      <td>
+        {{ if business.address }}
+        {{business.address.municipality}},
+        {{business.address.street}}
+        {{business.address.orientationNumber}},
+        {{business.address.zip}}
+        {{ end }}   
+      </td>
+      <td>
+        {{ if business.specification }}
+        {{business.specification}}
+        {{ else if business.type }}
+        {{business.type.name}}
+        {{ end }}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.realtiesBefore; if statement.realtiesBefore.size > 0 }}    
+    <tr>        
+      <th colspan="3">Věci nemovité (předchozí)
+      </th>
+    </tr>
+    <tr>   
+      <td>
+<ol>
+    {{ for realty in statement.realtiesBefore }}      
+       <li>
+        {{ if realty.type }}
+        {{ if realty.type.name }}
+        {{realty.type.name}}
+        {{ else }}
+        {{ case realty.type.type }}
+        {{ when 'LAND' }}      pozemek
+        {{ when 'BUILDING_WITH_LAND' }}      stavba jako součást pozemku, na němž je zřízena
+        {{ else }}
+        {{realty.type.type}}
+        {{ end }}
+        {{ end }}
+        {{ end }}   
+      {{ if realty.price }} {{realty.price}} Kč {{ end }}
+      
+      {{ if realty.acquisition }} ({{realty.acquisition.name}}) {{ end }}
+      </li>
+    {{ end }}
+    {{ end; end }}
+      </td>
+    </tr>
+
+{{ if statement.realties; if statement.realties.size > 0 }}    
+    <tr>        
+      <th colspan="3">Věci nemovité
+      </th>
+    </tr>
+    {{ for realty in statement.realties }}      
+    <tr>   
+      <td>
+        {{ if realty.type }}
+        {{ if realty.type.name }}
+        {{realty.type.name}}
+        {{ else }}
+        {{ case realty.type.type }}
+        {{ when 'LAND' }}      pozemek
+        {{ when 'BUILDING_WITH_LAND' }}      stavba jako součást pozemku, na němž je zřízena
+        {{ else }}
+        {{realty.type.type}}
+        {{ end }}
+        {{ end }}
+        {{ end }}   
+      </td>
+      <td>{{ if realty.price }}{{realty.price}} kč{{ end }}
+      </td>
+      <td>{{ if realty.acquisition }}{{realty.acquisition.name}}{{ end }}
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.commercialPapersBefore; if statement.commercialPapersBefore.size > 0 }}    
+    <tr>        
+      <th colspan="3">Cenné papíry, zaknihované cenné papíry nebo práva s nimi spojená (předchozí)
+      </th>
+    </tr>
+    {{ for share in statement.commercialPapersBefore }}      
+    <tr>   
+      <td>{{share.issuer}}
+      </td>
+      <td>&nbsp;
+      </td>
+      <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.commercialPapers; if statement.commercialPapers.size > 0 }}    
+    <tr>        
+      <th colspan="3">Cenné papíry, zaknihované cenné papíry nebo práva s nimi spojená
+      </th>
+    </tr>
+    {{ for share in statement.commercialPapers }}      
+    <tr>   
+      <td>{{share.issuer}}
+      </td>
+      <td>&nbsp;
+      </td>
+      <td>{{ if share.commercialPaperType }}{{share.commercialPaperType.name}}{{ end }}
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.chattelsBefore; if statement.chattelsBefore.size > 0 }}    
+    <tr>        
+      <th colspan="3">Jiné věci movité (předchozí)
+      </th>
+    </tr>
+    {{ for chattel in statement.chattelsBefore }}      
+    <tr>   
+      <td>{{ chattel.type ?? '???' }}
+      </td>
+      <td>{{ if chattel.price }}{{chattel.price}} kč{{ end }}
+      </td>
+      <td>{{ if chattel.chattelAcquisition }}{{chattel.chattelAcquisition.name}}{{ end }}
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.chattels; if statement.chattels.size > 0 }}    
+    <tr>        
+      <th colspan="3">Jiné věci movité
+      </th>
+    </tr>
+    {{ for chattel in statement.chattels }}      
+    <tr>   
+      <td>{{ chattel.type ?? '???' }}
+      </td>
+      <td>{{ if chattel.price }}{{chattel.price}} kč{{ end }}
+      </td>
+      <td>{{ if chattel.chattelAcquisition }}{{chattel.chattelAcquisition.name}}{{ end }}
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.corporationSharesBefore; if statement.corporationSharesBefore.size > 0 }}    
+    <tr>        
+      <th colspan="3">Podíl v obchodní korporaci nepředstavovaný cenným papírem nebo zaknihovaným cenným papírem (předchozí)
+      </th>
+    </tr>
+    {{ for share in statement.corporationSharesBefore }}      
+    <tr>   
+      <td>{{share.name}}{{ if share.ICO }}, IČO 
+        <a href="/Subjekt/{{share.ICO}}">{{share.ICO}}
+        </a>
+{{ end }}
+      </td>
+      <td>
+        {{ if share.address }}
+        {{share.address.municipality}},
+        {{share.address.street}}
+        {{share.address.orientationNumber}},
+        {{share.address.zip}}
+        {{ end }}   
+      </td>
+      <td>{{share.shareAmount}}%
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.corporationShares; if statement.corporationShares.size > 0 }}    
+    <tr>        
+      <th colspan="3">Podíl v obchodní korporaci nepředstavovaný cenným papírem nebo zaknihovaným cenným papírem
+      </th>
+    </tr>
+    {{ for share in statement.corporationShares }}      
+    <tr>   
+      <td>{{share.name}}{{ if share.ICO }}, IČO 
+        <a href="/Subjekt/{{share.ICO}}">{{share.ICO}}
+        </a>
+{{ end }}
+      </td>
+      <td>
+        {{ if share.address }}
+        {{share.address.municipality}},
+        {{share.address.street}}
+        {{share.address.orientationNumber}},
+        {{share.address.zip}}
+        {{ end }}   
+      </td>
+      <td>{{share.shareAmount}}%
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.incomes; if statement.incomes.size > 0 }}    
+    <tr>        
+      <th colspan="3">Peněžité příjmy nebo jiné majetkové výhody a dary
+      </th>
+    </tr>
+    {{ for income in statement.incomes }}      
+    <tr>   
+      <td>
+        {{ if income.legalPerson }}
+        {{income.legalPerson.name}}{{ if income.legalPerson.ICO }}, IČO 
+        <a href="/Subjekt/{{income.legalPerson.ICO}}">{{income.legalPerson.ICO}}
+        </a>
+{{ end }}
+        {{ end }}   
+      </td>
+      <td>{{ if income.price }}{{income.price}} kč{{ end }}
+      </td>
+      <td>
+        {{ if income.note }}
+        {{income.note}}
+        {{ else if income.specification }}
+        {{income.specification}}
+        {{ end }}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}
+    {{ if statement.liabilities; if statement.liabilities.size > 0 }}    
+    <tr>        
+      <th colspan="3">Závazky, zejména půjčky a úvěry
+      </th>
+    </tr>
+    {{ for liability in statement.liabilities }}      
+    <tr>   
+      <td>
+        {{ if liability.legalPerson }}
+        {{liability.legalPerson.name}}{{ if liability.legalPerson.ICO }}, IČO 
+        <a href="/Subjekt/{{liability.legalPerson.ICO}}">{{liability.legalPerson.ICO}}
+        </a>
+{{ end }}
+        {{ end }}   
+      </td>
+      <td>{{ if liability.price }}{{liability.price}} kč{{ end }}
+      </td>
+      <td>
+        {{liability.type}}   
+      </td>
+    </tr>
+    {{ end }}
+    {{ end; end }}      
+  </tbody>
+  </table>
+{{ end }}{{ if model.hasSecret }}  
+<p>Na tajná oznámení nelze nahlížet ani na základě žádosti podle zákona o střetu zájmů, ani na základě zákona upravujícího svobodný přístup k informacím.</p>
+{{ end }}

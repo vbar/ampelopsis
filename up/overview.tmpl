@@ -1,0 +1,36 @@
+<table class="table table-hover">    
+  <thead> 
+    <tr>     
+      <th>ID
+      </th>
+      <th>Osoba
+      </th>
+      <th>Organizace
+      </th>
+      <th>Funkce
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ for item in model.Result }} 
+    <tr>     
+      <td>
+        <a href="{{fn_DatasetItemUrl item.Id}}">Detail
+        </a>
+      </td>
+      <td>
+        {{ if item.personUrl }}  
+        <a href="{{item.personUrl}}">{{item.fullName}}
+        </a>
+        {{ else }}
+        {{item.fullName}}
+        {{ end }}     
+      </td>
+      <td>{{item.concatenatedWorkingPositionOrganizations}}
+      </td>
+      <td>{{item.concatenatedWorkingPositions}}
+      </td>
+    </tr>
+    {{ end }}    
+  </tbody>
+</table>

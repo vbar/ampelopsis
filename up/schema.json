@@ -1,0 +1,189 @@
+{
+  "description": "",
+  "type": "object",
+  "properties": {
+    "Id": {
+      "type": "string"
+    },
+    "wikidataId": {
+      "type": "string"
+    },
+    "Url": {
+      "type": "string"
+    },
+    "personUrl": {
+      "type": "string"
+    },
+    "HsProcessType": {
+      "type": "string"
+    },
+    "OsobaId": {
+      "type": "string"
+    },
+    "Birthdate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hasSecret": {
+      "type": "boolean"
+    },
+    "titleBefore": {
+      "type": "string"
+    },
+    "Name": {
+      "type": "string"
+    },
+    "Surname": {
+      "type": "string"
+    },
+    "titleAfter": {
+      "type": "string"
+    },
+    "fullName": {
+      "type": "string"
+    },
+    "workingPositions": {
+      "type": "array",
+      "items": {
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "ovmId": {
+            "type": "string"
+          },
+          "workingPosition": {
+            "type": "object",
+            "properties": {
+              "Id": {
+                "type": "string"
+              },
+              "created": {
+                "type": "string"
+              },
+              "updated": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "order": {
+                "type": "number"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "organization": {
+                "type": "object",
+                "properties": {
+                  "Id": {
+                    "type": "string"
+                  },
+                  "created": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "order": {
+                    "type": "number"
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "visibility": {
+                "type": "string"
+              },
+              "other": {
+                "type": "boolean"
+              },
+              "deputy": {
+                "type": "boolean"
+              },
+              "senator": {
+                "type": "boolean"
+              }
+            }
+          },
+          "organization": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "created": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "statements": {
+      "type": "array",
+      "items": {
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "canOpen": {
+            "type": "boolean"
+          },
+          "statementOfficial": {
+            "type": "object",
+            "properties": {
+              "titleBefore": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "titleAfter": {
+                "type": "string"
+              },
+              "visibility": {
+                "type": "string"
+              }
+            }
+          },
+          "type": {
+            "type": "string"
+          },
+          "creationDate": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "concatenatedWorkingPositions": {
+      "type": "string"
+    },
+    "concatenatedWorkingPositionDates": {
+      "type": "string"
+    },
+    "concatenatedWorkingPositionOrganizations": {
+      "type": "string"
+    },
+    "hasRequestStatement": {
+      "type": "boolean"
+    },
+    "judge": {
+      "type": "boolean"
+    },
+    "workingFrom": {
+      "type": "string"
+    }
+  }
+}

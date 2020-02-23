@@ -1,0 +1,29 @@
+{
+    "id": "centralniregistroznameni",
+    "name": "Centrální registr oznámení",
+    "datasetId": "centralniregistroznameni",
+    "origUrl": "https://cro.justice.cz/",
+    "sourcecodeUrl": "https://github.com/vbar/ampelopsis/tree/cro",
+    "description": "Centrální registr oznámení je IS veřejné správy a byl zřízen k 1.9.2017 podle zákona o střetu zájmů. Jeho správcem je Ministerstvo spravedlnosti. Do registru jsou ukládány elektronické dokumenty podávané veřejnými funkcionáři. Povinná osoba podává oznámení o svém majetku, příjmech, darech a závazcích. Evidenční orgán uschová oznámení v registru po dobu pěti let od skončení výkonu funkce veřejného funkcionáře. Občan má právo na základě žádosti nahlížet do registru a pořizovat si z něj opisy a výpisy a to osobně nebo prostřednictvím veřejné datové sítě. Nahlížení je bezplatné, ale není vždy anonymní.",
+    "jsonSchema": "@schema.json",
+    "createdBy":"vbarta@mangrove.cz",
+    "created": "@now()",
+    "betaversion": false,
+    "allowWriteAccess": true,
+    "hidden": false,
+    "searchResultTemplate": {
+	"header": null,
+	"body": "@overview.tmpl",
+	"footer": null,
+	"title": null,
+	"properties": null
+    },
+    "detailTemplate": {
+	"header": null,
+	"body": "@detail.tmpl",
+	"footer": null,
+	"title": null,
+	"properties": null
+    },
+    "defaultOrderBy":null
+}
