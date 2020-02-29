@@ -23,6 +23,27 @@ def get_flags(specific_flag, error):
     return f
 
 
+class DataPoint:
+    def __init__(self, tm, fs):
+        self.time = tm
+        self.flags = fs
+
+    def __lt__(self, other):
+        return (self.time < other.time) or ((self.time == other.time) and (self.flags < other.flags))
+
+    def to_pair(self):
+        return (self.time, self.flags)
+
+
+class ArrivalDataPoint(DataPoint):
+    def __init__(self, tm, fs, a):
+        DataPoint.__init__(self, tm, fs)
+        self.arrival = a
+
+    def __lt__(self, other):
+        return self.arrival < other.arrival
+
+
 class Scanner(JsonLookup):
     def __init__(self, cur):
         JsonLookup.__init__(self, cur)
@@ -30,7 +51,8 @@ class Scanner(JsonLookup):
         self.query_count = 0
         self.seen = set() # of url_id
         self.skip_count = 0
-        self.times = [] # of (time, flags)
+        self.sort_by_arrival = int(common.get_option("time_graph_sort_by_arrival", "0"))
+        self.times = [] # of DataPoint
 
     def run(self):
         self.cur.execute("""select url
@@ -47,7 +69,7 @@ order by url""")
         print("%d duplicate URLs skipped" % self.skip_count, file=sys.stderr)
 
     def get_times(self):
-        return sorted(self.times)
+        return [ t.to_pair() for t in sorted(self.times) ]
 
     def scan(self, url):
         self.doc_count += 1
@@ -72,7 +94,7 @@ order by url""")
             print("%d queries from %d documents" %
                   (self.query_count, self.doc_count), file=sys.stderr)
 
-        self.cur.execute("""select id, error_code
+        self.cur.execute("""select id, checkd, error_code
 from field
 left join download_error on id=url_id
 where url=%s""", (url,))
@@ -81,8 +103,7 @@ where url=%s""", (url,))
             print("URL %s not found" % url, file=sys.stderr)
             return
 
-        url_id = row[0]
-        error = row[1]
+        url_id, checked, error = row
         if url_id in self.seen:
             self.skip_count += 1
             return
@@ -92,7 +113,13 @@ where url=%s""", (url,))
         volume_id = self.get_volume_id(url_id)
         t = self.get_time(url_id, volume_id)
         if t is not None:
-            self.times.append((t, get_flags(specific_flag, error)))
+            fs = get_flags(specific_flag, error)
+            if self.sort_by_arrival:
+                dp = ArrivalDataPoint(t, fs, checked)
+            else:
+                dp = DataPoint(t, fs)
+
+            self.times.append(dp)
 
     def get_time(self, url_id, volume_id):
         raw_time = None
