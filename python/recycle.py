@@ -169,7 +169,7 @@ where url_id=%s""", (new_url_id,))
 
 
 def main():
-    primary = common.get_option("recycle_primary", False)
+    primary = int(common.get_option("recycle_primary", "0"))
     new_schema = common.schema
     with common.make_connection() as conn:
         with conn.cursor() as cur:
