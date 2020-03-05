@@ -671,7 +671,7 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
                 ?w schema:description ?g.
                 filter(lang(?g) = "cs")
         }
-        filter(xsd:integer(?n) > %d && lang(?l) = "cs" && %s%s)
+        filter(?n > %d && lang(?l) = "cs" && %s%s)
         %s
 }""" % (political_constraint, death_clause, mainline_block, self.year_precision - 1, name_cond, judge_cond, pos_clause)
             urls.append(create_query_url(query))
