@@ -7,7 +7,8 @@ from host_check import HostCheck
 
 class DownloadBase(HostCheck):
     def __init__(self, conn, cur, single_action):
-        HostCheck.__init__(self, cur)
+        # download (as opposed to parsing) host check is restricted by instance
+        HostCheck.__init__(self, cur, get_option("instance", None))
 
         self.conn = conn
         self.single_action = single_action

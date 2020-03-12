@@ -110,18 +110,25 @@ class Retriever(DownloadBase):
         return mime_type.lower() in self.mime_whitelist
 
     def finish_page(self, url_id, eff_id, has_body):
-        self.cur.execute("""update field
-set checkd=localtimestamp
-where id=%s""", (url_id,))
-
+        self.finish_url(url_id)
         if url_id != eff_id:
-            self.cur.execute("""update field
-set checkd=localtimestamp
-where id=%s""", (eff_id,))
+            self.finish_url(eff_id)
 
         if has_body:
             self.cur.execute("""insert into parse_queue(url_id) values(%s)
 on conflict(url_id) do nothing""", (eff_id,))
+
+    def finish_url(self, url_id):
+        if self.inst_id:
+            self.cur.execute("""insert into locality(url_id, instance_id)
+values(%s, %s)""", (url_id, self.inst_id))
+            # Conflicts could be managed, but probably not atomically
+            # (especially changing locality of existing files). Let's
+            # assume they won't happen - at least for now...
+
+        self.cur.execute("""update field
+set checkd=localtimestamp
+where id=%s""", (url_id,))
 
     def add_redirect(self, url_id, new_url):
         known = False

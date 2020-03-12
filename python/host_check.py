@@ -14,17 +14,36 @@ class DomainCanonicalizer:
 
 def make_canonicalizer():
     return DomainCanonicalizer() if get_option("match_domain", False) else DefaultCanonicalizer()
-    
+
+def get_instance_id(cur, inst_name):
+    if not inst_name:
+        return None
+
+    cur.execute("""select id
+from instances
+where instance_name=%s""", (inst_name,))
+    row = cur.fetchone()
+    if not row:
+        raise Exception("Instance %s not in instances" % inst_name)
+
+    return row[0]
+
 class HostCheck(CursorWrapper):
-    def __init__(self, cur):
+    def __init__(self, cur, inst_name=None):
         CursorWrapper.__init__(self, cur)
 
+        self.inst_id = get_instance_id(cur, inst_name)
         self.canonicalizer = make_canonicalizer()
 
         self.host_white = {}
+        sql_cond = ""
+        if self.inst_id:
+            sql_cond = "where instance_id=%d" % self.inst_id
+
         cur.execute("""select id, hostname
 from tops
-order by id""")
+%s
+order by id""" % (sql_cond,))
         rows = cur.fetchall()
         for row in rows:
             host = self.canonicalizer.canonicalize_host(row[1])
@@ -33,5 +52,3 @@ order by id""")
     def get_host_id(self, host):
         canon_host = self.canonicalizer.canonicalize_host(host)
         return self.host_white.get(canon_host)
-        
-        

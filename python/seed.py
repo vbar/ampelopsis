@@ -5,20 +5,39 @@ import sys
 from urllib.parse import urlparse
 from act_util import act_reset
 from common import get_option, make_connection
-from host_check import make_canonicalizer
+from host_check import get_instance_id, make_canonicalizer
 
 class Seeder:
     def __init__(self, cur):
         self.cur = cur
         self.canon = make_canonicalizer()
+        self.inst_name = get_option("instance", None)
+        self.inst_id = None
 
     def add_host(self, hostname):
         canon_host = self.canon.canonicalize_host(hostname)
-        self.cur.execute("""insert into tops(hostname) values(%s)
+        if not self.inst_name:
+            self.cur.execute("""insert into tops(hostname)
+values(%s)
 on conflict do nothing
 returning hostname""", (canon_host,))
-        if self.cur.fetchone() is None:
-            print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
+            if self.cur.fetchone() is None:
+                print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
+        else:
+            if not self.inst_id:
+                self.cur.execute("""insert into instances(instance_name)
+values(%s)
+on conflict do nothing
+returning id""", (self.inst_name,))
+            row = self.cur.fetchone()
+            self.inst_id = row[0] if row else get_instance_id(self.cur, self.inst_name)
+
+            self.cur.execute("""insert into tops(hostname, instance_id)
+values(%s, %s)
+on conflict do nothing
+returning hostname""", (canon_host, self.inst_id))
+            if self.cur.fetchone() is None:
+                print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
 
     def add_url(self, url):
         self.cur.execute("""insert into field(url)
