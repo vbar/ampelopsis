@@ -8,7 +8,7 @@ from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
 from host_check import get_instance_id, HostCheck
 from mem_cache import MemCache
-from page_parser import PageParser
+from json_parser import JsonParser
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
 from volume_holder import VolumeHolder
@@ -100,7 +100,7 @@ from download_queue""")
         reader = self.open_page(url_id, volume_id)
         if reader:
             try:
-                parser = PageParser(self, url)
+                parser = JsonParser(self, url)
                 parser.parse_links(reader)
             finally:
                 reader.close()
