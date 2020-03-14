@@ -90,6 +90,7 @@ class Retriever(DownloadBase):
         self.max_num_conn = int(get_option('max_num_conn', "10"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
         self.user_agent = get_option('user_agent', None)
+        self.extra_header = get_option('extra_header', None)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
 
@@ -193,6 +194,9 @@ where host_id = any(%s)""", (sorted(avail),))
 
             if self.user_agent:
                 c.setopt(pycurl.USERAGENT, self.user_agent)
+
+            if self.extra_header:
+                c.setopt(pycurl.HTTPHEADER, [self.extra_header])
 
             if self.socks_proxy_host:
                 c.setopt(pycurl.PROXY, self.socks_proxy_host)
