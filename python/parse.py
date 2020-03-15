@@ -6,9 +6,9 @@ import sys
 from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
-from host_check import get_instance_id, HostCheck
+from host_check import allow_immediate_download, get_instance_id, HostCheck
 from mem_cache import MemCache
-from json_parser import JsonParser
+from funnel_parser import FunnelParser
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
 from volume_holder import VolumeHolder
@@ -20,6 +20,7 @@ class PolyParser(VolumeHolder, HostCheck):
 
         inst_name = get_option("instance", None)
         self.instance_id = get_instance_id(cur, inst_name) # self.inst_id already used by HostCheck
+        self.extra_header = get_option('extra_header', None)
 
         self.mem_cache = MemCache(int(get_option('parse_cache_high_mark', "2000")), int(get_option('parse_cache_low_mark', "1000")))
 
@@ -100,7 +101,7 @@ from download_queue""")
         reader = self.open_page(url_id, volume_id)
         if reader:
             try:
-                parser = JsonParser(self, url)
+                parser = FunnelParser(self, url)
                 parser.parse_links(reader)
             finally:
                 reader.close()
@@ -160,7 +161,7 @@ returning url_id""" % sql_cond)
                     print("skipping %s b/c %s" % (clean_url, skip_msg), file=sys.stderr)
                 elif not self.mem_cache.check(clean_url):
                     url_id = self.insert_link(clean_pr, clean_url)
-                    if url_id is not None:
+                    if (url_id is not None) and allow_immediate_download(self.extra_header, clean_url):
                         self.cur.execute("""insert into download_queue(url_id, priority, host_id)
 values(%s, %s, %s)
 on conflict do nothing""", (url_id, self.preference.prioritize(clean_url), host_id))

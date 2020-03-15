@@ -1,3 +1,4 @@
+from urllib.parse import urlparse
 from common import get_option
 from cursor_wrapper import CursorWrapper
 
@@ -27,6 +28,16 @@ where instance_name=%s""", (inst_name,))
         raise Exception("Instance %s not in instances" % inst_name)
 
     return row[0]
+
+def allow_immediate_download(extra_header, url):
+    pr = urlparse(url)
+    if pr.hostname != 'www.hlidacstatu.cz':
+        return True
+
+    segments = pr.path.split('/')
+    private_path_flag = segments[1] == 'api'
+    credential_flag = extra_header is not None
+    return private_path_flag == credential_flag
 
 class HostCheck(CursorWrapper):
     def __init__(self, cur, inst_name=None):

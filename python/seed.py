@@ -5,7 +5,7 @@ import sys
 from urllib.parse import urlparse
 from act_util import act_reset
 from common import get_option, make_connection
-from host_check import get_instance_id, make_canonicalizer
+from host_check import allow_immediate_download, get_instance_id, make_canonicalizer
 
 class Seeder:
     def __init__(self, cur):
@@ -13,6 +13,7 @@ class Seeder:
         self.canon = make_canonicalizer()
         self.inst_name = get_option("instance", None)
         self.inst_id = None
+        self.extra_header = get_option('extra_header', None)
 
     def add_host(self, hostname):
         canon_host = self.canon.canonicalize_host(hostname)
@@ -54,12 +55,13 @@ values(%s, 0)""", (row[0], ))
     def add_work(self, url, url_id):
         pr = urlparse(url)
         hostname = self.canon.canonicalize_host(pr.hostname)
-        self.cur.execute("""insert into download_queue(url_id, priority, host_id)
+        if allow_immediate_download(self.extra_header, url):
+            self.cur.execute("""insert into download_queue(url_id, priority, host_id)
 values(%s, %s, (select id from tops where hostname=%s))
 on conflict do nothing
 returning url_id""", (url_id, 0, hostname))
-        if self.cur.fetchone() is None:
-            print("URL %s already in queue" % (url_id,), file=sys.stderr)
+            if self.cur.fetchone() is None:
+                print("URL %s already in queue" % (url_id,), file=sys.stderr)
 
     def seed_queue(self):
         self.cur.execute("""select url, id from field
