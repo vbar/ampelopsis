@@ -40,16 +40,18 @@ class FunnelParser:
 
         doc = json.loads(buf.decode('utf-8'))
 
+        items = doc.get('results')
+        page_size = len(items)
         page = int(self.match.group('page'))
-        if page == 1:
-            n = 20 # 1000 samples for a start
+        if (page == 1) and (page_size > 0):
+            total = int(doc.get('total'))
+            n = total // page_size
             i = 2
             while i <= n:
                 url = self.hamlet_url_head + ("?desc=1&page=%d&q=server%%3ATwitter&sort=datum" % i)
                 self.owner.add_link(url)
                 i += 1
 
-        items = doc.get('results')
         for et in items:
             hamlet_name = et.get('osobaid')
             card_url = self.green_url_head + hamlet_name
