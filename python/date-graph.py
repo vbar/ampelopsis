@@ -8,10 +8,9 @@ import sys
 from common import make_connection
 from cursor_wrapper import CursorWrapper
 from volume_holder import VolumeHolder
+from url_heads import hamlet_url_head
 
 class Timeline(VolumeHolder, CursorWrapper):
-    hamlet_url_head = "https://www.hlidacstatu.cz/api/v1/DatasetSearch/vyjadreni-politiku"
-
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
@@ -26,7 +25,7 @@ left join download_error on id=url_id
 where url ~ '^%s'
 and checkd is not null
 and url_id is null
-order by url""" % self.hamlet_url_head)
+order by url""" % hamlet_url_head)
         rows = self.cur.fetchall()
         for row in rows:
             self.load_page(*row)
