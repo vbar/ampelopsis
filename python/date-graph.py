@@ -2,9 +2,9 @@
 
 import datetime
 from dateutil.parser import parse
-import matplotlib.pyplot as plt
 import sys
 from common import make_connection
+from line_output import ConfigLineOutput
 from show_case import ShowCase
 
 class Timeline(ShowCase):
@@ -21,7 +21,7 @@ class Timeline(ShowCase):
         if (self.mindate is None) or (self.maxdate is None):
             return
 
-        print("%s - %s" % (self.mindate, self.maxdate))
+        print("%s - %s" % (self.mindate, self.maxdate), file=sys.stderr)
 
     def load_page(self, page_url, url_id):
         doc = self.get_document(url_id)
@@ -54,8 +54,7 @@ def main():
                 if l:
                     builder.dump_range()
                     delta = datetime.timedelta(hours=1)
-                    xseries = []
-                    yseries = []
+                    series = []
                     idx = 0
                     dt = timeline[0]
                     maxdt = timeline[-1]
@@ -65,13 +64,12 @@ def main():
                             freq += 1
                             idx += 1
 
-                        xseries.append(dt)
-                        yseries.append(freq)
+                        series.append((dt, freq))
                         dt += delta
                         freq = 0
 
-                    plt.plot(xseries, yseries)
-                    plt.show()
+                    output = ConfigLineOutput(series)
+                    output.output()
             finally:
                 builder.close()
 
