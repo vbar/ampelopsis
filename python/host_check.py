@@ -30,13 +30,14 @@ where instance_name=%s""", (inst_name,))
     return row[0]
 
 def allow_immediate_download(extra_header, url):
+    credential_flag = extra_header is not None
+
     pr = urlparse(url)
     if pr.hostname != 'www.hlidacstatu.cz':
-        return True
+        return not credential_flag
 
     segments = pr.path.split('/')
     private_path_flag = segments[1] == 'api'
-    credential_flag = extra_header is not None
     return private_path_flag == credential_flag
 
 class HostCheck(CursorWrapper):

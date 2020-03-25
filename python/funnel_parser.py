@@ -1,9 +1,38 @@
+#!/usr/bin/python3
+
 import json
 from lxml import etree
 import re
 import sys
 from common import get_option
+from personage import parse_personage
 from url_heads import green_url_head, hamlet_url_head, town_url_head
+from urlize import create_query_url
+
+def make_meta_query_url():
+    # not needed for anything but hostname whitelisting yet
+    query = """select ?c {
+  ?c wdt:P31 wd:Q146.
+}
+limit 2"""
+    return create_query_url(query)
+
+
+def make_personage_query_url(person):
+    query = """select ?w ?l ?p ?t {
+  ?w wdt:P27 wd:Q213;
+     wdt:P106 wd:Q82955;
+     rdfs:label ?l;
+     p:P102 ?s;
+     wdt:P569 ?b.
+  ?s ps:P102 ?p.
+  filter(lang(?l) = "cs" && contains(lcase(?l), "%s") && year(?b) = %d)
+  minus { ?s pq:P582 ?e. }
+  ?p rdfs:label ?t.
+  filter(lang(?t) = "cs")
+}""" % (person.query_name, person.birth_year)
+    return create_query_url(query)
+
 
 class FunnelParser:
     def __init__(self, owner, url):
@@ -25,7 +54,7 @@ class FunnelParser:
 
     def parse_links(self, fp):
         if not self.match:
-            print("unknown URL: " + self.page_url, file=sys.stderr)
+            # wikidata queries
             return
 
         self.process(fp)
@@ -61,19 +90,23 @@ class FunnelParser:
 
         # no need to handle relative URLs - we're only interested in
         # the absolute one to Twitter
-        context = etree.iterparse(fp, events=('end',), tag=('a'), html=True, recover=True)
-        present_name = None
+        context = etree.iterparse(fp, events=('end',), tag=('a', 'title'), html=True, recover=True)
+        person = None
         for action, elem in context:
-            href = elem.get('href')
-            if href:
-                cls = elem.get('class')
-                if cls and cls.startswith('section-title') and href == '/' and elem.text:
-                    present_name = elem.text.strip()
-                else:
+            if elem.tag == 'title':
+                person = parse_personage(elem.text)
+                if person:
+                    wikidata_url = make_personage_query_url(person)
+                    self.owner.add_link(wikidata_url)
+            elif elem.tag == 'a':
+                href = elem.get('href')
+                if href:
                     m = card_rx.match(href)
                     if m:
                         town_name = m.group('tname')
-                        # page has name heading before social media links
+                        # social media links are in body, so person
+                        # from title should be initialized by now
+                        present_name = person.presentation_name if person else None
                         print("%s <=> %s (%s)" % (hamlet_name, town_name, present_name), file=sys.stderr)
                         self.owner.cur.execute("""insert into vn_identity_hamlet(hamlet_name, town_name, presentation_name)
 values(%s, %s, %s)
@@ -83,3 +116,8 @@ on conflict do nothing""", (hamlet_name, town_name, present_name))
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
+
+
+if __name__ == "__main__":
+    # needed by seed.sh
+    print(make_meta_query_url())
