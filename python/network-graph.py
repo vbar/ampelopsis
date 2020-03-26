@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# requires database filled by running condensate.py
+
 import json
 import networkx as nx
 import re
@@ -23,7 +25,8 @@ class RefNet(ShowCase):
     def init_mapping(self, white_hamlet_names):
         white_set = set(white_hamlet_names)
         self.cur.execute("""select hamlet_name, town_name, presentation_name
-from vn_identity_hamlet
+from vn_record
+join vn_identity_hamlet on record_id=id
 order by hamlet_name, town_name""")
         rows = self.cur.fetchall()
         for row in rows:

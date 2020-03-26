@@ -32,4 +32,7 @@ def parse_personage(raw_title):
     else:
         qn = "%s %s" % tuple(normalize_name(names[n]) for n in (-2, -1))
 
+    if not qn.strip():
+        qn = None
+
     return Personage(presentation_name=present_name, query_name=qn, birth_year=year)
