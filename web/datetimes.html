@@ -25,55 +25,63 @@ var svg = d3.select("#my_dataviz")
 	  "translate(" + margin.left + "," + margin.top + ")");
 
 //Read the data
-d3.json("datetimes.json",
-    function (metadata) {
-	d3.csv(
-	    "datetimes.csv",
-	    function (d) {
-		a = [ d3.timeParse("%Y-%m-%d %H:%M:%S%Z")(d.date) ]
-		for (var nm in metadata) {
-		    a.push(+d[nm]);
-		}
+d3.json(
+    "cs-CZ.json",
+    function(error, locale) {
+	if (error) throw error;
 
-		return a;
-	    },
-	    function (data) {
-		// Add X axis --> it is a date format
-		var x = d3.scaleTime()
-		    .domain(d3.extent(data, function (a) { return a[0]; }))
-		    .range([ 0, width ]);
-		svg.append("g")
-		    .attr("transform", "translate(0," + height + ")")
-		    .call(d3.axisBottom(x));
+	d3.timeFormatDefaultLocale(locale);
 
-		// Add Y axis
-		var mx = d3.max(data, function (a) {
-		    return Math.max.apply(Math, a.slice(1));
-		});
-		var y = d3.scaleLinear()
-		    .domain([0, mx])
-		    .range([ height, 0 ]);
-		svg.append("g")
-		    .call(d3.axisLeft(y));
-
-		// Add the lines
-		var idx = 1;
-		for (var nm in metadata) {
-		    var yfn = (function (i) {
-			return function (a) {
-			    return y(a[i]);
+	d3.json("datetimes.json",
+	    function (metadata) {
+		d3.csv(
+		    "datetimes.csv",
+		    function (d) {
+			a = [ d3.timeParse("%Y-%m-%d %H:%M:%S%Z")(d.date) ]
+			for (var nm in metadata) {
+			    a.push(+d[nm]);
 			}
-		    }(idx));
-		    svg.append("path")
-			.datum(data)
-			.attr("fill", "none")
-			.attr("stroke", metadata[nm])
-			.attr("stroke-width", 1.5)
-			.attr("d", d3.line()
-			    .x(function (a) { return x(a[0]); })
-			    .y(yfn));
-		    idx += 1;
-		}
+
+			return a;
+		    },
+		    function (data) {
+			// Add X axis --> it is a date format
+			var x = d3.scaleTime()
+			    .domain(d3.extent(data, function (a) { return a[0]; }))
+			    .range([ 0, width ]);
+			svg.append("g")
+			    .attr("transform", "translate(0," + height + ")")
+			    .call(d3.axisBottom(x));
+
+			// Add Y axis
+			var mx = d3.max(data, function (a) {
+			    return Math.max.apply(Math, a.slice(1));
+			});
+			var y = d3.scaleLinear()
+			    .domain([0, mx])
+			    .range([ height, 0 ]);
+			svg.append("g")
+			    .call(d3.axisLeft(y));
+
+			// Add the lines
+			var idx = 1;
+			for (var nm in metadata) {
+			    var yfn = (function (i) {
+				return function (a) {
+				    return y(a[i]);
+				}
+			    }(idx));
+			    svg.append("path")
+				.datum(data)
+				.attr("fill", "none")
+				.attr("stroke", metadata[nm])
+				.attr("stroke-width", 1.5)
+				.attr("d", d3.line()
+				    .x(function (a) { return x(a[0]); })
+				    .y(yfn));
+			    idx += 1;
+			}
+		    });
 	    });
     });
 </script>
