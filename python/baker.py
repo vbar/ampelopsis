@@ -12,7 +12,8 @@ limit 2"""
 
 
 def make_personage_query_url(person):
-    query = """select ?w ?l ?p ?t {
+    # wdt:P576 is needed for KSC
+    query = """select ?w ?l ?p ?t ?c ?z {
   ?w wdt:P27 wd:Q213;
      wdt:P106 wd:Q82955;
      rdfs:label ?l;
@@ -21,8 +22,11 @@ def make_personage_query_url(person):
   ?s ps:P102 ?p.
   filter(lang(?l) = "cs" && contains(lcase(?l), "%s") && year(?b) = %d)
   minus { ?s pq:P582 ?e. }
+  minus { ?p wdt:P576 ?d. }
   ?p rdfs:label ?t.
   filter(lang(?t) = "cs")
+  optional { ?p wdt:P465 ?c. }
+  optional { ?p wdt:P1813 ?z. }
 }""" % (person.query_name, person.birth_year)
     return create_query_url(query)
 

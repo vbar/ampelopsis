@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import collections
 from lxml import etree
 import re
 import sys
@@ -8,6 +9,14 @@ from common import get_option, make_connection
 from json_frame import JsonFrame
 from personage import parse_personage
 from url_heads import green_url_head, town_url_head
+
+PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name color')
+
+
+def get_opt(it, vn):
+    d = it.get(vn)
+    return d.get('value') if d else None
+
 
 class Condensator(JsonFrame):
     def __init__(self, cur):
@@ -104,7 +113,7 @@ where hamlet_name=%s""", (hamlet_name,))
 
         bindings = doc['results']['bindings']
         wikidata_id = None
-        party_name = None
+        party_spec = None
         for it in bindings:
             if name_rx.search(it['l']['value']):
                 cur_id = it['w']['value']
@@ -114,15 +123,16 @@ where hamlet_name=%s""", (hamlet_name,))
                     print("query matches multiple persons", file=sys.stderr)
                     return
 
-                cur_name = it['t']['value']
-                if party_name is None:
-                    party_name = cur_name
-                elif party_name != cur_name:
+                id_url = it['p']['value']
+                if party_spec is None:
+                    party_spec = PartySpec(id_url=id_url, long_name=it['t']['value'],
+                            short_name=get_opt(it, 'z'), color=get_opt(it, 'c'))
+                elif party_spec.id_url != id_url:
                     print("person matches multiple parties", file=sys.stderr)
                     return
 
-        if party_name:
-            party_id = self.insert_party(party_name)
+        if party_spec:
+            party_id = self.insert_party(party_spec)
             self.update_record(record_id, party_id)
 
     def insert_identity(self, record_id, town_name):
@@ -130,18 +140,19 @@ where hamlet_name=%s""", (hamlet_name,))
 values(%s, %s)
 on conflict do nothing""", (record_id, town_name))
 
-    def insert_party(self, party_name):
-        self.cur.execute("""insert into vn_party(short_name)
-values(%s)
-on conflict(short_name) do nothing
-returning id""", (party_name,))
+    def insert_party(self, party_spec):
+        self.cur.execute("""insert into vn_party(long_name, short_name, color)
+values(%s, %s, %s)
+on conflict(long_name) do update
+set short_name=%s, color=%s
+returning id""", (party_spec.long_name, party_spec.short_name, party_spec.color, party_spec.short_name, party_spec.color))
         row = self.cur.fetchone()
         if row is not None:
             return row[0]
 
         self.cur.execute("""select id
 from vn_party
-where short_name=%s""", (party_name,))
+where long_name=%s""", (party_spec.long_name,))
         row = self.cur.fetchone()
         return row[0]
 
