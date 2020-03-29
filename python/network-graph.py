@@ -16,7 +16,9 @@ class RefNet(ShowCase):
         ShowCase.__init__(self, cur)
         self.hamlet2town = {} # str -> [ str ]
         self.town2presentation = {} # str -> str
+        self.town2color = {} # str -> str color (6 chars, w/o #)
         self.init_mapping(white_hamlet_names)
+        self.next_shade = 'A'
         self.pair2node = {} # (str town name, bool from?) -> int node index
         self.node2pair = {} # int node index -> (str town_name, str presentation name)
         self.nick_rx = re.compile('@([-\\w]+)')
@@ -24,13 +26,14 @@ class RefNet(ShowCase):
 
     def init_mapping(self, white_hamlet_names):
         white_set = set(white_hamlet_names)
-        self.cur.execute("""select hamlet_name, town_name, presentation_name
+        self.cur.execute("""select hamlet_name, town_name, presentation_name, color
 from vn_record
-join vn_identity_hamlet on record_id=id
+join vn_identity_hamlet on record_id=vn_record.id
+left join vn_party on vn_party.id=party_id
 order by hamlet_name, town_name""")
         rows = self.cur.fetchall()
         for row in rows:
-            hamlet_name, town_name, present_name = row
+            hamlet_name, town_name, present_name, color = row
             if hamlet_name in white_set:
                 self.town2presentation[town_name] = present_name
                 lst = self.hamlet2town.get(hamlet_name)
@@ -38,6 +41,9 @@ order by hamlet_name, town_name""")
                     self.hamlet2town[hamlet_name] = [ town_name ]
                 else:
                     lst.append(town_name)
+
+                if color:
+                    self.town2color[town_name] = color
 
     def dump(self):
         ebunch = [(edge[0], edge[1], weight) for edge, weight in self.ref_map.items()]
@@ -89,6 +95,7 @@ order by hamlet_name, town_name""")
             town_name, present_name = self.node2pair[node_idx]
             gn['name'] = present_name
             gn['ext_url'] = "%s/%s" % (town_url_head, town_name)
+            gn['color'] = self.introduce_color(town_name)
 
         # D3 sankey calls weight "value"...
         for lnk in gd['links']:
@@ -111,6 +118,18 @@ order by hamlet_name, town_name""")
             self.pair2node[(town_name, False)] = town_node
         elif node_idx != town_node:
             raise Exception("Multiple persons for "  + town_name)
+
+    def introduce_color(self, town_name):
+        color = self.town2color.get(town_name)
+        if not color:
+            color = self.next_shade * 6
+            self.next_shade = chr(ord(self.next_shade) + 1)
+            if self.next_shade == 'D': # independents have that
+                self.next_shade = 'A'
+
+            self.town2color[town_name] = color
+
+        return '#' + color
 
 
 def get_top_contributors(cur):

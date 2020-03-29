@@ -103,17 +103,18 @@ d3.json("sankey.json").then(function(graph) {
 	})
 	.on("drag", dragmove));
 
-// add the rectangles for the nodes
-  node.append("rect")
-      .attr("height", function(d) { return d.dy; })
-      .attr("width", sankey.nodeWidth())
-      .style("fill", function(d) {
-		  return d.color = color(d.name.replace(/ .*/, "")); })
-      .style("stroke", function(d) {
-		  return d3.rgb(d.color).darker(2); })
-    .append("title")
-      .text(function(d) {
-		  return d.name + "\n" + format(d.value); });
+    // add the rectangles for the nodes
+    node.append("rect")
+	.attr("height", function(d) { return d.dy; })
+	.attr("width", sankey.nodeWidth())
+	.style("fill", function(d) {
+	    return d.color;
+	})
+	.style("stroke", function(d) {
+	    return d3.rgb(d.color).darker(2); })
+	.append("title")
+	.text(function(d) {
+	    return d.name + "\n" + format(d.value); });
 
 // add in the title for the nodes
   node.append("text")
