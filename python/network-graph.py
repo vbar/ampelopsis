@@ -40,8 +40,7 @@ order by hamlet_name, town_name""")
                     lst.append(town_name)
 
     def dump(self):
-        debug_limit = 12
-        ebunch = [(edge[0], edge[1], weight) for edge, weight in self.ref_map.items() if edge[0] < debug_limit and edge[1] < debug_limit]
+        ebunch = [(edge[0], edge[1], weight) for edge, weight in self.ref_map.items()]
         graph = nx.DiGraph()
         graph.add_weighted_edges_from(ebunch)
         gd = nx.node_link_data(graph, {'name': 'node'})
