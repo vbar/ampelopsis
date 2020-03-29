@@ -64,8 +64,14 @@ order by long_name""")
         for party, color in self.party2color.items():
             party2color[party] = '#' + color
 
-        if OTHER_NAME in self.party2timeline:
-            party2color[OTHER_NAME] = '#DDDDDD' # same as independents
+        shade = 'A'
+        for party in self.party2timeline:
+            if party not in party2color:
+                color = shade * 6
+                party2color[party] = '#' + color
+                shade = chr(ord(shade) + 1)
+                if shade == 'D': # independents have that
+                    shade = 'A'
 
         return party2color
 
