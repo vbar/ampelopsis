@@ -11,7 +11,7 @@ from common import get_option, make_connection
 from show_case import ShowCase
 
 DATE_NAME = 'date'
-OTHER_NAME = 'jin.'
+OTHER_NAME = 'nezařazení'
 
 class Timeline(ShowCase):
     def __init__(self, cur):

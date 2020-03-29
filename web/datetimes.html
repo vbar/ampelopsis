@@ -79,6 +79,21 @@ d3.json(
 				.attr("d", d3.line()
 				    .x(function (a) { return x(a[0]); })
 				    .y(yfn));
+
+			    // legend - there are reusable d3
+			    // extensions for that but the tested ones
+			    // don't actually work when pasted here...
+			    svg.append("circle")
+				.attr("cx", width - 250)
+				.attr("cy", 20 + 14 * (idx - 1))
+				.attr("r", 3)
+				.style("fill", metadata[nm]);
+			    svg.append("text")
+				.attr("x", width - 240)
+				.attr("y", 24 + 14 * (idx - 1))
+				.text(nm)
+				.style("font-size", "12px");
+
 			    idx += 1;
 			}
 		    });
