@@ -34,13 +34,18 @@ d3.json(
 
 	d3.json("datetimes.json",
 	    function (metadata) {
+		var meta_keys = Object.keys(metadata)
+		    .sort(function (k1, k2) {
+			return metadata[k2].total - metadata[k1].total;
+		    });
+
 		d3.csv(
 		    "datetimes.csv",
 		    function (d) {
 			a = [ d3.timeParse("%Y-%m-%d %H:%M:%S%Z")(d.date) ]
-			for (var nm in metadata) {
+			meta_keys.forEach(function (nm) {
 			    a.push(+d[nm]);
-			}
+			});
 
 			return a;
 		    },
@@ -64,9 +69,10 @@ d3.json(
 			    .call(d3.axisLeft(y));
 
 			// Add the lines
-			var idx = 1;
-			for (var nm in metadata) {
-			    var yfn = (function (i) {
+			var idx;
+			for (idx = 1; idx <= meta_keys.length; ++idx) {
+			    var nm = meta_keys[idx - 1],
+				yfn = (function (i) {
 				return function (a) {
 				    return y(a[i]);
 				}
@@ -74,7 +80,7 @@ d3.json(
 			    svg.append("path")
 				.datum(data)
 				.attr("fill", "none")
-				.attr("stroke", metadata[nm])
+				.attr("stroke", metadata[nm].color)
 				.attr("stroke-width", 1.5)
 				.attr("d", d3.line()
 				    .x(function (a) { return x(a[0]); })
@@ -87,14 +93,12 @@ d3.json(
 				.attr("cx", width - 250)
 				.attr("cy", 20 + 14 * (idx - 1))
 				.attr("r", 3)
-				.style("fill", metadata[nm]);
+				.style("fill", metadata[nm].color);
 			    svg.append("text")
 				.attr("x", width - 240)
 				.attr("y", 24 + 14 * (idx - 1))
 				.text(nm)
 				.style("font-size", "12px");
-
-			    idx += 1;
 			}
 		    });
 	    });

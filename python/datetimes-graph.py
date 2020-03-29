@@ -59,21 +59,20 @@ order by long_name""")
         self.lazy_sort()
         return self.party2timeline
 
-    def get_colors(self):
-        party2color = {}
-        for party, color in self.party2color.items():
-            party2color[party] = '#' + color
-
+    def get_meta(self):
+        party2meta = {}
         shade = 'A'
-        for party in self.party2timeline:
-            if party not in party2color:
+        for party, timeline in self.party2timeline.items():
+            color = self.party2color.get(party)
+            if not color:
                 color = shade * 6
-                party2color[party] = '#' + color
                 shade = chr(ord(shade) + 1)
                 if shade == 'D': # independents have that
                     shade = 'A'
 
-        return party2color
+            party2meta[party] = { 'color': '#' + color, 'total': len(timeline) }
+
+        return party2meta
 
     def get_party(self, hamlet_name):
         party_name = self.person2party.get(hamlet_name)
@@ -179,10 +178,10 @@ def get_model(builder):
     return (xseries, value_series)
 
 
-def dump_meta(color_map):
+def dump_meta(meta_map):
     target = get_option("datetimes_meta_data", "datetimes.json")
     with open(target, 'w') as f:
-        json.dump(color_map, f, indent=2, ensure_ascii=False)
+        json.dump(meta_map, f, indent=2, ensure_ascii=False)
 
 
 def dump_content(xseries, value_series):
@@ -217,7 +216,7 @@ def main():
                     builder.restrict_parties(pl)
 
                 xseries, value_series = get_model(builder)
-                dump_meta(builder.get_colors())
+                dump_meta(builder.get_meta())
                 dump_content(xseries, value_series)
 
             finally:
