@@ -4,7 +4,7 @@ import collections
 from lxml import etree
 import re
 import sys
-from baker import make_personage_query_url
+from baker import make_meta_query_url, make_personage_query_url
 from common import get_option, make_connection
 from json_frame import JsonFrame
 from personage import parse_personage
@@ -12,10 +12,28 @@ from url_heads import green_url_head, town_url_head
 
 PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name color')
 
+datetime_rx = re.compile('^([0-9]{4})-[0-9]{2}-[0-9]{2}T00:00:00Z$')
 
 def get_opt(it, vn):
     d = it.get(vn)
     return d.get('value') if d else None
+
+
+def birth_check(person, it):
+    raw_date = get_opt(it, 'b')
+    if not raw_date:
+        # if the date isn't in response, it must have been filtered on
+        # the server
+        return True
+
+    m = datetime_rx.match(raw_date)
+    if not m:
+        # shouldn't happen; in case of wikidata error, take the name
+        # as sufficient
+        return True
+
+    year = int(m.group(1))
+    return person.birth_year == year
 
 
 class Condensator(JsonFrame):
@@ -66,9 +84,7 @@ order by url""" % green_url_head)
                 if person:
                     record_id = self.condensate_record(person, hamlet_name)
                     if person.query_name:
-                        wikidata_url = make_personage_query_url(person)
-                        name_rx = re.compile("\\b" + re.escape(person.query_name) + "\\b", re.IGNORECASE)
-                        self.condensate_party(record_id, name_rx, wikidata_url)
+                        self.condensate_party(record_id, person)
             elif elem.tag == 'a':
                 href = elem.get('href')
                 if href:
@@ -100,36 +116,34 @@ where hamlet_name=%s""", (hamlet_name,))
         row = self.cur.fetchone()
         return row[0]
 
-    def condensate_party(self, record_id, name_rx, query_url):
-        query_id = self.get_url_id(query_url)
-        if not query_id:
-            print("query URL not found", file=sys.stderr)
-            return
+    def condensate_party(self, record_id, person):
+        name_rx = re.compile("\\b" + re.escape(person.query_name) + "\\b", re.IGNORECASE)
+        query_urls = (make_meta_query_url(), make_personage_query_url(person))
 
-        doc = self.get_document(query_id)
-        if not doc:
-            print("query URL not downloaded", file=sys.stderr)
-            return
-
-        bindings = doc['results']['bindings']
         wikidata_id = None
         party_spec = None
-        for it in bindings:
-            if name_rx.search(it['l']['value']):
-                cur_id = it['w']['value']
-                if wikidata_id is None:
-                    wikidata_id = cur_id
-                elif wikidata_id != cur_id:
-                    print("query matches multiple persons", file=sys.stderr)
-                    return
+        for query_url in query_urls:
+            query_id = self.get_url_id(query_url)
+            if query_id:
+                doc = self.get_document(query_id)
+                if doc:
+                    bindings = doc['results']['bindings']
+                    for it in bindings:
+                        if birth_check(person, it) and name_rx.search(it['l']['value']):
+                            cur_id = it['w']['value']
+                            if wikidata_id is None:
+                                wikidata_id = cur_id
+                            elif wikidata_id != cur_id:
+                                print("query matches multiple persons", file=sys.stderr)
+                                return
 
-                id_url = it['p']['value']
-                if party_spec is None:
-                    party_spec = PartySpec(id_url=id_url, long_name=it['t']['value'],
-                            short_name=get_opt(it, 'z'), color=get_opt(it, 'c'))
-                elif party_spec.id_url != id_url:
-                    print("person matches multiple parties", file=sys.stderr)
-                    return
+                            id_url = it['p']['value']
+                            if party_spec is None:
+                                party_spec = PartySpec(id_url=id_url, long_name=it['t']['value'],
+                                        short_name=get_opt(it, 'z'), color=get_opt(it, 'c'))
+                            elif party_spec.id_url != id_url:
+                                print("person matches multiple parties", file=sys.stderr)
+                                return
 
         if party_spec:
             party_id = self.insert_party(party_spec)

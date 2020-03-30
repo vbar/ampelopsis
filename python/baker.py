@@ -2,33 +2,53 @@
 
 from urlize import create_query_url
 
+def make_query(core, person):
+    query = "select ?w ?l ?p ?t ?c ?z"
+    if not person:
+        query += " ?b"
+
+    query += "{\n"
+    query += core
+    query += """
+    ?w rdfs:label ?l;
+        wdt:P569 ?b.
+    filter(lang(?l) = "cs"
+"""
+
+    if person:
+        query += "&& contains(lcase(?l), \"%s\") && year(?b) = %d" % (person.query_name, person.birth_year)
+
+    query += """)
+    ?p rdfs:label ?t.
+    filter(lang(?t) = "cs")
+    optional { ?p wdt:P465 ?c. }
+    optional { ?p wdt:P1813 ?z. }
+}"""
+
+    return query
+
+
 def make_meta_query_url():
-    # not needed for anything but hostname whitelisting yet
-    query = """select ?c {
-  ?c wdt:P31 wd:Q146.
-}
-limit 2"""
-    return create_query_url(query)
+    gov_core = """wd:Q55224909 p:P527 ?s.
+    ?s ps:P527 ?w;
+    pq:P4353 ?p.
+"""
+
+    return create_query_url(make_query(gov_core, None))
 
 
 def make_personage_query_url(person):
     # wdt:P576 is needed for KSC
-    query = """select ?w ?l ?p ?t ?c ?z {
-  ?w wdt:P27 wd:Q213;
-     wdt:P106 wd:Q82955;
-     rdfs:label ?l;
-     p:P102 ?s;
-     wdt:P569 ?b.
-  ?s ps:P102 ?p.
-  filter(lang(?l) = "cs" && contains(lcase(?l), "%s") && year(?b) = %d)
-  minus { ?s pq:P582 ?e. }
-  minus { ?p wdt:P576 ?d. }
-  ?p rdfs:label ?t.
-  filter(lang(?t) = "cs")
-  optional { ?p wdt:P465 ?c. }
-  optional { ?p wdt:P1813 ?z. }
-}""" % (person.query_name, person.birth_year)
-    return create_query_url(query)
+    pol_core = """?w wdt:P27 wd:Q213;
+    wdt:P106 wd:Q82955;
+    p:P102 ?s.
+    ?s ps:P102 ?p.
+    minus { ?s pq:P582 ?e. }
+    minus { ?p wdt:P576 ?d. }
+"""
+
+    assert person
+    return create_query_url(make_query(pol_core, person))
 
 
 if __name__ == "__main__":
