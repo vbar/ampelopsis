@@ -37,7 +37,7 @@ def make_meta_query_url():
     return create_query_url(make_query(gov_core, None))
 
 
-def make_personage_query_url(person):
+def make_personage_query_urls(person):
     # wdt:P576 is needed for KSC
     pol_core = """?w wdt:P27 wd:Q213;
     wdt:P106 wd:Q82955;
@@ -47,8 +47,16 @@ def make_personage_query_url(person):
     minus { ?p wdt:P576 ?d. }
 """
 
+    mp_core = """?w wdt:P27 wd:Q213;
+    wdt:P106 wd:Q82955;
+    p:P4100 ?s.
+    ?s ps:P4100/p:P31/pq:P642 ?p.
+    minus { ?s pq:P582 ?e. }
+"""
+
     assert person
-    return create_query_url(make_query(pol_core, person))
+    queries = ( make_query(core, person) for core in (pol_core, mp_core) )
+    return [ create_query_url(query) for query in queries ]
 
 
 if __name__ == "__main__":

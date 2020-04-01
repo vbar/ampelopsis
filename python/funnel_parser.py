@@ -2,7 +2,7 @@ import json
 from lxml import etree
 import re
 import sys
-from baker import make_personage_query_url
+from baker import make_personage_query_urls
 from common import get_option
 from personage import parse_personage
 from url_heads import green_url_head, hamlet_url_head, town_url_head
@@ -63,8 +63,9 @@ class FunnelParser:
             assert elem.tag == 'title'
             person = parse_personage(elem.text)
             if person and person.query_name:
-                wikidata_url = make_personage_query_url(person)
-                self.owner.add_link(wikidata_url)
+                wikidata_urls = make_personage_query_urls(person)
+                for wikidata_url in wikidata_urls:
+                    self.owner.add_link(wikidata_url)
 
             # cleanup
             elem.clear()

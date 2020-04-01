@@ -4,7 +4,7 @@ import collections
 from lxml import etree
 import re
 import sys
-from baker import make_meta_query_url, make_personage_query_url
+from baker import make_meta_query_url, make_personage_query_urls
 from common import get_option, make_connection
 from json_frame import JsonFrame
 from personage import parse_personage
@@ -118,7 +118,8 @@ where hamlet_name=%s""", (hamlet_name,))
 
     def condensate_party(self, record_id, person):
         name_rx = re.compile("\\b" + re.escape(person.query_name) + "\\b", re.IGNORECASE)
-        query_urls = (make_meta_query_url(), make_personage_query_url(person))
+        query_urls = [ make_meta_query_url() ]
+        query_urls.extend(make_personage_query_urls(person))
 
         wikidata_id = None
         party_spec = None
