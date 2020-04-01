@@ -1,7 +1,7 @@
 import sys
 from show_case import ShowCase
 
-class MerchandiSelector(ShowCase):
+class ActivitySelector(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
         self.hamlet2count = {} # str -> int
@@ -19,7 +19,7 @@ class MerchandiSelector(ShowCase):
             count = self.hamlet2count.get(hamlet_name, 0)
             self.hamlet2count[hamlet_name] = count + 1
 
-    def get_top_contributors(self, count):
+    def get_selected_contributors(self, count):
         # FIXME: use heap
         contributors = [ contr for contr, cnt in sorted(self.hamlet2count.items(), key=lambda kv: -1 * kv[1]) ]
         if len(contributors) < count:

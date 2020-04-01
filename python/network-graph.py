@@ -7,7 +7,7 @@ import networkx as nx
 import re
 import sys
 from common import get_option, make_connection
-from merchandise import MerchandiSelector
+from merchandise import ActivitySelector
 from show_case import ShowCase
 from url_heads import town_url_head
 
@@ -132,18 +132,18 @@ order by hamlet_name, town_name""")
         return '#' + color
 
 
-def get_top_contributors(cur):
+def get_selected_contributors(cur):
     top_limit = int(get_option("top_contributor_limit", "12"))
-    selector = MerchandiSelector(cur)
+    selector = ActivitySelector(cur)
     try:
         selector.run()
-        return selector.get_top_contributors(top_limit)
+        return selector.get_selected_contributors(top_limit)
     finally:
         selector.close()
 
 
-def dump_network(cur, top_contributors):
-    ref_net = RefNet(cur, top_contributors)
+def dump_network(cur, selected_contributors):
+    ref_net = RefNet(cur, selected_contributors)
     try:
         ref_net.run()
         ref_net.dump()
@@ -154,8 +154,8 @@ def dump_network(cur, top_contributors):
 def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
-            top_contributors = get_top_contributors(cur)
-            dump_network(cur, top_contributors)
+            selected_contributors = get_selected_contributors(cur)
+            dump_network(cur, selected_contributors)
 
 
 if __name__ == "__main__":
