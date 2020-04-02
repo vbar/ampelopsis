@@ -7,7 +7,8 @@ import networkx as nx
 import re
 import sys
 from common import get_option, make_connection
-from merchandise import ActivitySelector
+from merchandise import ActivitySelector, PartySelector
+from opt_util import get_quoted_list_option
 from show_case import ShowCase
 from url_heads import town_url_head
 
@@ -133,11 +134,16 @@ order by hamlet_name, town_name""")
 
 
 def get_selected_contributors(cur):
-    top_limit = int(get_option("top_contributor_limit", "12"))
-    selector = ActivitySelector(cur)
+    parties = get_quoted_list_option("selected_parties", None)
+    if parties:
+        selector = PartySelector(cur, parties)
+    else:
+        top_limit = int(get_option("top_contributor_limit", "12"))
+        selector = ActivitySelector(cur, top_limit)
+
     try:
         selector.run()
-        return selector.get_selected_contributors(top_limit)
+        return selector.get_selected_contributors()
     finally:
         selector.close()
 

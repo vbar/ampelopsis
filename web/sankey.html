@@ -92,7 +92,9 @@ d3.json("sankey.json").then(function(graph) {
       })
       .on("click", function(d) {
 	  if (d3.event.defaultPrevented) return;
-	  window.open(d.ext_url);
+	  if ('ext_url' in d) {
+	      window.open(d.ext_url);
+	  }
       })
       .call(d3.drag()
 	.subject(function(d) {
