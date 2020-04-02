@@ -45,9 +45,10 @@ class PartySelector(CursorWrapper):
         self.hamlet2party = {} # str -> str
 
     def run(self):
-        self.cur.execute("""select hamlet_name, long_name
+        self.cur.execute("""select hamlet_name, party_name
 from vn_record
-join vn_party on vn_party.id=party_id
+join vn_party on vn_party.id=vn_record.party_id
+join vn_party_name on vn_party.id=vn_party_name.party_id
 order by hamlet_name""")
         rows = self.cur.fetchall()
         for row in rows:

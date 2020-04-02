@@ -156,20 +156,29 @@ values(%s, %s)
 on conflict do nothing""", (record_id, town_name))
 
     def insert_party(self, party_spec):
-        self.cur.execute("""insert into vn_party(long_name, short_name, color)
-values(%s, %s, %s)
-on conflict(long_name) do update
-set short_name=%s, color=%s
-returning id""", (party_spec.long_name, party_spec.short_name, party_spec.color, party_spec.short_name, party_spec.color))
+        self.cur.execute("""select party_id
+from vn_party_name
+where party_name=%s""", (party_spec.long_name,))
         row = self.cur.fetchone()
-        if row is not None:
-            return row[0]
+        if not row:
+            self.cur.execute("""insert into vn_party(color)
+values(%s)
+returning id""", (party_spec.color,))
+            row = self.cur.fetchone()
+            party_id = row[0]
+            self.cur.execute("""insert into vn_party_name(party_id, party_name)
+values(%s, %s)
+""", (party_id, party_spec.long_name))
+        else:
+            party_id = row[0]
 
-        self.cur.execute("""select id
-from vn_party
-where long_name=%s""", (party_spec.long_name,))
-        row = self.cur.fetchone()
-        return row[0]
+        if party_spec.short_name:
+            self.cur.execute("""insert into vn_party_name(party_id, party_name)
+values(%s, %s)
+on conflict do nothing
+""", (party_id, party_spec.short_name))
+
+        return party_id
 
     def update_record(self, record_id, party_id):
         self.cur.execute("""update vn_record

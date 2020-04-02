@@ -16,17 +16,18 @@ OTHER_NAME = 'nezařazení'
 class Timeline(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
-        self.party2color = {} # long party name => str color; initialized from this ctor
-        self.person2party = {} # hamlet name => long party name, or OTHER_NAME; filled lazily
-        self.party2timeline = {} # long party name, or OTHER_NAME => list of datetime; output
+        self.party2color = {} # (any) party name => str color; initialized from this ctor
+        self.person2party = {} # hamlet name => (shortest) party name, or OTHER_NAME; filled lazily
+        self.party2timeline = {} # (shortest) party name, or OTHER_NAME => list of datetime; output
         self.now_sorted = True # empty is sorted
         self.init_color()
 
     def init_color(self):
-        self.cur.execute("""select long_name, color
+        self.cur.execute("""select party_name, color
 from vn_party
+join vn_party_name on id=party_id
 where color is not null
-order by long_name""")
+order by party_name""")
         rows = self.cur.fetchall()
         for row in rows:
             if row[0] in (DATE_NAME, OTHER_NAME):
@@ -79,10 +80,12 @@ order by long_name""")
         if party_name:
             return party_name
 
-        self.cur.execute("""select long_name
+        self.cur.execute("""select party_name
 from vn_record
-join vn_party on party_id=vn_party.id
-where hamlet_name=%s""", (hamlet_name,))
+join vn_party on vn_record.party_id=vn_party.id
+join vn_party_name on vn_party.id=vn_party_name.party_id
+where hamlet_name=%s
+order by length(party_name), party_name""", (hamlet_name,))
         row = self.cur.fetchone()
         party_name = row[0] if row else OTHER_NAME
         self.person2party[hamlet_name] = party_name
