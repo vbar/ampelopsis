@@ -1,0 +1,78 @@
+<!-- based on code from d3-graph-gallery.com and http://bl.ocks.org/AndrewRP/7468330 -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stranická komunikace</title>
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+
+<div id="my_dataviz"></div>
+
+<script>
+
+var diameter = 880,
+    radius = diameter / 2,
+    innerRadius = radius - 30;
+
+// create the svg area
+var svg = d3.select("#my_dataviz")
+    .append("svg")
+    .attr("width", diameter)
+    .attr("height", diameter)
+    .append("g")
+    .attr("transform", "translate(" + radius + ", " + radius + ")")
+
+d3.json("chord-meta.json").then(function(metadata) {
+    d3.json("chord-matrix.json").then(function(matrix) {
+	var res = d3.chord()
+	    .padAngle(0.02)     // padding between entities (black arc)
+	    .sortSubgroups(d3.descending)
+	    (matrix)
+
+	// add the groups on the inner part of the circle
+	var group = svg.datum(res)
+	    .append("g")
+	    .selectAll("g")
+	    .data(function(d) { return d.groups; })
+	    .enter()
+	    .append("g");
+
+	group.append("path")
+	    .style("fill", function (d, i) { return metadata[i].color; })
+	    .style("stroke", "black")
+	    .attr("id", function (d, i) { return "group" + i; })
+	    .attr("d", d3.arc()
+		  .innerRadius(innerRadius)
+		  .outerRadius(innerRadius + 20)
+		 )
+
+	group.append("text")
+	    .attr("x", 6)
+	    .attr("dy", 15)
+	    .attr("fill", "white")
+	    .append("textPath")
+	    .attr("xlink:href", function (d, i) { return "#group" + i; })
+	    .text(function (d, i) {
+		var l = Math.floor(d.value / 4);
+		return l ? metadata[i].name.substr(0, l) : "";
+	    });
+
+	group.append("title").text(function(d, i) {
+	    return metadata[i].name;
+	});
+
+	// Add the links between groups
+	svg.datum(res)
+	    .append("g")
+	    .selectAll("path")
+	    .data(function(d) { return d; })
+	    .enter()
+	    .append("path")
+	    .attr("d", d3.ribbon()
+		  .radius(innerRadius)
+		 )
+	    .style("fill", function (d) { return metadata[d.source.index].color; })
+	    .style("stroke", "black");
+    });
+});
+
+</script>

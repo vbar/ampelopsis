@@ -6,14 +6,15 @@ import json
 import networkx as nx
 import re
 import sys
-from common import make_connection
+from common import get_option, make_connection
 from opt_util import get_quoted_list_option
 from show_case import ShowCase
 from url_heads import town_url_head
 
 class RefNet(ShowCase):
-    def __init__(self, cur, deconstructed):
+    def __init__(self, cur, distinguish, deconstructed):
         ShowCase.__init__(self, cur)
+        self.distinguish = distinguish
         self.deconstructed = set() # of int party id
         self.init_deconstructed(deconstructed)
         self.party_map = {} # int party id -> str (short) party name
@@ -72,6 +73,37 @@ order by hamlet_name, town_name""")
         self.enrich(gd)
         print(json.dumps(gd, indent=2))
 
+    def dump_meta(self, output_path):
+        meta = []
+        n = len(self.pair2node)
+        for i in range(n):
+            variant = self.node2variant[i]
+
+            if type(variant) is str:
+                name = self.person_map[variant]
+            else:
+                name = self.party_map[variant]
+
+            color = self.introduce_color(variant)
+
+            meta.append({'name': name, 'color': color})
+
+        with open(output_path, 'w') as f:
+            json.dump(meta, f, indent=2, ensure_ascii=False)
+
+    def dump_matrix(self, output_path):
+        matrix = []
+        n = len(self.pair2node)
+        for i in range(n):
+            matrix.append([ 0 ] * n)
+
+        for edge, weight in self.ref_map.items():
+            row = matrix[edge[0]]
+            row[edge[1]] = weight
+
+        with open(output_path, 'w') as f:
+            json.dump(matrix, f, indent=2, ensure_ascii=False)
+
     def load_page(self, page_url, url_id):
         doc = self.get_document(url_id)
         if not doc:
@@ -95,7 +127,7 @@ order by hamlet_name, town_name""")
             if target_hamlet_name and (target_hamlet_name != source_hamlet_name):
                 target_variant = self.get_variant(target_hamlet_name)
                 if target_variant:
-                    source_node = self.introduce_node(source_variant, True)
+                    source_node = self.introduce_node(source_variant, self.distinguish)
                     target_node = self.introduce_node(target_variant, False)
                     edge_set.add((source_node, target_node))
 
@@ -162,11 +194,21 @@ order by hamlet_name, town_name""")
 def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
+            meta = get_option("chord_meta", "")
+            matrix = get_option("chord_matrix", "")
+            distinguish = not matrix and not meta
             parties = get_quoted_list_option("selected_parties", [])
-            ref_net = RefNet(cur, parties)
+            ref_net = RefNet(cur, distinguish, parties)
             try:
                 ref_net.run()
-                ref_net.dump()
+                if distinguish:
+                    ref_net.dump()
+                else:
+                    if meta:
+                        ref_net.dump_meta(meta)
+
+                    if matrix:
+                        ref_net.dump_matrix(matrix)
             finally:
                 ref_net.close()
 
