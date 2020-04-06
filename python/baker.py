@@ -50,7 +50,7 @@ def make_personage_query_urls(person):
     mp_core = """?w wdt:P27 wd:Q213;
     wdt:P106 wd:Q82955;
     p:P4100 ?s.
-    ?s ps:P4100/p:P31/pq:P642 ?p.
+    ?s ps:P4100/wdt:P102 ?p.
     minus { ?s pq:P582 ?e. }
 """
 
