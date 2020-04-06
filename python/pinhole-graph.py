@@ -192,10 +192,29 @@ order by hamlet_name, town_name""")
 
 
 def main():
+    meta = False
+    matrix = False
+    for a in sys.argv[1:]:
+        if meta is True:
+            meta = a
+        elif a == '--meta':
+            meta = True
+        if matrix is True:
+            matrix = a
+        elif a == '--matrix':
+            matrix = True
+
+    if (meta is True) or (matrix is True):
+        raise Exception("command-line option missing argument")
+
+    if meta is False:
+        meta = get_option("chord_meta", "")
+
+    if matrix is False:
+        matrix = get_option("chord_matrix", "")
+
     with make_connection() as conn:
         with conn.cursor() as cur:
-            meta = get_option("chord_meta", "")
-            matrix = get_option("chord_matrix", "")
             distinguish = not matrix and not meta
             parties = get_quoted_list_option("selected_parties", [])
             ref_net = RefNet(cur, distinguish, parties)
