@@ -8,6 +8,7 @@ import re
 import sys
 from common import get_option, make_connection
 from opt_util import get_quoted_list_option
+from pinhole_args import ConfigArgs
 from show_case import ShowCase
 from url_heads import town_url_head
 
@@ -192,42 +193,21 @@ order by hamlet_name, town_name""")
 
 
 def main():
-    meta = False
-    matrix = False
-    for a in sys.argv[1:]:
-        if meta is True:
-            meta = a
-        elif a == '--meta':
-            meta = True
-        if matrix is True:
-            matrix = a
-        elif a == '--matrix':
-            matrix = True
-
-    if (meta is True) or (matrix is True):
-        raise Exception("command-line option missing argument")
-
-    if meta is False:
-        meta = get_option("chord_meta", "")
-
-    if matrix is False:
-        matrix = get_option("chord_matrix", "")
-
+    ca = ConfigArgs()
     with make_connection() as conn:
         with conn.cursor() as cur:
-            distinguish = not matrix and not meta
             parties = get_quoted_list_option("selected_parties", [])
-            ref_net = RefNet(cur, distinguish, parties)
+            ref_net = RefNet(cur, ca.distinguish, parties)
             try:
                 ref_net.run()
-                if distinguish:
+                if ca.distinguish:
                     ref_net.dump()
                 else:
-                    if meta:
-                        ref_net.dump_meta(meta)
+                    if ca.meta:
+                        ref_net.dump_meta(ca.meta)
 
-                    if matrix:
-                        ref_net.dump_matrix(matrix)
+                    if ca.matrix:
+                        ref_net.dump_matrix(ca.matrix)
             finally:
                 ref_net.close()
 
