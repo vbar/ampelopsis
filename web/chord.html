@@ -53,7 +53,16 @@ d3.json("chord-meta.json").then(function(metadata) {
 	    .attr("xlink:href", function (d, i) { return "#group" + i; })
 	    .text(function (d, i) {
 		var l = Math.floor(d.value / 4);
-		return l ? metadata[i].name.substr(0, l) : "";
+		if (l < 2) {
+		    return "";
+		} else {
+		    if (l < 4) {
+			--l;
+		    }
+
+		    var name = metadata[i].name;
+		    return l >= name.length ? name : name.substr(0, l) + "\u2026";
+		}
 	    });
 
 	group.append("title").text(function(d, i) {
