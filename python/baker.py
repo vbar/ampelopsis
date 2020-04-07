@@ -40,17 +40,21 @@ def make_meta_query_url():
 def make_personage_query_urls(person):
     # wdt:P576 is needed for KSC
     pol_core = """?w wdt:P27 wd:Q213;
-    wdt:P106 wd:Q82955;
-    p:P102 ?s.
+        wdt:P106 wd:Q82955;
+        p:P102 ?s.
     ?s ps:P102 ?p.
     minus { ?s pq:P582 ?e. }
     minus { ?p wdt:P576 ?d. }
 """
 
     mp_core = """?w wdt:P27 wd:Q213;
-    wdt:P106 wd:Q82955;
-    p:P4100 ?s.
-    ?s ps:P4100/wdt:P102 ?p.
+        wdt:P106 wd:Q82955;
+        p:P4100 ?s.
+    {
+        ?s ps:P4100/p:P31/pq:P642 ?p.
+    } union {
+        ?s ps:P4100/wdt:P102 ?p.
+    }
     minus { ?s pq:P582 ?e. }
 """
 
