@@ -2,23 +2,15 @@
 
 import sys
 from common import make_connection
-from lang import MultiDict
+from lang import init_lang_dict
 from show_case import ShowCase
 from token_util import tokenize
 
 class Processor(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
-        self.lang_dict = self.init_lang_dict()
+        self.lang_dict = init_lang_dict()
         self.lang2freq = {}
-
-    @staticmethod
-    def init_lang_dict():
-        md = MultiDict()
-        md.fill('cs_CZ', "/usr/share/hunspell/cs_CZ.dic", 'latin2')
-        md.fill('en_US', "/usr/share/hunspell/en_US.dic", None)
-        md.prune()
-        return md
 
     def load_page(self, page_url, url_id):
         doc = self.get_document(url_id)

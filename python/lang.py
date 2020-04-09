@@ -67,6 +67,15 @@ class MultiDict:
         return self.bit2lang[cand] if lead >= 10 else None
 
 
+def init_lang_dict():
+    md = MultiDict()
+    md.fill('cs_CZ', "/usr/share/hunspell/cs_CZ.dic", 'latin2')
+    md.fill('en_US', "/usr/share/hunspell/en_US.dic", None)
+    md.fill('ru_RU', "/usr/share/hunspell/ru_RU.dic", 'KOI8-R')
+    md.prune()
+    return md
+
+
 def main():
     md = MultiDict()
     md.fill('cs_CZ', "/usr/share/hunspell/cs_CZ.dic", 'latin2')
