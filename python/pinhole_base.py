@@ -73,6 +73,9 @@ order by hamlet_name, town_name""")
             weight = lnk.pop('weight')
             lnk['value'] = weight
 
+        if self.mindate and self.maxdate:
+            gd['dateExtent'] = [dt.isoformat() for dt in (self.mindate, self.maxdate)]
+
     def get_variant(self, hamlet_name):
         party_id = self.hamlet2party.get(hamlet_name)
         if party_id is None:

@@ -58,6 +58,7 @@ class RefNet(PinholeBase):
             json.dump(matrix, f, indent=2, ensure_ascii=False)
 
     def load_item(self, et):
+        self.extend_date(et)
         source_hamlet_name = et.get('osobaid')
         source_variant = self.get_variant(source_hamlet_name)
         if source_variant:
