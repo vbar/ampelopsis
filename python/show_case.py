@@ -1,3 +1,4 @@
+import sys
 from json_frame import JsonFrame
 from url_heads import hamlet_url_head
 from volume_holder import VolumeHolder
@@ -17,3 +18,14 @@ order by url""" % hamlet_url_head)
         rows = self.cur.fetchall()
         for row in rows:
             self.load_page(*row)
+
+    def load_page(self, page_url, url_id):
+        doc = self.get_document(url_id)
+        if not doc:
+            print(page_url + " not found on disk", file=sys.stderr)
+            return
+
+        print("loading %s..." % (page_url,), file=sys.stderr)
+        items = doc.get('results')
+        for et in items:
+            self.load_item(et)

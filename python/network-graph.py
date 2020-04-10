@@ -55,40 +55,32 @@ order by hamlet_name, town_name""")
         print(json.dumps(gd, indent=2))
         # giant = max(nx.strongly_connected_components(graph), key=len)
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
+    def load_item(self, et):
+        hamlet_name = et.get('osobaid')
+        town_names = self.hamlet2town.get(hamlet_name)
+        if town_names:
+            edge_set = set()
+            txt = et.get('text')
+            for m in self.nick_rx.finditer(txt):
+                target_name = m.group(1)
+                if target_name in self.town2presentation:
+                    first = True
+                    for town_name in town_names:
+                        if town_name != target_name:
+                            if first:
+                                # introduce only those nodes which
+                                # will have edges - D3 sankey
+                                # crashes on a sparse sequence...
+                                town_node = self.introduce_node(town_name, True)
+                                target_node = self.introduce_node(target_name, False)
+                                edge_set.add((town_node, target_node))
+                                first = False
+                            else:
+                                self.ensure_node(town_name, town_node)
 
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            hamlet_name = et.get('osobaid')
-            town_names = self.hamlet2town.get(hamlet_name)
-            if town_names:
-                edge_set = set()
-                txt = et.get('text')
-                for m in self.nick_rx.finditer(txt):
-                    target_name = m.group(1)
-                    if target_name in self.town2presentation:
-                        first = True
-                        for town_name in town_names:
-                            if town_name != target_name:
-                                if first:
-                                    # introduce only those nodes which
-                                    # will have edges - D3 sankey
-                                    # crashes on a sparse sequence...
-                                    town_node = self.introduce_node(town_name, True)
-                                    target_node = self.introduce_node(target_name, False)
-                                    edge_set.add((town_node, target_node))
-                                    first = False
-                                else:
-                                    self.ensure_node(town_name, town_node)
-
-                for edge in edge_set:
-                    weight = self.ref_map.get(edge, 0)
-                    self.ref_map[edge] = weight + 1
+            for edge in edge_set:
+                weight = self.ref_map.get(edge, 0)
+                self.ref_map[edge] = weight + 1
 
     def enrich(self, gd):
         for gn in gd['nodes']:

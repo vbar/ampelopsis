@@ -12,18 +12,10 @@ class ActivitySelector(ShowCase):
         self.hamlet2count = {} # str -> int
         self.top_limit = top_limit
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
-
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            hamlet_name = et.get('osobaid')
-            count = self.hamlet2count.get(hamlet_name, 0)
-            self.hamlet2count[hamlet_name] = count + 1
+    def load_item(self, et):
+        hamlet_name = et.get('osobaid')
+        count = self.hamlet2count.get(hamlet_name, 0)
+        self.hamlet2count[hamlet_name] = count + 1
 
     def get_selected_contributors(self):
         # FIXME: use heap

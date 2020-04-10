@@ -8,6 +8,7 @@
 
 <!-- Create a div where the graph will take place -->
 <div id="my_dataviz"></div>
+<div id="footer"></div>
 <script>
 
 // set the dimensions and margins of the graph
@@ -50,9 +51,15 @@ d3.json(
 			return a;
 		    },
 		    function (data) {
+			var dateSelect = function (a) { return a[0]; },
+			    dateFormat = d3.timeFormat(locale.date),
+			    dateExtent = d3.extent(data, dateSelect),
+			    footer = document.getElementById('footer');
+			footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
 			// Add X axis --> it is a date format
 			var x = d3.scaleTime()
-			    .domain(d3.extent(data, function (a) { return a[0]; }))
+			    .domain(dateExtent)
 			    .range([ 0, width ]);
 			svg.append("g")
 			    .attr("transform", "translate(0," + height + ")")

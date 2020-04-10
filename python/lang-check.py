@@ -12,22 +12,14 @@ class Processor(ShowCase):
         self.lang_dict = init_lang_dict()
         self.lang2freq = {}
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
+    def load_item(self, et):
+        lst = tokenize(et['text'])
+        lng = self.lang_dict.check(set(lst))
+        if not lng:
+            lng = 'other'
 
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            lst = tokenize(et['text'])
-            lng = self.lang_dict.check(set(lst))
-            if not lng:
-                lng = 'other'
-
-            cnt = self.lang2freq.get(lng, 0)
-            self.lang2freq[lng] = cnt + 1
+        cnt = self.lang2freq.get(lng, 0)
+        self.lang2freq[lng] = cnt + 1
 
     def dump(self):
         for lng, frq in sorted(self.lang2freq.items(), key=lambda p: (-1 * p[1], p[0])):

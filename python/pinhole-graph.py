@@ -57,21 +57,13 @@ class RefNet(PinholeBase):
         with open(output_path, 'w') as f:
             json.dump(matrix, f, indent=2, ensure_ascii=False)
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
+    def load_item(self, et):
+        source_hamlet_name = et.get('osobaid')
+        source_variant = self.get_variant(source_hamlet_name)
+        if source_variant:
+            self.do_load_item(et, source_hamlet_name, source_variant)
 
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            source_hamlet_name = et.get('osobaid')
-            source_variant = self.get_variant(source_hamlet_name)
-            if source_variant:
-                self.load_item(et, source_hamlet_name, source_variant)
-
-    def load_item(self, et, source_hamlet_name, source_variant):
+    def do_load_item(self, et, source_hamlet_name, source_variant):
         edge_set = set()
         txt = et.get('text')
         for m in self.nick_rx.finditer(txt):

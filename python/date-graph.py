@@ -23,24 +23,16 @@ class Timeline(ShowCase):
 
         print("%s - %s" % (self.mindate, self.maxdate), file=sys.stderr)
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
+    def load_item(self, et):
+        pdt = parse(et.get('datum'))
+        dt = pdt.replace(microsecond=0, second=0, minute=0)
+        if (self.mindate is None) or (self.mindate > dt):
+            self.mindate = dt
 
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            pdt = parse(et.get('datum'))
-            dt = pdt.replace(microsecond=0, second=0, minute=0)
-            if (self.mindate is None) or (self.mindate > dt):
-                self.mindate = dt
+        if (self.maxdate is None) or (self.maxdate < dt):
+            self.maxdate = dt
 
-            if (self.maxdate is None) or (self.maxdate < dt):
-                self.maxdate = dt
-
-            self.timeline.append(dt)
+        self.timeline.append(dt)
 
 
 def main():

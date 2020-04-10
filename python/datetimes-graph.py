@@ -115,27 +115,19 @@ order by length(party_name), party_name""", (hamlet_name,))
         self.party2timeline = party2timeline
         self.party2color = party2color
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
-
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            pdt = parse(et.get('datum'))
-            dt = pdt.replace(microsecond=0, second=0, minute=0)
-            hamlet_name = et.get('osobaid')
-            if hamlet_name:
-                party_name = self.get_party(hamlet_name)
-                timeline = self.party2timeline.get(party_name)
-                if not timeline:
-                    timeline = [ dt ]
-                    self.party2timeline[party_name] = timeline
-                else:
-                    timeline.append(dt)
-                    self.now_sorted = False
+    def load_item(self, et):
+        pdt = parse(et.get('datum'))
+        dt = pdt.replace(microsecond=0, second=0, minute=0)
+        hamlet_name = et.get('osobaid')
+        if hamlet_name:
+            party_name = self.get_party(hamlet_name)
+            timeline = self.party2timeline.get(party_name)
+            if not timeline:
+                timeline = [ dt ]
+                self.party2timeline[party_name] = timeline
+            else:
+                timeline.append(dt)
+                self.now_sorted = False
 
     def lazy_sort(self):
         if self.now_sorted:

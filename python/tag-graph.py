@@ -68,20 +68,12 @@ class RefNet(PinholeBase):
         with open(output_path, 'w') as f:
             json.dump(matrix, f, indent=2, ensure_ascii=False)
 
-    def load_page(self, page_url, url_id):
-        doc = self.get_document(url_id)
-        if not doc:
-            print(page_url + " not found on disk", file=sys.stderr)
-            return
-
-        print("loading %s..." % (page_url,), file=sys.stderr)
-        items = doc.get('results')
-        for et in items:
-            hamlet_name = et['osobaid']
-            occ_date = parse(et['datum'])
-            txt = et['text']
-            for m in self.tag_rx.finditer(txt):
-                self.tag_line.append(TagOcc(tag=m.group(1), hamlet_name=hamlet_name, occ_date=occ_date))
+    def load_item(self, et):
+        hamlet_name = et['osobaid']
+        occ_date = parse(et['datum'])
+        txt = et['text']
+        for m in self.tag_rx.finditer(txt):
+            self.tag_line.append(TagOcc(tag=m.group(1), hamlet_name=hamlet_name, occ_date=occ_date))
 
     def lazy_ref_map(self):
         if len(self.ref_map):
