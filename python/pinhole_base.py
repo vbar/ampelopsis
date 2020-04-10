@@ -65,6 +65,17 @@ order by hamlet_name, town_name""")
         self.enrich(gd)
         print(json.dumps(gd, indent=2))
 
+    def dump_custom(self, output_path):
+        self.lazy_ref_map()
+
+        custom = {
+            'matrix': self.make_matrix(),
+            'desc': self.make_desc()
+        }
+
+        with open(output_path, 'w') as f:
+            json.dump(custom, f, indent=2, ensure_ascii=False)
+
     def lazy_ref_map(self):
         pass
 
@@ -91,6 +102,35 @@ order by hamlet_name, town_name""")
 
         if self.mindate and self.maxdate:
             gd['dateExtent'] = [dt.isoformat() for dt in (self.mindate, self.maxdate)]
+
+    def make_matrix(self):
+        matrix = []
+        n = len(self.pair2node)
+        for i in range(n):
+            matrix.append([ 0 ] * n)
+
+        for edge, weight in self.ref_map.items():
+            row = matrix[edge[0]]
+            row[edge[1]] = weight
+
+        return matrix
+
+    def make_desc(self):
+        desc = []
+        n = len(self.pair2node)
+        for i in range(n):
+            variant = self.node2variant[i]
+
+            if type(variant) is str:
+                name = self.person_map[variant]
+            else:
+                name = self.party_map[variant]
+
+            color = self.introduce_color(variant)
+
+            desc.append({'name': name, 'color': color})
+
+        return desc
 
     def get_variant(self, hamlet_name):
         party_id = self.hamlet2party.get(hamlet_name)

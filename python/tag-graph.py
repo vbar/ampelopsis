@@ -21,41 +21,6 @@ class RefNet(PinholeBase):
         self.tag_rx = re.compile('#([-\\w]+)')
         self.tag_line = [] # of TagOcc
 
-    def dump_meta(self, output_path):
-        self.lazy_ref_map()
-
-        meta = []
-        n = len(self.pair2node)
-        for i in range(n):
-            variant = self.node2variant[i]
-
-            if type(variant) is str:
-                name = self.person_map[variant]
-            else:
-                name = self.party_map[variant]
-
-            color = self.introduce_color(variant)
-
-            meta.append({'name': name, 'color': color})
-
-        with open(output_path, 'w') as f:
-            json.dump(meta, f, indent=2, ensure_ascii=False)
-
-    def dump_matrix(self, output_path):
-        self.lazy_ref_map()
-
-        matrix = []
-        n = len(self.pair2node)
-        for i in range(n):
-            matrix.append([ 0 ] * n)
-
-        for edge, weight in self.ref_map.items():
-            row = matrix[edge[0]]
-            row[edge[1]] = weight
-
-        with open(output_path, 'w') as f:
-            json.dump(matrix, f, indent=2, ensure_ascii=False)
-
     def load_item(self, et):
         hamlet_name = et['osobaid']
         occ_date = parse(et['datum'])
@@ -93,17 +58,13 @@ def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
-            ref_net = RefNet(cur, ca.distinguish, parties)
+            ref_net = RefNet(cur, not ca.chord, parties)
             try:
                 ref_net.run()
-                if ca.distinguish:
+                if not ca.chord:
                     ref_net.dump_standard()
                 else:
-                    if ca.meta:
-                        ref_net.dump_meta(ca.meta)
-
-                    if ca.matrix:
-                        ref_net.dump_matrix(ca.matrix)
+                    ref_net.dump_custom(ca.chord)
             finally:
                 ref_net.close()
 

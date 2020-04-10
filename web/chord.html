@@ -21,67 +21,66 @@ var svg = d3.select("#my_dataviz")
     .append("g")
     .attr("transform", "translate(" + radius + ", " + radius + ")")
 
-d3.json("chord-meta.json").then(function(metadata) {
-    d3.json("chord-matrix.json").then(function(matrix) {
-	var res = d3.chord()
+d3.json("chord.json").then(function(graphData) {
+    var metadata = graphData.desc,
+	res = d3.chord()
 	    .padAngle(0.02)     // padding between entities (black arc)
 	    .sortSubgroups(d3.descending)
-	    (matrix)
+	    (graphData.matrix)
 
-	// add the groups on the inner part of the circle
-	var group = svg.datum(res)
-	    .append("g")
-	    .selectAll("g")
-	    .data(function(d) { return d.groups; })
-	    .enter()
-	    .append("g");
+    // add the groups on the inner part of the circle
+    var group = svg.datum(res)
+	.append("g")
+	.selectAll("g")
+	.data(function(d) { return d.groups; })
+	.enter()
+	.append("g");
 
-	group.append("path")
-	    .style("fill", function (d, i) { return metadata[i].color; })
-	    .style("stroke", "black")
-	    .attr("id", function (d, i) { return "group" + i; })
-	    .attr("d", d3.arc()
-		  .innerRadius(innerRadius)
-		  .outerRadius(innerRadius + 20)
-		 )
+    group.append("path")
+	.style("fill", function (d, i) { return metadata[i].color; })
+	.style("stroke", "black")
+	.attr("id", function (d, i) { return "group" + i; })
+	.attr("d", d3.arc()
+	      .innerRadius(innerRadius)
+	      .outerRadius(innerRadius + 20)
+	     )
 
-	group.append("text")
-	    .attr("x", 6)
-	    .attr("dy", 15)
-	    .attr("fill", "white")
-	    .append("textPath")
-	    .attr("xlink:href", function (d, i) { return "#group" + i; })
-	    .text(function (d, i) {
-		var l = Math.floor(d.value / 4);
-		if (l < 2) {
-		    return "";
-		} else {
-		    if (l < 4) {
-			--l;
-		    }
-
-		    var name = metadata[i].name;
-		    return l >= name.length ? name : name.substr(0, l) + "\u2026";
+    group.append("text")
+	.attr("x", 6)
+	.attr("dy", 15)
+	.attr("fill", "white")
+	.append("textPath")
+	.attr("xlink:href", function (d, i) { return "#group" + i; })
+	.text(function (d, i) {
+	    var l = Math.floor(d.value / 4);
+	    if (l < 2) {
+		return "";
+	    } else {
+		if (l < 4) {
+		    --l;
 		}
-	    });
 
-	group.append("title").text(function(d, i) {
-	    return metadata[i].name;
+		var name = metadata[i].name;
+		return l >= name.length ? name : name.substr(0, l) + "\u2026";
+	    }
 	});
 
-	// Add the links between groups
-	svg.datum(res)
-	    .append("g")
-	    .selectAll("path")
-	    .data(function(d) { return d; })
-	    .enter()
-	    .append("path")
-	    .attr("d", d3.ribbon()
-		  .radius(innerRadius)
-		 )
-	    .style("fill", function (d) { return metadata[d.source.index].color; })
-	    .style("stroke", "black");
+    group.append("title").text(function(d, i) {
+	return metadata[i].name;
     });
+
+    // Add the links between groups
+    svg.datum(res)
+	.append("g")
+	.selectAll("path")
+	.data(function(d) { return d; })
+	.enter()
+	.append("path")
+	.attr("d", d3.ribbon()
+	      .radius(innerRadius)
+	     )
+	.style("fill", function (d) { return metadata[d.source.index].color; })
+	.style("stroke", "black");
 });
 
 </script>
