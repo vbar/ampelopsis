@@ -1,3 +1,5 @@
+import json
+import networkx as nx
 from show_case import ShowCase
 
 class PinholeBase(ShowCase):
@@ -16,6 +18,7 @@ class PinholeBase(ShowCase):
         self.next_shade = 'A'
         self.pair2node = {} # (str hamlet name / int party id, bool from?) -> int node index
         self.node2variant = {} # int node index -> str hamlet name / int party id
+        self.ref_map = {} # (int, int) edge -> int weight
 
     def init_deconstructed(self, deco_list):
         if not deco_list:
@@ -51,6 +54,19 @@ order by hamlet_name, town_name""")
 
                 if color:
                     self.party2color[party_id] = color
+
+    def dump_standard(self):
+        self.lazy_ref_map()
+
+        ebunch = [(edge[0], edge[1], weight) for edge, weight in self.ref_map.items()]
+        graph = nx.DiGraph()
+        graph.add_weighted_edges_from(ebunch)
+        gd = nx.node_link_data(graph, {'name': 'node'})
+        self.enrich(gd)
+        print(json.dumps(gd, indent=2))
+
+    def lazy_ref_map(self):
+        pass
 
     def enrich(self, gd):
         for gn in gd['nodes']:

@@ -16,15 +16,6 @@ class RefNet(PinholeBase):
     def __init__(self, cur, distinguish, deconstructed):
         PinholeBase.__init__(self, cur, distinguish, deconstructed)
         self.nick_rx = re.compile('@([-\\w]+)')
-        self.ref_map = {} # (int, int) edge -> int weight
-
-    def dump(self):
-        ebunch = [(edge[0], edge[1], weight) for edge, weight in self.ref_map.items()]
-        graph = nx.DiGraph()
-        graph.add_weighted_edges_from(ebunch)
-        gd = nx.node_link_data(graph, {'name': 'node'})
-        self.enrich(gd)
-        print(json.dumps(gd, indent=2))
 
     def dump_meta(self, output_path):
         meta = []
@@ -91,7 +82,7 @@ def main():
             try:
                 ref_net.run()
                 if ca.distinguish:
-                    ref_net.dump()
+                    ref_net.dump_standard()
                 else:
                     if ca.meta:
                         ref_net.dump_meta(ca.meta)
