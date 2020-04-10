@@ -1,3 +1,4 @@
+from dateutil.parser import parse
 import sys
 from json_frame import JsonFrame
 from url_heads import hamlet_url_head
@@ -6,6 +7,8 @@ from volume_holder import VolumeHolder
 class ShowCase(JsonFrame):
     def __init__(self, cur):
         JsonFrame.__init__(self, cur)
+        self.mindate = None
+        self.maxdate = None
 
     def run(self):
         self.cur.execute("""select url, id
@@ -29,3 +32,13 @@ order by url""" % hamlet_url_head)
         items = doc.get('results')
         for et in items:
             self.load_item(et)
+
+    def extend_date(self, et):
+        dt = parse(et['datum'])
+        if (self.mindate is None) or (dt < self.mindate):
+            self.mindate = dt
+
+        if (self.maxdate is None) or (dt > self.maxdate):
+            self.maxdate = dt
+
+        return dt

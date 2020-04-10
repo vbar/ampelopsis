@@ -56,6 +56,7 @@ order by hamlet_name, town_name""")
         # giant = max(nx.strongly_connected_components(graph), key=len)
 
     def load_item(self, et):
+        self.extend_date(et)
         hamlet_name = et.get('osobaid')
         town_names = self.hamlet2town.get(hamlet_name)
         if town_names:
@@ -94,6 +95,8 @@ order by hamlet_name, town_name""")
         for lnk in gd['links']:
             weight = lnk.pop('weight')
             lnk['value'] = weight
+
+        gd['dateExtent'] = [dt.isoformat() for dt in (self.mindate, self.maxdate)]
 
     def introduce_node(self, town_name, from_flag):
         node_idx = self.pair2node.get((town_name, from_flag))

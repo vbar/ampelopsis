@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import datetime
-from dateutil.parser import parse
 import sys
 from common import make_connection
 from line_output import ConfigLineOutput
@@ -10,8 +9,6 @@ from show_case import ShowCase
 class Timeline(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
-        self.mindate = None
-        self.maxdate = None
         self.timeline = []
 
     def get_timeline(self):
@@ -24,14 +21,8 @@ class Timeline(ShowCase):
         print("%s - %s" % (self.mindate, self.maxdate), file=sys.stderr)
 
     def load_item(self, et):
-        pdt = parse(et.get('datum'))
+        pdt = self.extend_date(et)
         dt = pdt.replace(microsecond=0, second=0, minute=0)
-        if (self.mindate is None) or (self.mindate > dt):
-            self.mindate = dt
-
-        if (self.maxdate is None) or (self.maxdate < dt):
-            self.maxdate = dt
-
         self.timeline.append(dt)
 
 
