@@ -7,7 +7,7 @@ import json
 import re
 import sys
 from common import get_option, make_connection
-from lang import init_lang_dict
+from lang import init_lang_recog
 from opt_util import get_quoted_list_option
 from pinhole_base import PinholeBase
 from token_util import tokenize
@@ -17,7 +17,7 @@ OTHER_NAME = 'nezařazení'
 class Processor(PinholeBase):
     def __init__(self, cur, deconstructed):
         PinholeBase.__init__(self, cur, False, deconstructed)
-        self.lang_dict = init_lang_dict()
+        self.lang_recog = init_lang_recog()
         self.lang2total = {} # str lang -> int
         self.variant2langmap = {} # str hamlet name / int party id -> str lang -> int
 
@@ -55,8 +55,8 @@ class Processor(PinholeBase):
 
         self.introduce_node(variant, False)
 
-        lst = tokenize(et['text'])
-        lng = self.lang_dict.check(set(lst))
+        lst = tokenize(et['text'], False)
+        lng = self.lang_recog.check(lst)
         if not lng:
             lng = 'other'
 

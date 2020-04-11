@@ -2,19 +2,19 @@
 
 import sys
 from common import make_connection
-from lang import init_lang_dict
+from lang import init_lang_recog
 from show_case import ShowCase
 from token_util import tokenize
 
 class Processor(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
-        self.lang_dict = init_lang_dict()
+        self.lang_recog = init_lang_recog()
         self.lang2freq = {}
 
     def load_item(self, et):
-        lst = tokenize(et['text'])
-        lng = self.lang_dict.check(set(lst))
+        lst = tokenize(et['text'], False)
+        lng = self.lang_recog.check(lst)
         if not lng:
             lng = 'other'
 

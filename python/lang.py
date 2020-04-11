@@ -42,8 +42,9 @@ class MultiDict:
 
         self.cur_bit = 0
 
-    def check(self, bag):
+    def check(self, word_list):
         assert not self.cur_bit # multi-language words must be pruned before checking
+        bag = set(word_list)
 
         bit2count = {}
         for w in bag:
@@ -67,12 +68,12 @@ class MultiDict:
         return self.bit2lang[cand] if lead >= 10 else None
 
 
-def init_lang_dict():
+def init_lang_recog():
     md = MultiDict()
-    md.fill('cs_CZ', "/usr/share/hunspell/cs_CZ.dic", 'latin2')
-    md.fill('de_DE', "/usr/share/hunspell/de_DE.dic", 'iso8859-1')
-    md.fill('en_US', "/usr/share/hunspell/en_US.dic", None)
-    md.fill('ru_RU', "/usr/share/hunspell/ru_RU.dic", 'KOI8-R')
+    md.fill('cs', "/usr/share/hunspell/cs_CZ.dic", 'latin2')
+    md.fill('de', "/usr/share/hunspell/de_DE.dic", 'iso8859-1')
+    md.fill('en', "/usr/share/hunspell/en_US.dic", None)
+    md.fill('ru', "/usr/share/hunspell/ru_RU.dic", 'KOI8-R')
     md.prune()
     return md
 
