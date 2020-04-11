@@ -3,7 +3,7 @@
 import random
 import sys
 from common import get_option, make_connection
-from lang import init_lang_recog
+from lang_wrap import init_lang_recog
 from show_case import ShowCase
 from token_util import tokenize
 

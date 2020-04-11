@@ -7,7 +7,7 @@ import json
 import re
 import sys
 from common import get_option, make_connection
-from lang import init_lang_recog
+from lang_wrap import init_lang_recog
 from opt_util import get_quoted_list_option
 from pinhole_base import PinholeBase
 from token_util import tokenize
