@@ -73,6 +73,9 @@ order by hamlet_name, town_name""")
             'desc': self.make_desc()
         }
 
+        if self.mindate and self.maxdate:
+            custom['dateExtent'] = self.make_date_extent()
+
         with open(output_path, 'w') as f:
             json.dump(custom, f, indent=2, ensure_ascii=False)
 
@@ -101,7 +104,7 @@ order by hamlet_name, town_name""")
             lnk['value'] = weight
 
         if self.mindate and self.maxdate:
-            gd['dateExtent'] = [dt.isoformat() for dt in (self.mindate, self.maxdate)]
+            gd['dateExtent'] = self.make_date_extent()
 
     def make_matrix(self):
         matrix = []
@@ -125,6 +128,9 @@ order by hamlet_name, town_name""")
             desc.append({'name': name, 'color': color})
 
         return desc
+
+    def make_date_extent(self):
+        return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
 
     def get_variant(self, hamlet_name):
         party_id = self.hamlet2party.get(hamlet_name)

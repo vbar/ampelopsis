@@ -5,7 +5,8 @@
 
 <script src="https://d3js.org/d3.v5.min.js"></script>
 
-<div id="my_dataviz"></div>
+<div id="the_graph"></div>
+<div id="footer"></div>
 
 <script>
 
@@ -14,7 +15,7 @@ var diameter = 880,
     innerRadius = radius - 30;
 
 // create the svg area
-var svg = d3.select("#my_dataviz")
+var svg = d3.select("#the_graph")
     .append("svg")
     .attr("width", diameter)
     .attr("height", diameter)
@@ -22,6 +23,14 @@ var svg = d3.select("#my_dataviz")
     .attr("transform", "translate(" + radius + ", " + radius + ")")
 
 d3.json("chord.json").then(function(graphData) {
+    if ('dateExtent' in graphData) {
+	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(graphData.dateExtent[0]), dateParse(graphData.dateExtent[1]) ],
+	    footer = document.getElementById('footer');
+	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+    }
+
     var metadata = graphData.desc,
 	res = d3.chord()
 	    .padAngle(0.02)     // padding between entities (black arc)
