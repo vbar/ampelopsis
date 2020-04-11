@@ -1,0 +1,128 @@
+<!-- based on https://bl.ocks.org/curran/fea34ca9b3b8886e3ab8 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Aktivita stran v různých jazycích</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <style>
+
+      .axis text {
+	font-family: sans-serif;
+	font-size: 12pt;
+      }
+      .axis .label {
+	font-size: 12pt;
+      }
+
+      .axis path, .axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+      }
+
+    </style>
+  </head>
+  <body>
+    <script>
+
+var langName = { 'cs_CZ': "Česky", 'en_US': "Anglicky", 'de_DE': "Německy",
+		 'ru_RU': "Rusky", 'other': "Neznámý/více jazyků" },
+    outerWidth = 1100,
+    outerHeight = 500,
+    margin = { left: 90, top: 16, right: 30, bottom: 60 },
+    barPadding = 0.2,
+    innerWidth = outerWidth - margin.left - margin.right,
+    innerHeight = outerHeight - margin.top - margin.bottom;
+
+function getLang(code) {
+    return langName[code] || code;
+}
+
+d3.json("langbar.json",
+    function (metadata) {
+	var colormap = metadata.colors,
+	    totalmap = metadata.totals,
+	    langset = Object.keys(totalmap).sort(function (k1, k2) {
+		return totalmap[k2] - totalmap[k1];
+	    }),
+	    dateParse = d3.time.format("%Y-%m-%d").parse,
+	    dateFormat = d3.time.format('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ];
+
+	d3.csv(
+	    "langbar.csv",
+	    function (d) {
+		Object.keys(d).forEach(function (nm) {
+		    if (nm != "name") {
+			d[nm] = +d[nm];
+		    }
+		});
+
+		return d;
+	    },
+	    function (rawData) {
+		langset.forEach(function (ycol) {
+		    d3.select("body").append("h1").text(getLang(ycol));
+
+		    var svg = d3.select("body")
+			.append("svg")
+			.attr("width",  outerWidth)
+			.attr("height", outerHeight);
+		    var g = svg.append("g")
+		      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		    var xAxisG = g.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + innerHeight + ")");
+		    var yAxisG = g.append("g")
+		      .attr("class", "y axis");
+
+		    var xScale = d3.scale.ordinal().rangeBands([0, innerWidth], barPadding);
+		    var yScale = d3.scale.linear().range([innerHeight, 0]);
+
+		    var xAxis = d3.svg.axis().scale(xScale).orient("bottom")
+		      .outerTickSize(0);
+		    var yAxis = d3.svg.axis().scale(yScale).orient("left")
+		      .ticks(5)
+			.outerTickSize(0);
+
+		    var data = rawData
+			.sort(function (a, b) { return b[ycol] - a[ycol]; });
+
+		    var aux = {}
+		    data.forEach(function (d) {
+			aux[d["name"]] = d[ycol];
+		    });
+
+		    xScale.domain(data.map( function (d) { return d["name"]; }));
+		    yScale.domain([0, d3.max(data, function (d) { return d[ycol]; })]);
+
+		    xAxisG
+			.call(xAxis)
+			.selectAll("text")
+			.style("text-anchor", "start")
+			.style("display", function (nm) { return aux[nm] > 0 ? "inline" : "none"; })
+			.attr("dx", "-0.4em")
+			.attr("dy", "1.24em")
+			.attr("transform", "translate(0, -8) rotate(16)" );
+
+		    yAxisG.call(yAxis);
+
+		    var bars = g.selectAll("rect").data(data);
+		    bars.enter().append("rect")
+			.attr("width", xScale.rangeBand());
+		    bars
+			.attr("x", function (d) { return xScale(d["name"]); })
+			.attr("y", function (d) { return yScale(d[ycol]); })
+			.attr("height", function (d) { return innerHeight - yScale(d[ycol]); })
+			.attr("fill", function (d) { return colormap[d["name"]]; });
+		    bars.exit().remove();
+		});
+
+		d3.select("body").append("div").text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
+	    });
+    });
+
+    </script>
+  </body>
+</html>

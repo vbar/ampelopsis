@@ -120,14 +120,8 @@ order by hamlet_name, town_name""")
         n = len(self.pair2node)
         for i in range(n):
             variant = self.node2variant[i]
-
-            if type(variant) is str:
-                name = self.person_map[variant]
-            else:
-                name = self.party_map[variant]
-
+            name = self.get_presentation_name(variant)
             color = self.introduce_color(variant)
-
             desc.append({'name': name, 'color': color})
 
         return desc
@@ -138,6 +132,12 @@ order by hamlet_name, town_name""")
             return None
 
         return hamlet_name if party_id in self.deconstructed else party_id
+
+    def get_presentation_name(self, variant):
+        if type(variant) is str:
+            return self.person_map[variant]
+        else:
+            return self.party_map[variant]
 
     def introduce_node(self, variant, from_flag):
         node_idx = self.pair2node.get((variant, from_flag))

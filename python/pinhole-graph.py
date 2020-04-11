@@ -2,15 +2,12 @@
 
 # requires database filled by running condensate.py
 
-import json
-import networkx as nx
 import re
 import sys
 from common import get_option, make_connection
 from opt_util import get_quoted_list_option
 from pinhole_args import ConfigArgs
 from pinhole_base import PinholeBase
-from url_heads import town_url_head
 
 class RefNet(PinholeBase):
     def __init__(self, cur, distinguish, deconstructed):
