@@ -35,4 +35,4 @@ def parse_personage(raw_title):
     if not qn.strip():
         qn = None
 
-    return Personage(presentation_name=present_name, query_name=qn, birth_year=year)
+    return Personage(presentation_name=present_name.strip(), query_name=qn, birth_year=year)
