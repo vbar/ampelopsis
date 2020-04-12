@@ -8,10 +8,8 @@ from dateutil.parser import parse
 import json
 import sys
 from common import get_option, make_connection
+from known_names import KnownNames
 from show_case import ShowCase
-
-DATE_NAME = 'date'
-OTHER_NAME = 'nezařazení'
 
 class Timeline(ShowCase):
     def __init__(self, cur):
@@ -30,7 +28,7 @@ where color is not null
 order by party_name""")
         rows = self.cur.fetchall()
         for row in rows:
-            if row[0] in (DATE_NAME, OTHER_NAME):
+            if row[0] in (KnownNames.DATE_NAME, KnownNames.OTHER_NAME):
                 raise Exception("reserved name %s already in database" % row[0])
 
             self.party2color[row[0]] = row[1]
@@ -87,7 +85,7 @@ join vn_party_name on vn_party.id=vn_party_name.party_id
 where hamlet_name=%s
 order by length(party_name), party_name""", (hamlet_name,))
         row = self.cur.fetchone()
-        party_name = row[0] if row else OTHER_NAME
+        party_name = row[0] if row else KnownNames.OTHER_NAME
         self.person2party[hamlet_name] = party_name
         return party_name
 
@@ -184,7 +182,7 @@ def dump_content(xseries, value_series):
     tail_keys = sorted(value_series.keys())
     with open(target, 'w') as f:
         writer = csv.writer(f, delimiter=",")
-        headings = [ DATE_NAME ]
+        headings = [ KnownNames.DATE_NAME ]
         headings.extend(tail_keys)
         writer.writerow(headings)
 
