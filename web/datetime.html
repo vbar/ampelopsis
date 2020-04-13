@@ -1,4 +1,4 @@
-<!-- Code from d3-graph-gallery.com -->
+<!-- based on code from d3-graph-gallery.com -->
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Celková aktivita v čase</title>
@@ -6,8 +6,7 @@
 <!-- Load d3.js -->
 <script src="https://d3js.org/d3.v4.js"></script>
 
-<!-- Create a div where the graph will take place -->
-<div id="my_dataviz"></div>
+<div id="the_graph"></div>
 <div id="footer"></div>
 <script>
 
@@ -17,7 +16,7 @@ var margin = {top: 10, right: 30, bottom: 30, left: 60},
     height = 400 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
-var svg = d3.select("#my_dataviz")
+var svg = d3.select("#the_graph")
   .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
