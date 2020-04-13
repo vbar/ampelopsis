@@ -22,7 +22,10 @@ def make_query(core, person):
     ?p rdfs:label ?t.
     filter(lang(?t) = "cs")
     optional { ?p wdt:P465 ?c. }
-    optional { ?p wdt:P1813 ?z. }
+    optional {
+        ?p wdt:P1813 ?z.
+        filter(!bound(?z) || lang(?z)="cs")
+    }
 }"""
 
     return query
