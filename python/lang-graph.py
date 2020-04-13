@@ -35,7 +35,7 @@ class Processor(PinholeBase):
         tail_keys = sorted(self.lang2total.keys(), key=lambda k: -1 * self.lang2total[k])
         with open(output_path, 'w') as f:
             writer = csv.writer(f, delimiter=",")
-            headings = [ "name" ]
+            headings = [ KnownNames.NAME ]
             headings.extend(tail_keys)
             writer.writerow(headings)
             for variant, langmap in self.variant2langmap.items():

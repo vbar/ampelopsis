@@ -1,0 +1,139 @@
+<!-- based on https://codepen.io/adeveloperdiary/pen/vGxVMz/ -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Aktivita stran</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+
+    <style>
+
+      .axis text {
+	font-family: sans-serif;
+	font-size: 12pt;
+      }
+      .axis .label {
+	font-size: 12pt;
+      }
+
+      .axis path, .axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div id="the_graph"></div>
+    <div id="footer"></div>
+
+    <script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 30, bottom: 60, left: 50},
+    width = 1100 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var svg = d3.select("#the_graph")
+    .append("svg")
+	.attr("width", width + margin.left + margin.right)
+	.attr("height", height + margin.top + margin.bottom)
+    .append("g")
+	.attr("transform",
+	      "translate(" + margin.left + "," + margin.top + ")");
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .35);
+
+var y = d3.scale.linear()
+    .rangeRound([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+d3.json("volume.json",
+    function (metadata) {
+	var dateParse = d3.time.format("%Y-%m-%d").parse,
+	    dateFormat = d3.time.format('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+	    footer = document.getElementById('footer'),
+	    intermediate = metadata.colDesc.map(function (key, i) {
+		return metadata.matrix.map(function (d, j) {
+		    var person = metadata.colDesc[i],
+			desc = metadata.persons[person],
+			item = {
+			    'x': metadata.rowDesc[j],
+			    'y': d[i],
+			    'person': person
+			};
+
+		    if ('ext_url' in desc) {
+			item.ext_url = desc.ext_url;
+		    }
+
+		    return item;
+		})
+	    });
+
+	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
+	var dataStackLayout = d3.layout.stack()(intermediate);
+
+	x.domain(metadata.rowDesc);
+	y.domain([0,
+		  d3.max(dataStackLayout[dataStackLayout.length - 1],
+			 function (d) { return d.y0 + d.y; })
+		 ]);
+
+	var layer = svg.selectAll(".stack")
+	    .data(dataStackLayout)
+	    .enter().append("g")
+	    .attr("class", "stack")
+	    .style("stroke", "white")
+	    .style("fill", function (d, i) {
+		var person = metadata.colDesc[i],
+		    party = metadata.persons[person].party,
+		    color = metadata.colors[party];
+
+		return color;
+	    });
+	layer.selectAll("rect")
+	    .data(function (d) {
+		return d;
+	    })
+	    .enter().append("rect")
+	    .attr("x", function (d) {
+		return x(d.x);
+	    })
+	    .attr("y", function (d) {
+		return y(d.y + d.y0);
+	    })
+	    .attr("height", function (d) {
+		return y(d.y0) - y(d.y + d.y0);
+	    })
+	    .attr("width", x.rangeBand())
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+		if ('ext_url' in d) {
+		    window.open(d.ext_url);
+		}
+	    });
+
+	svg.append("g")
+	    .attr("class", "axis")
+	    .attr("transform", "translate(0," + height + ")")
+	    .call(xAxis)
+	    .selectAll("text")
+	    .style("text-anchor", "start")
+	    .attr("dx", "-0.4em")
+	    .attr("dy", "1.24em")
+	    .attr("transform", "translate(0, -8) rotate(16)" );
+    });
+
+    </script>
+  </body>
+</html>

@@ -31,14 +31,8 @@ order by hamlet_name, town_name""")
                 if color:
                     self.party2color[party_id] = color
 
-    def introduce_color(self, variant):
-        if type(variant) is str:
-            party_id = self.hamlet2party.get(variant, 0)
-        else:
-            party_id = variant
-
+    def convert_color(self, party_id):
         color = self.party2color.get(party_id)
-
         if not color:
             color = self.next_shade * 6
             self.next_shade = chr(ord(self.next_shade) + 1)
