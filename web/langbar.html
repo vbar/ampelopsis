@@ -67,14 +67,14 @@ d3.json("langbar.json",
 
 		    var svg = d3.select("body")
 			.append("svg")
-			.attr("width",  outerWidth)
-			.attr("height", outerHeight);
-		    var g = svg.append("g")
-		      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-		    var xAxisG = g.append("g")
+			.attr("width", outerWidth)
+			.attr("height", outerHeight)
+			.append("g")
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		    var xAxisG = svg.append("g")
 			.attr("class", "x axis")
 			.attr("transform", "translate(0," + innerHeight + ")");
-		    var yAxisG = g.append("g")
+		    var yAxisG = svg.append("g")
 		      .attr("class", "y axis");
 
 		    var x = d3.scale.ordinal().rangeBands([0, innerWidth], barPadding);
@@ -108,7 +108,7 @@ d3.json("langbar.json",
 
 		    yAxisG.call(yAxis);
 
-		    var bars = g.selectAll("rect").data(data);
+		    var bars = svg.selectAll("rect").data(data);
 		    bars.enter().append("rect")
 			.attr("width", x.rangeBand());
 		    bars
