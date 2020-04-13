@@ -105,7 +105,8 @@ d3.json("volume.json",
 	    .data(function (d) {
 		return d;
 	    })
-	    .enter().append("rect")
+	    .enter()
+	    .append("rect")
 	    .attr("x", function (d) {
 		return x(d.x);
 	    })
@@ -121,6 +122,9 @@ d3.json("volume.json",
 		if ('ext_url' in d) {
 		    window.open(d.ext_url);
 		}
+	    })
+	    .append("title").text(function (d) {
+		return d.person;
 	    });
 
 	svg.append("g")
