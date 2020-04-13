@@ -47,13 +47,15 @@ var svg = d3.select("#the_graph")
 
 var x = d3.scale.ordinal()
     .rangeRoundBands([0, width], .35);
-
 var y = d3.scale.linear()
     .rangeRound([height, 0]);
 
 var xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom");
+var yAxis = d3.svg.axis().scale(y).orient("left")
+    .ticks(5)
+    .outerTickSize(0);
 
 d3.json("volume.json",
     function (metadata) {
@@ -128,7 +130,7 @@ d3.json("volume.json",
 	    });
 
 	svg.append("g")
-	    .attr("class", "axis")
+	    .attr("class", "x axis")
 	    .attr("transform", "translate(0," + height + ")")
 	    .call(xAxis)
 	    .selectAll("text")
@@ -136,6 +138,10 @@ d3.json("volume.json",
 	    .attr("dx", "-0.4em")
 	    .attr("dy", "1.24em")
 	    .attr("transform", "translate(0, -8) rotate(16)" );
+
+	svg.append("g")
+	    .attr("class", "y axis")
+	    .call(yAxis);
     });
 
     </script>
