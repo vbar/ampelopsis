@@ -1,5 +1,6 @@
 import collections
 import re
+from urlize import whitespace_rx
 
 Personage = collections.namedtuple('Personage', 'presentation_name query_name birth_year')
 
@@ -35,4 +36,5 @@ def parse_personage(raw_title):
     if not qn.strip():
         qn = None
 
-    return Personage(presentation_name=present_name.strip(), query_name=qn, birth_year=year)
+    canon_name = whitespace_rx.sub(" ", present_name.strip())
+    return Personage(presentation_name=canon_name, query_name=qn, birth_year=year)
