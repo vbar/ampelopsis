@@ -77,12 +77,12 @@ d3.json("langbar.json",
 		    var yAxisG = g.append("g")
 		      .attr("class", "y axis");
 
-		    var xScale = d3.scale.ordinal().rangeBands([0, innerWidth], barPadding);
-		    var yScale = d3.scale.linear().range([innerHeight, 0]);
+		    var x = d3.scale.ordinal().rangeBands([0, innerWidth], barPadding);
+		    var y = d3.scale.linear().range([innerHeight, 0]);
 
-		    var xAxis = d3.svg.axis().scale(xScale).orient("bottom")
+		    var xAxis = d3.svg.axis().scale(x).orient("bottom")
 		      .outerTickSize(0);
-		    var yAxis = d3.svg.axis().scale(yScale).orient("left")
+		    var yAxis = d3.svg.axis().scale(y).orient("left")
 		      .ticks(5)
 			.outerTickSize(0);
 
@@ -94,8 +94,8 @@ d3.json("langbar.json",
 			aux[d["name"]] = d[ycol];
 		    });
 
-		    xScale.domain(data.map( function (d) { return d["name"]; }));
-		    yScale.domain([0, d3.max(data, function (d) { return d[ycol]; })]);
+		    x.domain(data.map( function (d) { return d["name"]; }));
+		    y.domain([0, d3.max(data, function (d) { return d[ycol]; })]);
 
 		    xAxisG
 			.call(xAxis)
@@ -110,11 +110,11 @@ d3.json("langbar.json",
 
 		    var bars = g.selectAll("rect").data(data);
 		    bars.enter().append("rect")
-			.attr("width", xScale.rangeBand());
+			.attr("width", x.rangeBand());
 		    bars
-			.attr("x", function (d) { return xScale(d["name"]); })
-			.attr("y", function (d) { return yScale(d[ycol]); })
-			.attr("height", function (d) { return innerHeight - yScale(d[ycol]); })
+			.attr("x", function (d) { return x(d["name"]); })
+			.attr("y", function (d) { return y(d[ycol]); })
+			.attr("height", function (d) { return innerHeight - y(d[ycol]); })
 			.attr("fill", function (d) { return colormap[d["name"]]; });
 		    bars.exit().remove();
 		});
