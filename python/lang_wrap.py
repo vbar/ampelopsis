@@ -8,6 +8,9 @@ class LangidWrapper:
         self.threshold = float(get_option("langid_prob_threshold", "0.5"))
 
     def check(self, word_list):
+        if len(word_list) < 3:
+            return None
+
         p = self.identifier.classify(" ".join(word_list))
         if p and (p[1] > self.threshold):
             return p[0]
