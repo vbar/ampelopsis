@@ -118,11 +118,13 @@ where hamlet_name=%s""", (hamlet_name,))
 
     def condensate_party(self, record_id, person):
         name_rx = re.compile("\\b" + re.escape(person.query_name) + "\\b", re.IGNORECASE)
-        query_urls = [ make_meta_query_url() ]
+        gov_url = make_meta_query_url()
+        query_urls = [ gov_url ]
         query_urls.extend(make_personage_query_urls(person))
 
         wikidata_id = None
         party_spec = None
+        found_gov_spec = False
         for query_url in query_urls:
             query_id = self.get_url_id(query_url)
             if query_id:
@@ -142,9 +144,14 @@ where hamlet_name=%s""", (hamlet_name,))
                             if party_spec is None:
                                 party_spec = PartySpec(id_url=id_url, long_name=it['t']['value'],
                                         short_name=get_opt(it, 'z'), color=get_opt(it, 'c'))
+                                if query_url == gov_url:
+                                    found_gov_spec = True
                             elif party_spec.id_url != id_url:
-                                print("person matches multiple parties", file=sys.stderr)
-                                return
+                                if found_gov_spec:
+                                    print("ignoring minister's other parties", file=sys.stderr)
+                                else:
+                                    print("person matches multiple parties", file=sys.stderr)
+                                    return
 
         if party_spec:
             party_id = self.insert_party(party_spec)
