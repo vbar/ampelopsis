@@ -5,8 +5,9 @@ from url_heads import hamlet_url_head
 from volume_holder import VolumeHolder
 
 class ShowCase(JsonFrame):
-    def __init__(self, cur):
+    def __init__(self, cur, silent=False):
         JsonFrame.__init__(self, cur)
+        self.silent = silent
         self.mindate = None
         self.maxdate = None
 
@@ -28,7 +29,9 @@ order by url""" % hamlet_url_head)
             print(page_url + " not found on disk", file=sys.stderr)
             return
 
-        print("loading %s..." % (page_url,), file=sys.stderr)
+        if not self.silent:
+            print("loading %s..." % (page_url,), file=sys.stderr)
+
         items = doc.get('results')
         for et in items:
             self.load_item(et)
