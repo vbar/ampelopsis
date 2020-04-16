@@ -11,6 +11,9 @@ class FunnelParser:
     def __init__(self, owner, url):
         self.owner = owner
         self.page_url = url
+        self.funnel_links = int(get_option('funnel_links', "0"))
+        if (self.funnel_links < 0) or (self.funnel_links > 1):
+            raise Exception("invalid option funnel_links")
 
         schema = (
             ( "^" + hamlet_url_head + "\\?desc=1&page=(?P<page>\\d+)&q=server%3ATwitter&sort=datum$", self.process_overview ),
@@ -55,6 +58,11 @@ class FunnelParser:
             hamlet_name = et.get('osobaid')
             card_url = green_url_head + hamlet_name
             self.owner.add_link(card_url)
+
+            if self.funnel_links:
+                town_url = et.get('url')
+                if town_url:
+                    self.owner.add_link(town_url)
 
     def process_card(self, fp):
         context = etree.iterparse(fp, events=('end',), tag=('title'), html=True, recover=True)

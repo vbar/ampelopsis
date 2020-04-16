@@ -2,6 +2,7 @@ import json
 import networkx as nx
 from party_mixin import PartyMixin
 from show_case import ShowCase
+from url_heads import town_url_head
 
 class PinholeBase(ShowCase, PartyMixin):
     def __init__(self, cur, distinguish, deconstructed):
