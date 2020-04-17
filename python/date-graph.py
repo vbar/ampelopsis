@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
+import csv
 import datetime
 import sys
 from common import make_connection
-from line_output import ConfigLineOutput
+from known_names import KnownNames
 from show_case import ShowCase
 
 class Timeline(ShowCase):
@@ -51,8 +52,10 @@ def main():
                         dt += delta
                         freq = 0
 
-                    output = ConfigLineOutput(series)
-                    output.output()
+                    writer = csv.writer(sys.stdout, delimiter=",")
+                    writer.writerow([KnownNames.DATE_NAME, "value"])
+                    for point in series:
+                        writer.writerow(point)
             finally:
                 builder.close()
 
