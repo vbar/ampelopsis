@@ -2,10 +2,13 @@
 
 from urlize import create_query_url
 
-def make_query(core, person):
+def make_query(core, person, has_from=False):
     query = "select ?w ?l ?p ?t ?c ?z"
     if not person:
         query += " ?b"
+
+    if has_from:
+        query += " ?f"
 
     query += "{\n"
     query += core
@@ -41,13 +44,15 @@ def make_meta_query_url():
 
 
 def make_personage_query_urls(person):
-    # wdt:P576 is needed for KSC
+    # wdt:P576 works for KSC; for parties that technically still
+    # exist, start year will be checked client-side
     pol_core = """?w wdt:P27 wd:Q213;
         wdt:P106 wd:Q82955;
         p:P102 ?s.
     ?s ps:P102 ?p.
     minus { ?s pq:P582 ?e. }
     minus { ?p wdt:P576 ?d. }
+    optional { ?s pq:P580 ?f. }
 """
 
     mp_core = """?w wdt:P27 wd:Q213;
@@ -62,7 +67,11 @@ def make_personage_query_urls(person):
 """
 
     assert person
-    queries = ( make_query(core, person) for core in (pol_core, mp_core) )
+    queries = (
+        make_query(pol_core, person, True),
+        make_query(mp_core, person, False)
+    )
+
     return [ create_query_url(query) for query in queries ]
 
 

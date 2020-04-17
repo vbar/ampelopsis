@@ -10,7 +10,7 @@ from json_frame import JsonFrame
 from personage import parse_personage
 from url_heads import green_url_head, town_url_head
 
-PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name color')
+PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name color from_year')
 
 datetime_rx = re.compile('^([0-9]{4})-[0-9]{2}-[0-9]{2}T00:00:00Z$')
 
@@ -34,6 +34,20 @@ def birth_check(person, it):
 
     year = int(m.group(1))
     return person.birth_year == year
+
+
+def get_from_year(it):
+    raw_date = get_opt(it, 'f')
+    if not raw_date:
+        return None
+
+    m = datetime_rx.match(raw_date)
+    if not m:
+        # shouldn't happen; in case of wikidata error, treat the value
+        # as missing (i.e. fail for multiple parties)
+        return None
+
+    return int(m.group(1))
 
 
 class Condensator(JsonFrame):
@@ -142,16 +156,40 @@ where hamlet_name=%s""", (hamlet_name,))
 
                             id_url = it['p']['value']
                             if party_spec is None:
-                                party_spec = PartySpec(id_url=id_url, long_name=it['t']['value'],
-                                        short_name=get_opt(it, 'z'), color=get_opt(it, 'c'))
+                                party_spec = PartySpec(
+                                    id_url=id_url,
+                                    long_name=it['t']['value'],
+                                    short_name=get_opt(it, 'z'),
+                                    color=get_opt(it, 'c'),
+                                    from_year=get_from_year(it))
+
                                 if query_url == gov_url:
                                     found_gov_spec = True
                             elif party_spec.id_url != id_url:
                                 if found_gov_spec:
                                     print("ignoring minister's other parties", file=sys.stderr)
                                 else:
-                                    print("person matches multiple parties", file=sys.stderr)
-                                    return
+                                    print("person matches multiple parties...", file=sys.stderr)
+                                    if party_spec.from_year is None:
+                                        print("...with no start date", file=sys.stderr)
+                                        return
+
+                                    cur_from = get_from_year(it)
+                                    if cur_from is None:
+                                        print("...without start date", file=sys.stderr)
+                                        return
+
+                                    if cur_from == party_spec.from_year:
+                                        print("...with the same start date", file=sys.stderr)
+                                        return
+
+                                    if cur_from > party_spec.from_year:
+                                        party_spec = PartySpec(
+                                            id_url=id_url,
+                                            long_name=it['t']['value'],
+                                            short_name=get_opt(it, 'z'),
+                                            color=get_opt(it, 'c'),
+                                            from_year=cur_from)
 
         if party_spec:
             party_id = self.insert_party(party_spec)
