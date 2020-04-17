@@ -36,6 +36,14 @@ order by url""" % hamlet_url_head)
         for et in items:
             self.load_item(et)
 
+    def is_redirected(self, url):
+        self.cur.execute("""select count(*)
+from field
+join redirect on id=from_id
+where url=%s""", (url,))
+        row = self.cur.fetchone()
+        return row[0] > 0
+
     def extend_date(self, et):
         dt = parse(et['datum'])
         if (self.mindate is None) or (dt < self.mindate):
