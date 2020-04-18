@@ -13,6 +13,7 @@ class Processor(ShowCase):
     def __init__(self, cur, stop_words):
         ShowCase.__init__(self, cur)
         self.stop_words = stop_words
+        self.cluster_count = int(get_option("cluster_count", "64"))
         self.lang_recog = init_lang_recog()
         self.docs = []
 
@@ -28,7 +29,7 @@ class Processor(ShowCase):
         cv = CountVectorizer(max_df=0.95, min_df=2, tokenizer=retokenize, stop_words=self.stop_words)
         df = cv.fit_transform(self.docs)
         words = cv.get_feature_names()
-        lda = LatentDirichletAllocation(n_components=4)
+        lda = LatentDirichletAllocation(n_components=self.cluster_count)
         lda.fit(df)
 
         for index, topic in enumerate(lda.components_):
