@@ -7,13 +7,14 @@ import sys
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from show_case import ShowCase
-from token_util import tokenize, retokenize
+from token_util import tokenize, tokenize_persons, retokenize
 
 class Processor(ShowCase):
     def __init__(self, cur, stop_words):
         ShowCase.__init__(self, cur)
         self.stop_words = stop_words
         self.cluster_count = int(get_option("cluster_count", "64"))
+        self.tokenize = tokenize_persons if get_option("cluster_persons", "") else self.tokenize_all
         self.lang_recog = init_lang_recog()
         self.docs = []
 
@@ -21,9 +22,13 @@ class Processor(ShowCase):
         lst = tokenize(et['text'], False)
         lng = self.lang_recog.check(lst)
         if lng == 'cs':
-            long_lst = tokenize(et['text'], True)
+            long_lst = self.tokenize(et['text'])
             txt = " ".join(long_lst)
             self.docs.append(txt)
+
+    @staticmethod
+    def tokenize_all(txt):
+        return tokenize(txt, True)
 
     def process(self):
         cv = CountVectorizer(max_df=0.95, min_df=2, tokenizer=retokenize, stop_words=self.stop_words)
