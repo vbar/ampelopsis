@@ -1,0 +1,93 @@
+<!-- based on https://www.d3-graph-gallery.com/graph/treemap_custom.html -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Příspěvky</title>
+
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script>
+
+var margin = {top: 10, right: 10, bottom: 10, left: 10},
+    width = 1000 - margin.left - margin.right,
+    height = 1000 - margin.top - margin.bottom;
+
+var svg = d3.select("#the_graph")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+function get_length(d) {
+    var l = Math.floor((d.x1 - d.x0) / 12);
+    if (l < 4) {
+	--l;
+    }
+
+    return l;
+}
+
+d3.json("treemap.json", function (data) {
+    var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	dateExtent = [ dateParse(data.dateExtent[0]), dateParse(data.dateExtent[1]) ],
+	footer = document.getElementById('footer'),
+	root = d3.hierarchy(data).sum(function (d) { return d.value; });
+    footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
+    d3.treemap()
+	.size([width, height])
+	.paddingTop(15)
+    (root);
+
+    var opacity = d3.scaleLinear()
+	.domain([0, 1])
+	.range([0, 1])
+	.clamp(true);
+
+    svg.selectAll("rect")
+	.data(root.leaves())
+	.enter()
+	.append("rect")
+	.attr('x', function (d) { return d.x0; })
+	.attr('y', function (d) { return d.y0; })
+	.attr('width', function (d) { return d.x1 - d.x0; })
+	.attr('height', function (d) { return d.y1 - d.y0; })
+	.style("fill", function (d) { return d.parent.parent.data.color; })
+	.style("opacity", function (d) { return opacity(d.data.value); })
+	.on("click", function (d) {
+	    if (d3.event.defaultPrevented) return;
+	    window.open(d.data.name);
+	})
+	.append("title")
+	.text(function (d) { return d.parent.data.name; });
+
+    // Add title for party groups
+    svg.selectAll("titles")
+	.data(root.descendants().filter(function (d) { return d.depth == 1; }))
+	.enter()
+	.append("text")
+	.attr("x", function (d) { return d.x0; })
+	.attr("y", function(d){ return d.y0+21})
+	.text(function (d) {
+	    var l = get_length(d);
+	    if (l < 2) {
+		return "";
+	    } else {
+		var name = d.data.name;
+		return l >= name.length ? name : name.substr(0, l) + "\u2026";
+	    }
+	})
+	.attr("font-size", "19px")
+	.attr("fill", function (d) { return d.data.color; } )
+	.append("title")
+	.text(function (d) {
+	    var l = get_length(d);
+	    return (l < d.data.name.length) ? d.data.name : "";
+	});
+});
+</script>
