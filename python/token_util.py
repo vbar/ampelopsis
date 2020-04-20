@@ -4,6 +4,8 @@ url_rx = re.compile('https?://')
 
 split_rx = re.compile('\\W+')
 
+num_rx = re.compile('[0-9]')
+
 def tokenize(raw, inclinks=True):
     """Twitter-specific tokenization."""
     lst = []
@@ -15,7 +17,7 @@ def tokenize(raw, inclinks=True):
             else:
                 lst.extend((sw for sw in split_rx.split(w) if sw))
 
-    return [w.lower() for w in lst]
+    return [w.lower() for w in lst if not num_rx.search(w)]
 
 
 def tokenize_persons(raw):
