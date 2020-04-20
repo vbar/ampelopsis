@@ -3,12 +3,13 @@
 import csv
 import json
 import numpy as np
+import os
 import random
 import re
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 import sys
-from common import get_option, make_connection
+from common import get_option, get_parent_directory, make_connection
 from lang_wrap import init_lang_recog
 from show_case import ShowCase
 from token_util import tokenize, tokenize_persons, retokenize
@@ -99,14 +100,17 @@ class Processor(ShowCase):
 
 
 def main():
-    print("loading stop words...", file=sys.stderr)
-    stop_list_file = get_option("stop_list_file", "stoplist.txt")
     stop_words = []
-    with open(stop_list_file) as f:
-        for ln in f:
-            lst = ln.split()
-            if lst:
-                stop_words.append(lst[0])
+    cache_dir = os.path.join(get_parent_directory(), "cache")
+    if os.path.exists(cache_dir):
+        stop_list_file = os.path.join(cache_dir, "stoplist.txt")
+        if os.path.exists(stop_list_file):
+            print("loading stop words...", file=sys.stderr)
+            with open(stop_list_file) as f:
+                for ln in f:
+                    lst = ln.split()
+                    if lst:
+                        stop_words.append(lst[0])
 
     with make_connection() as conn:
         with conn.cursor() as cur:
