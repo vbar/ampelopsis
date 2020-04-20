@@ -22,7 +22,7 @@ var svg = d3.select("#the_graph")
     .attr("transform",
 	  "translate(" + margin.left + "," + margin.top + ")");
 
-function get_length(d) {
+function getLength(d) {
     var l = Math.floor((d.x1 - d.x0) / 12);
     if (l < 4) {
 	--l;
@@ -74,7 +74,7 @@ d3.json("treemap.json", function (data) {
 	.attr("x", function (d) { return d.x0; })
 	.attr("y", function(d){ return d.y0+21})
 	.text(function (d) {
-	    var l = get_length(d);
+	    var l = getLength(d);
 	    if (l < 2) {
 		return "";
 	    } else {
@@ -83,10 +83,10 @@ d3.json("treemap.json", function (data) {
 	    }
 	})
 	.attr("font-size", "19px")
-	.attr("fill", function (d) { return d.data.color; } )
+	.attr("fill", function (d) { return d.data.color; })
 	.append("title")
 	.text(function (d) {
-	    var l = get_length(d);
+	    var l = getLength(d);
 	    return (l < d.data.name.length) ? d.data.name : "";
 	});
 });
