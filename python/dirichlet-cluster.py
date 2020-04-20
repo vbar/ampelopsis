@@ -21,13 +21,16 @@ class Processor(ShowCase):
         self.cluster_count = int(get_option("cluster_count", "128"))
         self.tokenize = tokenize_persons if get_option("cluster_persons", "") else self.tokenize_all
         self.lang_recog = init_lang_recog()
-        self.sample_threshold = float(get_option("heatmap_sample_threshold", "0.01"))
+        self.sample_threshold = float(get_option("heatmap_sample_threshold", "0.025"))
         self.docs = []
         self.urls = []
         self.topics = []
         self.matrix = None
 
     def load_item(self, et):
+        if self.is_redirected(et['url']):
+            return
+
         lst = tokenize(et['text'], False)
         lng = self.lang_recog.check(lst)
         if lng == 'cs':
