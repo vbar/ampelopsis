@@ -27,7 +27,7 @@ def make_query(core, person, has_from=False):
     optional { ?p wdt:P465 ?c. }
     optional {
         ?p wdt:P1813 ?z.
-        filter(!bound(?z) || lang(?z)="cs")
+        filter(lang(?z)="cs")
     }
 }"""
 
