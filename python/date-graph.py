@@ -86,7 +86,7 @@ def main():
                         row = []
                         row.extend(point)
                         if redir_map:
-                            row.append(redir_map[point[0]])
+                            row.append(redir_map.get(point[0], 0))
 
                         writer.writerow(row)
             finally:
