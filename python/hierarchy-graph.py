@@ -91,12 +91,16 @@ class Hierarchy(ShowCase, PartyMixin):
                     'colname': 'status'
                 })
 
+        tenx = 9
         for url in redirects:
             statuses.append({
                 'name': url,
-                'value': 0.5,
+                'value': tenx / 10,
                 'colname': 'status'
             })
+
+            if tenx > 5:
+                tenx -= 1
 
         return statuses
 
