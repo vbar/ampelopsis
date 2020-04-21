@@ -1,0 +1,126 @@
+<!-- based on https://bl.ocks.org/curran/fea34ca9b3b8886e3ab8, https://www.d3-graph-gallery.com/graph/pie_basic.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Aktivita stran v různých jazycích</title>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <style>
+text {
+    font-family: sans-serif;
+    font-size: 12pt;
+}
+    </style>
+  </head>
+  <body>
+    <script>
+
+var langName = { 'cs': "Česky", 'en': "Anglicky", 'de': "Německy",
+		 'ru': "Rusky", 'other': "Neznámý" },
+    margin = 24,
+    maxRadius = 160;
+
+function getLang(code) {
+    return langName[code] || code;
+}
+
+d3.json("lang.json",
+    function (metadata) {
+	var dateParse = d3.timeParse("%Y-%m-%d"),
+	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+	    colormap = metadata.colors,
+	    totalmap = metadata.totals,
+	    langseq = Object.keys(totalmap).sort(function (a, b) {
+		return totalmap[b] - totalmap[a];
+	    });
+
+	var sqrtScale = d3.scaleSqrt()
+	    .domain([0, totalmap[langseq[0]]])
+	    .range([0, maxRadius]);
+
+	d3.csv(
+	    "lang.csv",
+	    function (d) {
+		Object.keys(d).forEach(function (nm) {
+		    if (nm != "name") {
+			d[nm] = +d[nm];
+		    }
+		});
+
+		return d;
+	    },
+	    function (rawData) {
+		langseq.forEach(function (ycol) {
+		    var radius = sqrtScale(totalmap[ycol]),
+			width = 2 * (radius + margin),
+			svg = d3.select("body")
+			.append("svg")
+			.attr("width", width)
+			.attr("height", width)
+			.append("g")
+			.attr("transform", "translate(" + radius + "," + (radius + 20) + ")");
+
+		    var data = rawData
+			.filter(function (d) { return d[ycol] > 0; })
+			.sort(function (a, b) { return b[ycol] - a[ycol]; });
+
+		    var aux = {}
+		    data.forEach(function (d) {
+			aux[d["name"]] = d[ycol];
+		    });
+
+		    var pie = d3.pie()
+			.value(function (d) {return d.value; });
+		    var pieData = pie(d3.entries(aux))
+
+		    svg.selectAll("span")
+			.data(pieData)
+			.enter()
+			.append('path')
+			.attr('d', d3.arc()
+			      .innerRadius(0)
+			      .outerRadius(radius)
+			     )
+			.attr('fill', function (d) { return colormap[d.data.key]; })
+			.attr("stroke", "white")
+			.style("stroke-width", "1px");
+
+		    svg.selectAll("title")
+			.data([ycol])
+			.enter()
+			.append("text")
+			.attr("x", -radius * 0.9)
+			.attr("y", -radius - 5)
+			.text(function (d) {
+			    return getLang(d);
+			});
+		});
+
+		var width = 2 * (maxRadius + margin),
+		    legend = d3.select("body").append("svg")
+		    .attr("width", width)
+		    .attr("height", width)
+		    .selectAll("g")
+		    .data(Object.keys(colormap))
+		    .enter().append("g")
+		    .attr("transform", function(d, i) { return "translate(0," + (10 + i * 20) + ")"; });
+
+		legend.append("rect")
+		    .attr("width", 18)
+		    .attr("height", 18)
+		    .style("fill", function (d) { return colormap[d]; });
+
+		legend.append("text")
+		    .attr("x", 24)
+		    .attr("y", 9)
+		    .attr("dy", ".35em")
+		    .text(function(d) { return d; });
+
+		d3.select("body").append("div").text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
+	    });
+    });
+
+    </script>
+  </body>
+</html>
