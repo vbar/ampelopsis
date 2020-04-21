@@ -79,7 +79,7 @@ d3.json("treemap.json", function (data) {
 		return "";
 	    } else {
 		var name = d.data.name;
-		return l >= name.length ? name : name.substr(0, l) + "\u2026";
+		return l >= name.length ? name : name.substr(0, l).trim() + "\u2026";
 	    }
 	})
 	.attr("font-size", "19px")
