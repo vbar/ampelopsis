@@ -95,9 +95,9 @@ def main():
             try:
                 processor.run()
 
-                json_target = get_option("langbar_meta_data", "langbar.json")
+                json_target = get_option("lang_meta_data", "lang.json")
                 processor.dump_meta(json_target)
-                csv_target = get_option("langbar_data", "langbar.csv")
+                csv_target = get_option("lang_data", "lang.csv")
                 processor.dump_content(csv_target)
             finally:
                 processor.close()

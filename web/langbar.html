@@ -39,7 +39,7 @@ function getLang(code) {
     return langName[code] || code;
 }
 
-d3.json("langbar.json",
+d3.json("lang.json",
     function (metadata) {
 	var colormap = metadata.colors,
 	    totalmap = metadata.totals,
@@ -51,7 +51,7 @@ d3.json("langbar.json",
 	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ];
 
 	d3.csv(
-	    "langbar.csv",
+	    "lang.csv",
 	    function (d) {
 		Object.keys(d).forEach(function (nm) {
 		    if (nm != "name") {
