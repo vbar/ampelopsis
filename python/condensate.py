@@ -68,6 +68,11 @@ order by url""" % green_url_head)
         for row in rows:
             self.process_page(*row)
 
+    def reset_party(self):
+        print("resetting party affiliation...", file=sys.stderr)
+        self.cur.execute("""update vn_record
+set party_id=null""")
+
     def process_page(self, card_url, url_id):
         volume_id = self.get_volume_id(url_id)
         reader = self.open_page(url_id, volume_id)
@@ -235,6 +240,9 @@ def main():
         with conn.cursor() as cur:
             condensator = Condensator(cur)
             try:
+                if get_option("condensate_reset_party", ""):
+                    condensator.reset_party()
+
                 condensator.run()
             finally:
                 condensator.close()
