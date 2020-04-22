@@ -12,15 +12,18 @@ class PartyMixin: # self.cur must be provided by another inherited class
     def init_mapping(self):
         self.cur.execute("""select hamlet_name, presentation_name, town_name, vn_record.party_id, party_name, color
 from vn_record
-join vn_identity_hamlet on record_id=vn_record.id
+left join vn_identity_hamlet on record_id=vn_record.id
 left join vn_party on vn_party.id=vn_record.party_id
 left join vn_party_name on vn_party.id=vn_party_name.party_id
 order by hamlet_name, town_name""")
         rows = self.cur.fetchall()
         for hamlet_name, present_name, town_name, party_id, party_name, color in rows:
-            self.hamlet2town[hamlet_name] = town_name
-            self.town2hamlet[town_name] = hamlet_name
+            if town_name:
+                self.hamlet2town[hamlet_name] = town_name
+                self.town2hamlet[town_name] = hamlet_name
+
             self.person_map[hamlet_name] = present_name
+
             if party_id:
                 self.hamlet2party[hamlet_name] = party_id
 
