@@ -20,15 +20,5 @@ def tokenize(raw, inclinks=True):
     return [w.lower() for w in lst if not num_rx.search(w)]
 
 
-def tokenize_persons(raw):
-    """Tokenization restricted to @-links."""
-    lst = []
-    for w in raw.split():
-        if w and (w[0] == '@'):
-            lst.append(w)
-
-    return [w.lower() for w in lst]
-
-
 def retokenize(s):
     return s.split()

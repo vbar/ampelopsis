@@ -12,7 +12,7 @@ import sys
 from common import get_option, get_parent_directory, make_connection
 from lang_wrap import init_lang_recog
 from show_case import ShowCase
-from token_util import tokenize, tokenize_persons, retokenize
+from token_util import tokenize, retokenize
 
 class Processor(ShowCase):
     def __init__(self, cur, stop_words):
@@ -20,7 +20,6 @@ class Processor(ShowCase):
         random.seed()
         self.stop_words = stop_words
         self.cluster_count = int(get_option("cluster_count", "128"))
-        self.tokenize = tokenize_persons if get_option("cluster_persons", "") else self.tokenize_all
         self.lang_recog = init_lang_recog()
         self.sample_threshold = float(get_option("heatmap_sample_threshold", "0.025"))
         self.docs = []
@@ -42,7 +41,7 @@ class Processor(ShowCase):
             self.urls.append(et['url'])
 
     @staticmethod
-    def tokenize_all(txt):
+    def tokenize(txt):
         return tokenize(txt, True)
 
     def process(self):
