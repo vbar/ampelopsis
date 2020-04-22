@@ -6,49 +6,12 @@ import re
 import sys
 from baker import make_meta_query_url, make_personage_query_urls
 from common import get_option, make_connection
+from conden_util import birth_check, get_from_year, get_opt
 from json_frame import JsonFrame
 from personage import parse_personage
 from url_heads import green_url_head, town_url_head
 
 PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name color from_year')
-
-datetime_rx = re.compile('^([0-9]{4})-[0-9]{2}-[0-9]{2}T00:00:00Z$')
-
-def get_opt(it, vn):
-    d = it.get(vn)
-    return d.get('value') if d else None
-
-
-def birth_check(person, it):
-    raw_date = get_opt(it, 'b')
-    if not raw_date:
-        # if the date isn't in response, it must have been filtered on
-        # the server
-        return True
-
-    m = datetime_rx.match(raw_date)
-    if not m:
-        # shouldn't happen; in case of wikidata error, take the name
-        # as sufficient
-        return True
-
-    year = int(m.group(1))
-    return person.birth_year == year
-
-
-def get_from_year(it):
-    raw_date = get_opt(it, 'f')
-    if not raw_date:
-        return None
-
-    m = datetime_rx.match(raw_date)
-    if not m:
-        # shouldn't happen; in case of wikidata error, treat the value
-        # as missing (i.e. fail for multiple parties)
-        return None
-
-    return int(m.group(1))
-
 
 class Condensator(JsonFrame):
     def __init__(self, cur):
@@ -81,11 +44,11 @@ set party_id=null""")
             return
 
         try:
-            self.condensate(card_url, reader)
+            self.condensate(card_url, url_id, reader)
         finally:
             reader.close()
 
-    def condensate(self, card_url, fp):
+    def condensate(self, card_url, card_url_id, fp):
         m = self.green_rx.match(card_url)
         if not m:
             print("malformed URL " + card_url, file=sys.stderr)
@@ -101,7 +64,7 @@ set party_id=null""")
             if elem.tag == 'title':
                 person = parse_personage(elem.text)
                 if person:
-                    record_id = self.condensate_record(person, hamlet_name)
+                    record_id = self.condensate_record(person, hamlet_name, card_url_id)
                     if person.query_name:
                         self.condensate_party(record_id, person)
             elif elem.tag == 'a':
@@ -120,11 +83,11 @@ set party_id=null""")
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
 
-    def condensate_record(self, person, hamlet_name):
-        self.cur.execute("""insert into vn_record(hamlet_name, presentation_name)
-values(%s, %s)
+    def condensate_record(self, person, hamlet_name, card_url_id):
+        self.cur.execute("""insert into vn_record(hamlet_name, presentation_name, card_url_id)
+values(%s, %s, %s)
 on conflict do nothing
-returning id""", (hamlet_name, person.presentation_name))
+returning id""", (hamlet_name, person.presentation_name, card_url_id))
         row = self.cur.fetchone()
         if row is not None:
             return row[0]
