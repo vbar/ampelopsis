@@ -21,9 +21,8 @@ class Processor(ShowCase):
         self.stop_words = stop_words
         self.cluster_count = int(get_option("cluster_count", "128"))
         self.lang_recog = init_lang_recog()
-        self.sample_threshold = float(get_option("heatmap_sample_threshold", "0.025"))
-        self.docs = []
-        self.urls = []
+        self.sample_size = int(get_option("heatmap_sample_size", "100"))
+        self.url2doc = {}
         self.topics = []
         self.matrix = None
 
@@ -37,8 +36,7 @@ class Processor(ShowCase):
             self.extend_date(et)
             long_lst = self.tokenize(et['text'])
             txt = " ".join(long_lst)
-            self.docs.append(txt)
-            self.urls.append(et['url'])
+            self.url2doc[et['url']] = txt
 
     @staticmethod
     def tokenize(txt):
@@ -46,7 +44,8 @@ class Processor(ShowCase):
 
     def process(self):
         cv = CountVectorizer(max_df=0.95, min_df=2, tokenizer=retokenize, stop_words=self.stop_words)
-        df = cv.fit_transform(self.docs)
+        docs = [ doc for url, doc in sorted(self.url2doc.items(), key=lambda p: p[0]) ]
+        df = cv.fit_transform(docs)
         words = cv.get_feature_names()
         lda = LatentDirichletAllocation(n_components=self.cluster_count)
         lda.fit(df)
@@ -58,20 +57,24 @@ class Processor(ShowCase):
         self.matrix = lda.transform(df)
 
     def sample(self):
-        urls = []
+        url2doc = {}
+        urls = self.get_urls()
         matrix = []
-        for i in range(len(self.urls)):
+        l = len(urls)
+        threshold = self.sample_size / l
+        for i in range(l):
             r = random.random()
-            if r < self.sample_threshold:
-                urls.append(self.urls[i])
+            if r < threshold:
+                url = urls[i]
+                url2doc[url] = self.url2doc[url]
                 matrix.append(self.matrix[i])
 
-        self.urls = urls
+        self.url2doc = url2doc
         self.matrix = matrix
 
     def dump_meta(self, output_path):
         meta = {
-            'rowDesc': self.urls,
+            'rowDesc': self.get_urls(),
             'colDesc': self.topics,
             'dateExtent': self.make_date_extent(),
             'maxValue': self.get_max_value()
@@ -86,10 +89,13 @@ class Processor(ShowCase):
             headings = [ "doc", "topic", "value" ]
             writer.writerow(headings)
 
-            for i in range(len(self.urls)):
+            for i in range(len(self.url2doc)):
                 for j in range(len(self.topics)):
                     row = ( i, j, self.matrix[i][j] )
                     writer.writerow(row)
+
+    def get_urls(self):
+        return sorted(self.url2doc.keys())
 
     def make_date_extent(self):
         return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
