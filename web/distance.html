@@ -1,0 +1,118 @@
+<!-- based on https://bl.ocks.org/GerardoFurtado/ff2096ed1aa29bb74fa151a39e9c1387 and https://bl.ocks.org/d3indepth/c48022f55ebc76e6adafa77cf466da35 -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Spřízněnost</title>
+<style>
+
+line {
+  stroke: #eaeaea;
+}
+
+</style>
+<body>
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+var margin = {top: 10, right: 10, bottom: 10, left: 10},
+    width = 1000 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom,
+    maxRadius = 32;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+// load the data
+d3.json("distance.json").then(function(graph) {
+    if ('dateExtent' in graph) {
+	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(graph.dateExtent[0]), dateParse(graph.dateExtent[1]) ],
+	    footer = document.getElementById('footer');
+	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+    }
+
+    var sqrtScale = d3.scaleSqrt()
+	.domain([0, d3.max(graph.nodes, function(d) { return +d.doc_count; })])
+	.range([0, maxRadius]);
+
+    var simulation = d3.forceSimulation(graph.nodes)
+	.force('charge', d3.forceManyBody().strength(-500))
+	.force('center', d3.forceCenter(width / 2, height / 2))
+	.force('link', d3.forceLink(graph.links).distance(function (d) {
+	    return d.value;
+	}))
+	.on('tick', ticked);
+
+    function updateLinks() {
+	var u = d3.select('svg')
+	    .selectAll('line')
+	    .data(graph.links);
+
+	u.enter()
+	    .append('line')
+	    .merge(u)
+	    .attr('x1', function (d) {
+		return d.source.x
+	    })
+	    .attr('y1', function (d) {
+		return d.source.y
+	    })
+	    .attr('x2', function (d) {
+		return d.target.x
+	    })
+	    .attr('y2', function (d) {
+		return d.target.y
+	    });
+
+	u.exit().remove();
+    }
+
+    function updateNodes() {
+	var u = d3.select('svg')
+	    .selectAll('circle')
+	    .data(graph.nodes);
+
+	u.enter()
+	    .append('circle')
+	    .attr('r', function (d) {
+		return sqrtScale(d.doc_count);
+	    })
+	    .merge(u)
+	    .attr('cx', function (d) {
+		return d.x;
+	    })
+	    .attr('cy', function (d) {
+		return d.y;
+	    })
+	    .style("fill", function (d) {
+		return d.color;
+	    })
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+		if ('ext_url' in d) {
+		    window.open(d.ext_url);
+		}
+	    })
+	    .append("title").text(function (d) {
+		return d.name;
+	    });
+
+	u.exit().remove();
+    }
+
+    function ticked() {
+	updateLinks();
+	updateNodes();
+    }
+});
+
+</script>
+
+</body>

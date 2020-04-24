@@ -9,8 +9,13 @@ class PinholeBase(ShowCase, PartyMixin):
         ShowCase.__init__(self, cur)
         PartyMixin.__init__(self)
         self.distinguish = distinguish
-        self.deconstructed = set() # of int party id
-        self.init_deconstructed(deconstructed)
+
+        if deconstructed == '*':
+            self.deconstructed = None
+        else:
+            self.deconstructed = set() # of int party id
+            self.init_deconstructed(deconstructed)
+
         self.pair2node = {} # (str hamlet name / int party id, bool from?) -> int node index
         self.node2variant = {} # int node index -> str hamlet name / int party id
         self.ref_map = {} # (int, int) edge -> int weight
@@ -61,7 +66,7 @@ order by party_id""", (tuple(deco_set),))
             variant = self.node2variant[node_idx]
 
             if type(variant) is str:
-                gn['name'] = self.person_map[variant]
+                gn['name'] = self.person_map.get(variant, variant)
 
                 town_name = self.hamlet2town.get(variant)
                 if town_name:
@@ -106,6 +111,9 @@ order by party_id""", (tuple(deco_set),))
         return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
 
     def get_variant(self, hamlet_name):
+        if self.deconstructed is None:
+            return hamlet_name
+
         party_id = self.hamlet2party.get(hamlet_name)
         if party_id is None:
             return None
