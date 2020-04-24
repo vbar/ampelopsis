@@ -37,4 +37,4 @@ def parse_personage(raw_title):
         qn = None
 
     canon_name = whitespace_rx.sub(" ", present_name.strip())
-    return Personage(presentation_name=canon_name, query_name=qn, birth_year=year)
+    return Personage(presentation_name=canon_name.rstrip(','), query_name=qn, birth_year=year)
