@@ -9,9 +9,10 @@ import re
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 import sys
-from common import get_option, get_parent_directory, make_connection
+from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from show_case import ShowCase
+from stop_util import load_stop_words
 from token_util import tokenize, retokenize
 
 class Processor(ShowCase):
@@ -105,18 +106,7 @@ class Processor(ShowCase):
 
 
 def main():
-    stop_words = []
-    cache_dir = os.path.join(get_parent_directory(), "cache")
-    if os.path.exists(cache_dir):
-        stop_list_file = os.path.join(cache_dir, "stoplist.txt")
-        if os.path.exists(stop_list_file):
-            print("loading stop words...", file=sys.stderr)
-            with open(stop_list_file) as f:
-                for ln in f:
-                    lst = ln.split()
-                    if lst:
-                        stop_words.append(lst[0])
-
+    stop_words = load_stop_words()
     with make_connection() as conn:
         with conn.cursor() as cur:
             processor = Processor(cur, stop_words)
