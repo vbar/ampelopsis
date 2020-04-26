@@ -6,12 +6,8 @@
 import json
 from common import make_connection
 from known_names import KnownNames
-from party_mixin import PartyMixin
+from party_mixin import by_reverse_value, PartyMixin
 from show_case import ShowCase
-
-
-def by_reverse_value(p):
-    return (-1 * p[1], p[0])
 
 
 class Hierarchy(ShowCase, PartyMixin):

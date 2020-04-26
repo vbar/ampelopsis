@@ -1,3 +1,7 @@
+def by_reverse_value(p):
+    return (-1 * p[1], p[0])
+
+
 class PartyMixin: # self.cur must be provided by another inherited class
     def __init__(self):
         self.party_map = {} # int party id -> str (short) party name

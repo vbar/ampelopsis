@@ -6,13 +6,9 @@ import csv
 import json
 from common import get_option, make_connection
 from known_names import KnownNames
-from party_mixin import PartyMixin
+from party_mixin import by_reverse_value, PartyMixin
 from show_case import ShowCase
 from url_heads import town_url_head
-
-
-def by_reverse_value(p):
-    return (-1 * p[1], p[0])
 
 
 class Volume(ShowCase, PartyMixin):
