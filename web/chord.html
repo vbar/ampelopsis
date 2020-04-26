@@ -45,7 +45,7 @@ d3.json("chord.json").then(function(graphData) {
 	.enter()
 	.append("g");
 
-    group.append("path")
+    var groupPath = group.append("path")
 	.style("fill", function (d, i) { return metadata[i].color; })
 	.style("stroke", "black")
 	.attr("id", function (d, i) { return "group" + i; })
@@ -54,6 +54,9 @@ d3.json("chord.json").then(function(graphData) {
 	      .outerRadius(innerRadius + 20)
 	     )
 
+    var lengths = groupPath._groups[0].map(function (it) { return it.getTotalLength(); });
+    console.log(lengths)
+
     group.append("text")
 	.attr("x", 6)
 	.attr("dy", 15)
@@ -61,7 +64,7 @@ d3.json("chord.json").then(function(graphData) {
 	.append("textPath")
 	.attr("xlink:href", function (d, i) { return "#group" + i; })
 	.text(function (d, i) {
-	    var l = Math.floor(d.value / 4);
+	    var l = Math.floor(lengths[i] / 35);
 	    if (l < 2) {
 		return "";
 	    } else {
