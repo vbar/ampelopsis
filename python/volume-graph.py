@@ -21,8 +21,8 @@ class Volume(ShowCase, PartyMixin):
     def dump(self):
         custom = {
             'matrix': self.make_matrix(),
-            'rowDesc': self.make_party_list(),
-            'colDesc': self.make_person_list(),
+            'rowDesc': self.make_person_list(),
+            'colDesc': self.make_party_list(),
             'persons': self.make_payload(),
             'colors': self.make_meta(),
             'dateExtent': self.make_date_extent()
@@ -62,15 +62,16 @@ class Volume(ShowCase, PartyMixin):
 
     def make_matrix(self):
         matrix = []
-        for party_id, ttl in sorted(self.party2total.items(), key=by_reverse_value):
-            row = []
-            for hamlet_name, cnt in sorted(self.person2count.items(), key=by_reverse_value):
-                name = self.person_map.get(hamlet_name)
-                if name:
-                    hot = party_id == self.hamlet2party.get(hamlet_name, 0)
+        for hamlet_name, cnt in sorted(self.person2count.items(), key=by_reverse_value):
+            name = self.person_map.get(hamlet_name)
+            if name:
+                cur_party_id = self.hamlet2party.get(hamlet_name, 0)
+                row = []
+                for party_id, ttl in sorted(self.party2total.items(), key=by_reverse_value):
+                    hot = party_id == cur_party_id
                     row.append(cnt if hot else 0)
 
-            matrix.append(row)
+                matrix.append(row)
 
         return matrix
 

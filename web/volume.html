@@ -63,13 +63,13 @@ d3.json("volume.json",
 	    dateFormat = d3.time.format('%-d.%-m.%Y'),
 	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
 	    footer = document.getElementById('footer'),
-	    intermediate = metadata.colDesc.map(function (key, i) {
-		return metadata.matrix.map(function (d, j) {
-		    var person = metadata.colDesc[i],
-			desc = metadata.persons[person],
-			item = {
-			    'x': metadata.rowDesc[j],
-			    'y': d[i],
+	    intermediate = metadata.matrix.map(function (d, i) {
+		var person = metadata.rowDesc[i],
+		    desc = metadata.persons[person];
+		return metadata.colDesc.map(function (key, j) {
+		    var item = {
+			    'x': key,
+			    'y': d[j],
 			    'person': person
 			};
 
@@ -85,7 +85,7 @@ d3.json("volume.json",
 
 	var dataStackLayout = d3.layout.stack()(intermediate);
 
-	x.domain(metadata.rowDesc);
+	x.domain(metadata.colDesc);
 	y.domain([0,
 		  d3.max(dataStackLayout[dataStackLayout.length - 1],
 			 function (d) { return d.y0 + d.y; })
@@ -97,7 +97,7 @@ d3.json("volume.json",
 	    .attr("class", "stack")
 	    .style("stroke", "white")
 	    .style("fill", function (d, i) {
-		var person = metadata.colDesc[i],
+		var person = metadata.rowDesc[i],
 		    party = metadata.persons[person].party,
 		    color = metadata.colors[party];
 
