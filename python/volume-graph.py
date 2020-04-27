@@ -20,7 +20,7 @@ class Volume(ShowCase, PartyMixin):
 
     def dump(self):
         custom = {
-            'matrix': self.make_matrix(),
+            'sparse': self.make_sparse(),
             'rowDesc': self.make_person_list(),
             'colDesc': self.make_party_list(),
             'persons': self.make_payload(),
@@ -60,18 +60,23 @@ class Volume(ShowCase, PartyMixin):
 
         return persons
 
-    def make_matrix(self):
+    def make_sparse(self):
         matrix = []
         for hamlet_name, cnt in sorted(self.person2count.items(), key=by_reverse_value):
             name = self.person_map.get(hamlet_name)
             if name:
                 cur_party_id = self.hamlet2party.get(hamlet_name, 0)
-                row = []
+                pair = None
+                idx = 0
                 for party_id, ttl in sorted(self.party2total.items(), key=by_reverse_value):
-                    hot = party_id == cur_party_id
-                    row.append(cnt if hot else 0)
+                    if party_id == cur_party_id:
+                        pair = [idx, cnt]
+                        break
 
-                matrix.append(row)
+                    idx += 1
+
+                assert pair
+                matrix.append(pair)
 
         return matrix
 
