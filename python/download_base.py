@@ -146,11 +146,24 @@ on conflict(url_id) do nothing""", (eff_id,))
 
     def finish_url(self, url_id):
         if self.inst_id:
+            # The on conflict clause prevents crash on conflict, but
+            # changing instance isn't really implemented (or even
+            # implementable - e.g. what should be done to a previous
+            # file in another instance, and how?)... Let's hope
+            # conflict will only happen after re-seeding, when old and
+            # new instance are the same...
             self.cur.execute("""insert into locality(url_id, instance_id)
-values(%s, %s)""", (url_id, self.inst_id))
-            # Conflicts could be managed, but probably not atomically
-            # (especially changing locality of existing files). Let's
-            # assume they won't happen - at least for now...
+values(%s, %s)
+on conflict(url_id) do nothing
+returning url_id""", (url_id, self.inst_id))
+            row = self.cur.fetchone()
+            if row is None:
+                cur.execute("""select instance_id
+from locality
+where url_id=%s""", (url_id,))
+                row = self.cur.fetchone()
+                if row[0] != self.inst_id:
+                    raise Exception("Cannot change instance of %d (from %d to %d)." % (url_id, row[0], self.inst_id))
 
         self.cur.execute("""update field
 set checkd=localtimestamp
