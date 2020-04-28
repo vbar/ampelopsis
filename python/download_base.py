@@ -105,6 +105,57 @@ returning url_id""", (tops,))
                 else:
                     return None
 
+    def add_redirect(self, url_id, new_url):
+        known = False
+        new_url_id = None
+        while new_url_id is None:
+            self.cur.execute("""select id
+from field
+where url=%s""", (new_url,))
+            row = self.cur.fetchone()
+            if row is not None:
+                new_url_id = row[0]
+                known = True
+            else:
+                self.cur.execute("""insert into field(url) values(%s)
+on conflict(url) do nothing
+returning id""", (new_url,))
+                row = self.cur.fetchone()
+                # conflict probably won't happen, but theoretically
+                # it's possible that a parallel download inserted the
+                # URL since the select above, in which case we'll just
+                # try again...
+                if row is None:
+                    print("parallel insert for " + new_url, file=sys.stderr)
+                else:
+                    new_url_id = row[0]
+
+        self.cur.execute("""insert into redirect(from_id, to_id) values(%s, %s)
+on conflict do nothing""", (url_id, new_url_id))
+
+        return (new_url_id, known)
+
+    def finish_page(self, url_id, eff_id, has_body):
+        self.finish_url(url_id)
+        if url_id != eff_id:
+            self.finish_url(eff_id)
+
+        if has_body:
+            self.cur.execute("""insert into parse_queue(url_id) values(%s)
+on conflict(url_id) do nothing""", (eff_id,))
+
+    def finish_url(self, url_id):
+        if self.inst_id:
+            self.cur.execute("""insert into locality(url_id, instance_id)
+values(%s, %s)""", (url_id, self.inst_id))
+            # Conflicts could be managed, but probably not atomically
+            # (especially changing locality of existing files). Let's
+            # assume they won't happen - at least for now...
+
+        self.cur.execute("""update field
+set checkd=localtimestamp
+where id=%s""", (url_id,))
+
     def cond_notify(self):
         live = False
         if not self.single_action:
