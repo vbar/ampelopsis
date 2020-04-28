@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# requires database filled by running condensate.py
+
 import csv
 import json
 import networkx as nx
