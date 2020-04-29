@@ -24,7 +24,7 @@ class VolumeHolder:
                 pass
 
         return f
-    
+
     def open_headers(self, url_id, volume_id=None):
         f = None
         if volume_id is None:
@@ -40,6 +40,14 @@ class VolumeHolder:
                 f = self.zp.open(info)
             except KeyError:
                 pass
+
+        return f
+
+    def open_repre(self, url_id, alt_repre):
+        f = None
+        loose_path = get_loose_path(url_id, alt_repre=alt_repre)
+        if os.path.exists(loose_path):
+            f = open(loose_path, "rb")
 
         return f
 
@@ -61,7 +69,7 @@ class VolumeHolder:
                 pass
 
         return sz
-    
+
     def change_volume(self, volume_id):
         if self.zp is not None:
             self.zp.close()
@@ -69,7 +77,7 @@ class VolumeHolder:
         archive_path = get_volume_path(volume_id)
         self.zp = zipfile.ZipFile(archive_path)
         self.volume_id = volume_id
-        
+
     def close(self):
         if self.zp is not None:
             self.zp.close()
