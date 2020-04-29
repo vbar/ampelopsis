@@ -11,7 +11,13 @@ def tokenize(raw, inclinks=True):
     lst = []
     for w in raw.split():
         if w:
-            if (w[0] in ('@', '#')) or url_rx.match(w):
+            if w[0] in ('@', '#'):
+                # remove colons - external stemmer doesn't handle them
+                # (and they probably aren't part of links anyway)
+                if inclinks:
+                    lst.extend((sw for sw in w.split(':') if sw))
+            elif url_rx.match(w):
+                # stemming is special-cased to handle colons in this case
                 if inclinks:
                     lst.append(w)
             else:
