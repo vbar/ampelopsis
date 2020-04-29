@@ -15,9 +15,9 @@ def tokenize(raw, inclinks=True):
                 if inclinks:
                     lst.append(w)
             else:
-                lst.extend((sw for sw in split_rx.split(w) if sw))
+                lst.extend((sw for sw in split_rx.split(w) if sw and not num_rx.search(w)))
 
-    return [w.lower() for w in lst if not num_rx.search(w)]
+    return [w.lower() for w in lst]
 
 
 def retokenize(s):
