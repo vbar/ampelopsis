@@ -43,14 +43,6 @@ class VolumeHolder:
 
         return f
 
-    def open_repre(self, url_id, alt_repre):
-        f = None
-        loose_path = get_loose_path(url_id, alt_repre=alt_repre)
-        if os.path.exists(loose_path):
-            f = open(loose_path, "rb")
-
-        return f
-
     def get_body_size(self, url_id, volume_id=None):
         sz = None
         if volume_id is None:
