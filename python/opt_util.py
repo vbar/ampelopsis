@@ -1,4 +1,5 @@
-from common import config
+import os
+from common import config, get_parent_directory
 
 def get_quoted_list_option(name, default_value):
     if not config.has_option("root", name):
@@ -37,3 +38,9 @@ def get_quoted_list_option(name, default_value):
         raise Exception("option %s has non-terminated value %s" % (name, raw_value))
 
     return lst
+
+
+def get_cache_path(name):
+    top_dir = os.path.abspath(get_parent_directory())
+    cache_dir = os.path.join(top_dir, "cache")
+    return os.path.join(cache_dir, name)
