@@ -32,11 +32,14 @@ def get_volume_path(volume_id):
     name = "%d.zip" % (volume_id,)
     return os.path.join(data_dir, name)
 
-def get_loose_path(url_id, hdr=False):
+def get_loose_path(url_id, hdr=False, alt_repre=None):
     tmp_dir = os.path.join(get_parent_directory(), "tmp")
 
     if schema:
         tmp_dir = os.path.join(tmp_dir, schema)
+
+    if alt_repre:
+        tmp_dir = os.path.join(tmp_dir, alt_repre)
 
     middle = str(url_id % 1000)
     loose_dir = os.path.join(tmp_dir, middle)
