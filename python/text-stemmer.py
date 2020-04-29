@@ -29,7 +29,6 @@ class Processor(CursorWrapper):
     def run(self):
         self.cur.execute("""select url, id
 from field
-left join download_error on id=url_id
 where url ~ '^%s[^#]+#[0-9]+$'
 order by url""" % short_town_url_head)
         rows = self.cur.fetchall()
