@@ -2,7 +2,6 @@ from dateutil.parser import parse
 import sys
 from json_frame import JsonFrame
 from url_heads import hamlet_url_head
-from volume_holder import VolumeHolder
 
 class ShowCase(JsonFrame):
     def __init__(self, cur, silent=False):
