@@ -9,11 +9,13 @@ import re
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 import sys
+from analyzer import Analyzer
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from show_case import ShowCase
+from stem_recon import reconstitute
 from stop_util import load_stop_words
-from token_util import tokenize, retokenize
+from token_util import tokenize
 
 class Processor(ShowCase):
     def __init__(self, cur, stop_words):
@@ -26,6 +28,7 @@ class Processor(ShowCase):
         self.url2doc = {}
         self.topics = []
         self.matrix = None
+        self.reconstitute = self.reconstitute_rect if get_option("use_stemmed", True) else self.reconstitute_simple
 
     def load_item(self, et):
         if self.is_redirected(et['url']):
@@ -35,16 +38,18 @@ class Processor(ShowCase):
         lng = self.lang_recog.check(lst)
         if lng == 'cs':
             self.extend_date(et)
-            long_lst = self.tokenize(et['text'])
-            txt = " ".join(long_lst)
+            txt = self.reconstitute(et)
             self.url2doc[et['url']] = txt
 
-    @staticmethod
-    def tokenize(txt):
-        return tokenize(txt, True)
+    def reconstitute_rect(self, et):
+        return reconstitute(self.cur, et['url'])
+
+    def reconstitute_simple(self, et):
+        lst = tokenize(et['text'], True)
+        return " ".join(lst)
 
     def process(self):
-        cv = CountVectorizer(max_df=0.95, min_df=2, tokenizer=retokenize, stop_words=self.stop_words)
+        cv = CountVectorizer(max_df=0.95, min_df=2, analyzer=Analyzer(self.stop_words))
         docs = [ doc for url, doc in sorted(self.url2doc.items(), key=lambda p: p[0]) ]
         df = cv.fit_transform(docs)
         words = cv.get_feature_names()
