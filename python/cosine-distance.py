@@ -11,19 +11,22 @@ import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 import sys
+from analyzer import Analyzer
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from pinhole_base import PinholeBase
+from stem_recon import reconstitute
 from stop_util import load_stop_words
-from token_util import tokenize, retokenize
+from token_util import tokenize
 
 class Payload:
-    def __init__(self, text):
+    def __init__(self, sep, text):
+        self.sep = sep
         self.text = text
         self.count = 1
 
     def append(self, text):
-        self.text = " ".join((self.text, text))
+        self.text = self.sep.join((self.text, text))
         self.count += 1
 
 
@@ -34,6 +37,12 @@ class Processor(PinholeBase):
         self.stop_words = stop_words
         self.lang_recog = init_lang_recog()
         self.variant2payload = {}
+        if get_option("use_stemmed", True):
+            self.payload_separator = "\n"
+            self.reconstitute = self.reconstitute_rect
+        else:
+            self.payload_separator = " "
+            self.reconstitute = self.reconstitute_simple
 
     def load_item(self, et):
         if self.is_redirected(et['url']):
@@ -50,21 +59,21 @@ class Processor(PinholeBase):
         if variant is None:
             return False
 
-        lst = self.tokenize(et['text'])
-        assert lst # caller checks language, which cannot succeed on empty text
-
-        txt = " ".join(lst)
+        txt = self.reconstitute(et)
         payload = self.variant2payload.get(variant)
         if not payload:
-            self.variant2payload[variant] = Payload(txt)
+            self.variant2payload[variant] = Payload(self.payload_separator, txt)
         else:
             payload.append(txt)
 
         return True
 
-    @staticmethod
-    def tokenize(txt):
-        return tokenize(txt, True)
+    def reconstitute_rect(self, et):
+        return reconstitute(self.cur, et['url'])
+
+    def reconstitute_simple(self, et):
+        lst = tokenize(et['text'], True)
+        return " ".join(lst)
 
     def dump(self):
         ebunch = [(edge[0], edge[1], 1 / weight) for edge, weight in self.ref_map.items()]
@@ -85,7 +94,7 @@ class Processor(PinholeBase):
 
     # based on https://stackoverflow.com/questions/12118720/python-tf-idf-cosine-to-find-document-similarity
     def process(self):
-        vzr = TfidfVectorizer(tokenizer=retokenize, stop_words=self.stop_words)
+        vzr = TfidfVectorizer(analyzer=Analyzer(self.stop_words))
 
         docs = []
         variants = self.get_doc_keys()

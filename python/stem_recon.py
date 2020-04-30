@@ -35,7 +35,7 @@ def get_stem(tail):
         freq = stem2freq.get(stem, 0)
         stem2freq[stem] = freq + 1
 
-    for stem, req in sorted(stem2freq.items(), key=lambda p: (p[1], len(p[0]))):
+    for stem, req in sorted(stem2freq.items(), key=lambda p: (-1 * p[1], len(p[0]))):
         return stem
 
 
