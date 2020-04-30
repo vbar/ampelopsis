@@ -67,13 +67,16 @@ class Processor(ShowCase):
         urls = self.get_urls()
         matrix = []
         l = len(urls)
-        threshold = self.sample_size / l
-        for i in range(l):
-            r = random.random()
-            if r < threshold:
-                url = urls[i]
-                url2doc[url] = self.url2doc[url]
-                matrix.append(self.matrix[i])
+        if l > self.sample_size:
+            curve = [np.max(self.matrix[i]) for i in range(l)]
+            curve.sort(reverse=True)
+            threshold = curve[self.sample_size]
+            for i in range(l):
+                mx = np.max(self.matrix[i])
+                if mx > threshold:
+                    url = urls[i]
+                    url2doc[url] = self.url2doc[url]
+                    matrix.append(self.matrix[i])
 
         self.url2doc = url2doc
         self.matrix = matrix
