@@ -2,6 +2,7 @@
 
 import sys
 from common import get_option
+from token_util import url_rx
 
 class Analyzer:
     def __init__(self, stop_words):
@@ -23,7 +24,23 @@ class Analyzer:
         return terms
 
     def split_sentence(self, s):
-        words = [ w for w in s.split(" ") if w not in self.stop_words ]
+        head = []
+        cur_frag = []
+        tail = []
+        for w in s.split(" "):
+            if w and w not in self.stop_words:
+                if (w[0] in ('#', '@')) or url_rx.match(w):
+                    head.append(w)
+                    if len(cur_frag):
+                        tail.extend(self.compose_ngrams(cur_frag))
+                        cur_frag = []
+                else:
+                    cur_frag.append(w)
+
+        head.extend(tail)
+        return head
+
+    def compose_ngrams(self, words):
         terms = []
         l = len(words)
         for i in range(0, l):
