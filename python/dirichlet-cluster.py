@@ -57,7 +57,7 @@ class Processor(ShowCase):
         lda.fit(df)
 
         for index, topic in enumerate(lda.components_):
-            top = " ".join([words[i] for i in topic.argsort()[-4:]])
+            top = "\n".join([words[i] for i in topic.argsort()[-4:]])
             self.topics.append(top)
 
         self.matrix = lda.transform(df)
