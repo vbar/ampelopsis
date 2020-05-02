@@ -2,6 +2,7 @@
 
 # requires database filled by running condensate.py
 
+import collections
 from lxml import etree
 import re
 import sys
@@ -10,6 +11,8 @@ from common import make_connection
 from conden_util import birth_check, get_opt
 from json_frame import JsonFrame
 from personage import normalize_name, parse_personage
+
+Card = collections.namedtuple('Card', 'presentation_name hamlet_name url_id')
 
 class Dumper(JsonFrame):
     def __init__(self, cur, name):
@@ -21,20 +24,23 @@ class Dumper(JsonFrame):
     def init_cards(self):
         name = normalize_name(self.name)
         mask = '%' + name + '%'
-        self.cur.execute("""select card_url_id
+        self.cur.execute("""select presentation_name, hamlet_name, card_url_id
 from vn_record
 where presentation_name ilike %s
 and card_url_id is not null""", (mask,))
         rows = self.cur.fetchall()
         for row in rows:
-            self.cards.append(row[0])
+            self.cards.append(Card(*row))
 
     def dump(self):
         print("found %d card(s) for %s" % (len(self.cards), self.name), file=sys.stderr)
-        for url_id in self.cards:
-            self.dump_card(url_id)
+        for card in self.cards:
+            self.dump_card(card)
 
-    def dump_card(self, url_id):
+    def dump_card(self, card):
+        print("%s\t%s" % (card.presentation_name, card.hamlet_name))
+
+        url_id = card.url_id
         volume_id = self.get_volume_id(url_id)
         reader = self.open_page(url_id, volume_id)
         if not reader:
