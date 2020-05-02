@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Individuální aktivita</title>
+<body>
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+var margin = {top: 20, right: 10, bottom: 10, left: 50},
+    width = 1000 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom,
+    maxRadius = 32;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z");
+
+d3.json("cs-CZ.json").then(function(locale) {
+    d3.timeFormatDefaultLocale(locale);
+    var dateFormat = d3.timeFormat(locale.dateTime);
+
+    d3.json("timeline.json").then(function (metadata) {
+	var timeline = metadata.timeline,
+	    start = new Date(timeline[0][0]),
+	    minorEnd = new Date(timeline[0][0]),
+	    majorEnd = new Date(timeline[timeline.length - 1][0])
+	start.setHours(0, 0, 0, 0);
+	minorEnd.setHours(23, 59, 59, 999);
+	majorEnd.setHours(23, 59, 59, 999);
+
+	var data = timeline.map(function (d) {
+	    d[0] = dateParse(d[0]);
+	    return d;
+	});
+
+	var x = d3.scaleTime()
+	    .domain([start, minorEnd])
+	    .range([0, width]);
+	var y = d3.scaleTime()
+	    .domain([start, majorEnd])
+	    .range([0, height]);
+
+	var xAxis = d3.axisTop()
+	    .scale(x)
+	    .ticks(23);
+	var yAxis = d3.axisLeft()
+	    .scale(y)
+	    .ticks(24);
+
+	d3.select('svg')
+	    .selectAll('circle')
+	    .data(data)
+	    .enter()
+	    .append('circle')
+	    .attr('r', 6)
+	    .attr("fill", "white")
+	    .attr("stroke", metadata.lineDesc.color)
+	    .attr("stroke-width", function (d) { return 1.5 * d[1].length; })
+	    .style("opacity", function (d) { return d[2] ? 0.5 : 1; })
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+		// can't do more than 1 - browser prevents multiple windows
+		window.open(d[1][0]);
+	    })
+	    .attr('cx', function (d) {
+		var d0 = d[0];
+
+		return margin.left + x(
+		    new Date(start.getFullYear(), start.getMonth(), start.getDate(),
+			     d0.getHours(), d0.getMinutes(), d0.getSeconds()));
+	    })
+	    .attr('cy', function (d) {
+		var d0 = d[0];
+
+		return margin.top + y(
+		    new Date(d0.getFullYear(), d0.getMonth(), d0.getDate(), 12, 0, 0));
+	    })
+	    .append("title").text(function (d) {
+		return dateFormat(d[0]);
+	    });
+
+	svg.append("g")
+	    .attr("class", "x axis")
+	    .call(xAxis);
+	svg.append("g")
+	    .attr("class", "y axis")
+	    .call(yAxis);
+    });
+});
+
+</script>
