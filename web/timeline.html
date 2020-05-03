@@ -37,6 +37,7 @@ d3.json("cs-CZ.json").then(function(locale) {
 
 	var data = timeline.map(function (d) {
 	    d[0] = dateParse(d[0]);
+	    d[3] = 0;
 	    return d;
 	});
 
@@ -67,7 +68,14 @@ d3.json("cs-CZ.json").then(function(locale) {
 	    .on("click", function (d) {
 		if (d3.event.defaultPrevented) return;
 		// can't do more than 1 - browser prevents multiple windows
-		window.open(d[1][0]);
+		var idx = d[3];
+		window.open(d[1][idx++]);
+
+		if (idx >= d[1].length) {
+		    idx = 0;
+		}
+
+		d[3] = idx;
 	    })
 	    .attr('cx', function (d) {
 		var d0 = d[0];
