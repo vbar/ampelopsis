@@ -33,7 +33,7 @@ class RefNet(PinholeBase):
 
         self.extend_date(et)
         root = self.get_html_document(url_id)
-        ancestors = self.get_ancestors(url, root)
+        ancestors = self.get_ancestors(root)
         for source_url_id in ancestors:
             source_hamlet_name = self.known.get(source_url_id)
             if source_hamlet_name is None:
@@ -63,7 +63,7 @@ class RefNet(PinholeBase):
         finally:
             reader.close()
 
-    def get_ancestors(self, target_url, root):
+    def get_ancestors(self, root):
         ancestors = set()
         if not root:
             return ancestors
