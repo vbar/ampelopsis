@@ -1,5 +1,10 @@
 all: datetime datetimes volume lang sankey chord heatmap treemap distance timeline
 
+fulltext:
+	python/condensate.py
+	python/text-separator.py
+	python/text-stemmer.py
+
 datetime:
 	python/date-graph.py > web/datetime.csv
 
