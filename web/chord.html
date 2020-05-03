@@ -55,7 +55,6 @@ d3.json("chord.json").then(function(graphData) {
 	     )
 
     var lengths = groupPath._groups[0].map(function (it) { return it.getTotalLength(); });
-    console.log(lengths)
 
     group.append("text")
 	.attr("x", 6)
