@@ -1,4 +1,4 @@
-all: datetime datetimes volume lang sankey chord heatmap treemap distance
+all: datetime datetimes volume lang sankey chord heatmap treemap distance timeline
 
 datetime:
 	python/date-graph.py > web/datetime.csv

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Individuální aktivita</title>
+<title>Individuální aktivity</title>
 <body>
 <div id="the_graph"></div>
 <div id="footer"></div>
@@ -24,22 +24,18 @@ var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z");
 
 d3.json("cs-CZ.json").then(function(locale) {
     d3.timeFormatDefaultLocale(locale);
-    var dateFormat = d3.timeFormat(locale.dateTime);
+    var dateFormat = d3.timeFormat(locale.dateTime),
+	footerDateFormat = d3.timeFormat('%-d.%-m.%Y');
 
     d3.json("timeline.json").then(function (metadata) {
-	var timeline = metadata.timeline,
-	    start = new Date(timeline[0][0]),
-	    minorEnd = new Date(timeline[0][0]),
-	    majorEnd = new Date(timeline[timeline.length - 1][0])
+	var start = dateParse(metadata.dateExtent[0]),
+	    minorEnd = new Date(start),
+	    majorEnd = dateParse(metadata.dateExtent[1]),
+	    footer = document.getElementById('footer');
+	footer.innerHTML = footerDateFormat(start) + " - " + footerDateFormat(majorEnd);
 	start.setHours(0, 0, 0, 0);
 	minorEnd.setHours(23, 59, 59, 999);
 	majorEnd.setHours(23, 59, 59, 999);
-
-	var data = timeline.map(function (d) {
-	    d[0] = dateParse(d[0]);
-	    d[3] = 0;
-	    return d;
-	});
 
 	var x = d3.scaleTime()
 	    .domain([start, minorEnd])
@@ -55,44 +51,57 @@ d3.json("cs-CZ.json").then(function(locale) {
 	    .scale(y)
 	    .ticks(24);
 
-	d3.select('svg')
-	    .selectAll('circle')
-	    .data(data)
-	    .enter()
-	    .append('circle')
-	    .attr('r', 6)
-	    .attr("fill", "white")
-	    .attr("stroke", metadata.lineDesc.color)
-	    .attr("stroke-width", function (d) { return 1.5 * d[1].length; })
-	    .style("opacity", function (d) { return d[2] ? 0.5 : 1; })
-	    .on("click", function (d) {
-		if (d3.event.defaultPrevented) return;
-		// can't do more than 1 - browser prevents multiple windows
-		var idx = d[3];
-		window.open(d[1][idx++]);
+	for (var idx = 0; idx < metadata.lineDesc.length; ++idx) {
+	    var dummy = function (idx) {
+		var timeline = metadata.timelines[idx],
+		    step = 24 / (metadata.lineDesc.length + 1),
+		    data = timeline.map(function (d) {
+			d[0] = dateParse(d[0]);
+			d[3] = 0;
+			return d;
+		    });
 
-		if (idx >= d[1].length) {
-		    idx = 0;
-		}
+		svg.append("g")
+		    .selectAll('circle')
+		    .data(data)
+		    .enter()
+		    .append('circle')
+		    .attr('r', 6)
+		    .attr("fill", "white")
+		    .attr("stroke", metadata.lineDesc[idx].color)
+		    .attr("stroke-width", function (d) { return 1.5 * d[1].length; })
+		    .style("opacity", function (d) { return d[2] ? 0.5 : 1; })
+		    .on("click", function (d) {
+			if (d3.event.defaultPrevented) return;
+			// can't do more than 1 - browser prevents multiple windows
+			var idx = d[3];
+			window.open(d[1][idx++]);
 
-		d[3] = idx;
-	    })
-	    .attr('cx', function (d) {
-		var d0 = d[0];
+			if (idx >= d[1].length) {
+			    idx = 0;
+			}
 
-		return margin.left + x(
-		    new Date(start.getFullYear(), start.getMonth(), start.getDate(),
-			     d0.getHours(), d0.getMinutes(), d0.getSeconds()));
-	    })
-	    .attr('cy', function (d) {
-		var d0 = d[0];
+			d[3] = idx;
+		    })
+		    .attr('cx', function (d) {
+			var d0 = d[0];
 
-		return margin.top + y(
-		    new Date(d0.getFullYear(), d0.getMonth(), d0.getDate(), 12, 0, 0));
-	    })
-	    .append("title").text(function (d) {
-		return dateFormat(d[0]);
-	    });
+			return x(
+			    new Date(start.getFullYear(), start.getMonth(), start.getDate(),
+				     d0.getHours(), d0.getMinutes(), d0.getSeconds()));
+		    })
+		    .attr('cy', function (d) {
+			var d0 = d[0];
+
+			return y(
+			    new Date(d0.getFullYear(), d0.getMonth(), d0.getDate(),
+				     (idx + 1) * step, 0, 0));
+		    })
+		    .append("title").text(function (d) {
+			return metadata.lineDesc[idx].name + "\n" + dateFormat(d[0]);
+		    });
+	    }(idx);
+	}
 
 	svg.append("g")
 	    .attr("class", "x axis")

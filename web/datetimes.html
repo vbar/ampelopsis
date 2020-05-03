@@ -75,8 +75,7 @@ d3.json(
 			    .call(d3.axisLeft(y));
 
 			// Add the lines
-			var idx;
-			for (idx = 1; idx <= meta_keys.length; ++idx) {
+			for (var idx = 1; idx <= meta_keys.length; ++idx) {
 			    var nm = meta_keys[idx - 1],
 				yfn = (function (i) {
 				return function (a) {
