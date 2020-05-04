@@ -55,3 +55,6 @@ timeline:
 
 reaction:
 	python/react-graph.py > web/histogram.json
+
+repeat:
+	python/repeat-graph.py > web/histogram.json
