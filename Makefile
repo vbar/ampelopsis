@@ -52,3 +52,6 @@ reply:
 
 timeline:
 	python/timeline-graph.py > web/timeline.json
+
+reaction:
+	python/react-graph.py > web/histogram.json

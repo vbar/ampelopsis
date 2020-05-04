@@ -1,0 +1,95 @@
+<!-- based on https://bl.ocks.org/mbostock/3048166 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Rychlost reakce</title>
+
+    <!-- Load d3.js -->
+    <script src="https://d3js.org/d3.v4.js"></script>
+
+  </head>
+  <body>
+    <script>
+
+var margin = {top: 10, right: 30, bottom: 30, left: 40},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+function formatNumber(n) {
+    return n.toLocaleString('en', { minimumIntegerDigits: 2});
+}
+
+d3.json("histogram.json", function (metadata) {
+    var mx = d3.max(metadata.reactions, function (row) {
+	return d3.max(row, function (d) { return +d; });
+    });
+
+    var x = d3.scaleLinear()
+	.domain([0, mx])
+	.range([0, width]);
+    var xAxis = d3.axisBottom(x)
+	.tickFormat(function (d) {
+	    var hours = Math.floor(d / 3600),
+		minsec = d - 3600 * hours,
+		minutes = Math.floor(minsec / 60),
+		seconds = minsec - 60 * minutes;
+
+	    return hours + ":" + formatNumber(minutes) + ":" + formatNumber(seconds);
+	});
+
+    for (var idx = 0; idx < metadata.lineDesc.length; ++idx) {
+	var dummy = function (idx) {
+	    var svg = d3.select("body")
+		.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+		.append("g")
+		.attr("transform",
+		      "translate(" + margin.left + "," + margin.top + ")");
+
+	    svg.append("g")
+		.attr("transform", "translate(0," + height + ")")
+		.call(xAxis)
+		.selectAll("text")
+		.style("text-anchor", "start")
+		.attr("dx", "-0.4em")
+		.attr("dy", "1.24em")
+		.attr("transform", "translate(0, -8) rotate(16)" );
+
+	    var histogram = d3.histogram()
+		.value(function (d) { return +d; })
+		.domain(x.domain())
+		.thresholds(12); // numbers of bins
+
+	    var bins = histogram(metadata.reactions[idx]);
+
+	    var y = d3.scaleLinear()
+		.range([height, 0])
+		.domain([0, 30]);
+	    svg.append("g")
+		.call(d3.axisLeft(y));
+
+	    svg.selectAll("rect")
+		.data(bins)
+		.enter()
+		.append("rect")
+		.attr("x", 1)
+		.attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; })
+		.attr("width", function(d) { return x(d.x1) - x(d.x0) -1 ; })
+		.attr("height", function(d) { return height - y(d.length); })
+		.style("fill", metadata.lineDesc[idx].color);
+
+	    svg.append("text")
+		.attr("x", width - 150)
+		.attr("y", 24)
+		.text(metadata.lineDesc[idx].name)
+		.attr("font-size", "19px")
+		.attr("fill", metadata.lineDesc[idx].color);
+	    }(idx);
+	}
+});
+
+    </script>
+  </body>
+</html>
