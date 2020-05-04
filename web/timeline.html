@@ -25,7 +25,7 @@ var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z");
 d3.json("cs-CZ.json").then(function(locale) {
     d3.timeFormatDefaultLocale(locale);
     var dateFormat = d3.timeFormat(locale.dateTime),
-	footerDateFormat = d3.timeFormat('%-d.%-m.%Y');
+	footerDateFormat = d3.timeFormat(locale.date);
 
     d3.json("timeline.json").then(function (metadata) {
 	var start = dateParse(metadata.dateExtent[0]),
