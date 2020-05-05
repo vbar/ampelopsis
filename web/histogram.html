@@ -87,7 +87,17 @@ d3.json("histogram.json", function (metadata) {
 		.attr("font-size", "19px")
 		.attr("fill", metadata.lineDesc[idx].color);
 	    }(idx);
-	}
+    }
+
+    if ('dateExtent' in metadata) {
+	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ];
+
+	d3.select("body").append("div")
+	    .attr("style", "margin-top:" + margin + "px;")
+	    .text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
+    }
 });
 
     </script>
