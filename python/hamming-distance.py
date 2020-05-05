@@ -1,0 +1,81 @@
+#!/usr/bin/python3
+
+# requires database filled by running condensate.py
+
+import csv
+import json
+import networkx as nx
+from scipy import spatial
+import sys
+from common import make_connection
+from pinhole_base import PinholeBase
+from timeline_mixin import TimelineMixin
+
+def by_reverse_value_sum(p):
+    return (-1 * sum(p[1]), p[0])
+
+class Processor(PinholeBase, TimelineMixin):
+    def __init__(self, cur):
+        PinholeBase.__init__(self, cur, False, '*')
+        TimelineMixin.__init__(self, 'minutes') # key is hamlet name
+
+    def load_item(self, et):
+        if self.is_redirected(et['url']):
+            return
+
+        dt = self.extend_date(et)
+        hamlet_name = et['osobaid']
+        self.add_sample(hamlet_name, dt)
+
+    def dump(self):
+        ebunch = [(edge[0], edge[1], dist) for edge, dist in self.ref_map.items()]
+        graph = nx.Graph()
+        graph.add_weighted_edges_from(ebunch)
+        gd = nx.node_link_data(graph, {'name': 'node'})
+        self.enrich(gd)
+        print(json.dumps(gd, indent=2))
+
+    def enrich(self, gd):
+        PinholeBase.enrich(self, gd)
+
+        value_series = self.get_value_series()
+        for gn in gd['nodes']:
+            node_idx = gn['node']
+            hamlet_name = self.node2variant[node_idx]
+            series = value_series[hamlet_name]
+            gn['doc_count'] = sum(series)
+
+    def process(self):
+        value_series = self.get_value_series()
+        persons = []
+        matrix = []
+        for hamlet_name, series in sorted(value_series.items(), key=by_reverse_value_sum):
+            persons.append(hamlet_name)
+            matrix.append(series)
+
+        l = len(matrix)
+        for i in range(l):
+            for j in range(i + 1, l):
+                print("measuring distance between %s and %s..." % (persons[i], persons[j]), file=sys.stderr)
+                dist = spatial.distance.hamming(matrix[i], matrix[j])
+                # hamlet name is-a variant
+                low_node = self.introduce_node(persons[i], False)
+                high_node = self.introduce_node(persons[j], False)
+                edge = (low_node, high_node)
+                self.ref_map[edge] = dist
+
+
+def main():
+    with make_connection() as conn:
+        with conn.cursor() as cur:
+            processor = Processor(cur)
+            try:
+                processor.run()
+                processor.process()
+                processor.dump()
+            finally:
+                processor.close()
+
+
+if __name__ == "__main__":
+    main()
