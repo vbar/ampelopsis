@@ -4,12 +4,14 @@ import collections
 from lxml import etree
 import re
 import sys
+from urllib.parse import urlparse
 from baker import make_meta_query_url, make_personage_query_urls
 from common import get_option, make_connection
 from conden_util import birth_check, get_from_year, get_opt
 from json_frame import JsonFrame
 from personage import parse_personage
-from url_heads import green_url_head, town_url_head
+from url_heads import green_url_head, short_town_url_head, town_url_head
+from urlize import whitespace_rx
 
 PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name color from_year')
 
@@ -18,6 +20,13 @@ class Condensator(JsonFrame):
         JsonFrame.__init__(self, cur)
         self.green_rx = re.compile("^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$")
         self.town_rx = re.compile("^" + town_url_head + "/(?P<tname>[^/]+)")
+
+        self.funnel_links = int(get_option('funnel_links', "0"))
+        if (self.funnel_links < 0) or (self.funnel_links > 2):
+            raise Exception("invalid option funnel_links")
+
+        if self.funnel_links == 2:
+            self.rec2qname = {} # vn_record ID => personage query name
 
     def run(self):
         self.cur.execute("""select url, id
@@ -30,6 +39,18 @@ order by url""" % green_url_head)
         rows = self.cur.fetchall()
         for row in rows:
             self.process_page(*row)
+
+        if self.funnel_links == 2:
+            self.cur.execute("""select url, id
+from field
+left join download_error on id=url_id
+where url ~ '^%s/[^/]+/?$'
+and checkd is not null
+and url_id is null
+order by url""" % short_town_url_head)
+            rows = self.cur.fetchall()
+            for row in rows:
+                self.process_profile(*row)
 
     def reset_party(self):
         print("resetting party affiliation...", file=sys.stderr)
@@ -45,6 +66,18 @@ set party_id=null""")
 
         try:
             self.condensate(card_url, url_id, reader)
+        finally:
+            reader.close()
+
+    def process_profile(self, town_url, url_id):
+        volume_id = self.get_volume_id(url_id)
+        reader = self.open_page(url_id, volume_id)
+        if not reader:
+            print(card_url + " not found on disk", file=sys.stderr)
+            return
+
+        try:
+            self.identify_profile(town_url, url_id, reader)
         finally:
             reader.close()
 
@@ -83,6 +116,23 @@ set party_id=null""")
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
 
+    def identify_profile(self, town_url, url_id, fp):
+        # can't use self.town_rx - it has a different host...
+        pr = urlparse(town_url)
+        town_name = pr.path[1:]
+
+        context = etree.iterparse(fp, events=('end',), tag=('a'), html=True, recover=True)
+        for action, elem in context:
+            if elem.tag == 'a':
+                cls = elem.get('class')
+                if cls and ('ProfileHeaderCard-nameLink' in cls):
+                    self.identify_record(town_name, elem.text)
+
+            # cleanup
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+
     def condensate_record(self, person, hamlet_name, card_url_id):
         self.cur.execute("""insert into vn_record(hamlet_name, presentation_name, card_url_id)
 values(%s, %s, %s)
@@ -98,7 +148,28 @@ where hamlet_name=%s""", (hamlet_name,))
         row = self.cur.fetchone()
         return row[0]
 
+    def identify_record(self, town_name, raw_text):
+        if not raw_text:
+            return
+
+        ltext = raw_text.lower()
+        text = whitespace_rx.sub(" ", ltext.strip())
+        mcnt = 0;
+        for record_id, query_name in self.rec2qname.items():
+            if query_name in text:
+                print("%d <=> %s" % (record_id, town_name), file=sys.stderr)
+                self.cur.execute("""insert into vn_identity_town(record_id, town_name)
+values(%s, %s)
+on conflict do nothing""", (record_id, town_name))
+                mcnt += 1
+
+        if mcnt > 1:
+            print("%s matches %d persons" % (town_name, mcnt), file=sys.stderr)
+
     def condensate_party(self, record_id, person):
+        if self.funnel_links == 2:
+            self.rec2qname[record_id] = person.query_name
+
         name_rx = re.compile("\\b" + re.escape(person.query_name) + "\\b", re.IGNORECASE)
         gov_url = make_meta_query_url()
         query_urls = [ gov_url ]
