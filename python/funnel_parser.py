@@ -2,17 +2,20 @@ import json
 from lxml import etree
 import re
 import sys
+from urllib.parse import urlparse, urlunparse
 from baker import make_personage_query_urls
 from common import get_option
 from personage import parse_personage
 from url_heads import green_url_head, hamlet_url_head, town_url_head
+
+status_rx = re.compile("/([-\\w]+)/status/")
 
 class FunnelParser:
     def __init__(self, owner, url):
         self.owner = owner
         self.page_url = url
         self.funnel_links = int(get_option('funnel_links', "0"))
-        if (self.funnel_links < 0) or (self.funnel_links > 1):
+        if (self.funnel_links < 0) or (self.funnel_links > 2):
             raise Exception("invalid option funnel_links")
 
         schema = (
@@ -63,6 +66,14 @@ class FunnelParser:
                 town_url = et.get('url')
                 if town_url:
                     self.owner.add_link(town_url)
+
+                    if self.funnel_links == 2:
+                        pr = urlparse(town_url)
+                        m = status_rx.match(pr.path)
+                        if m:
+                            profile_pr = (pr.scheme, pr.netloc, m.group(1), '', '', '')
+                            profile_url = urlunparse(profile_pr)
+                            self.owner.add_link(profile_url)
 
     def process_card(self, fp):
         context = etree.iterparse(fp, events=('end',), tag=('title'), html=True, recover=True)

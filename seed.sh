@@ -2,7 +2,7 @@
 
 town_top=""
 funnel_links=$(awk -F "[ \t]*=[ \t]*" '/^funnel_links/ {print $2}' ampelopsis.ini)
-if [[ "$funnel_links" -eq 1 ]]; then
+if [[ "$funnel_links" -ge 1 ]]; then
    town_top=https://twitter.com
 fi
 
