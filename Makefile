@@ -47,8 +47,8 @@ treemap:
 distance:
 	python/cosine-distance.py > web/distance.json
 
-hamming:
-	python/hamming-distance.py > web/distance.json
+jaccard:
+	python/jaccard-distance.py > web/distance.json
 
 reply:
 	python/reply-graph.py --chord web/chord.json
