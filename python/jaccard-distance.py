@@ -35,7 +35,7 @@ def jaccard_score(a, b):
 class Processor(PinholeBase, TimelineMixin):
     def __init__(self, cur):
         PinholeBase.__init__(self, cur, False, '*')
-        TimelineMixin.__init__(self, 'minutes') # key is hamlet name
+        TimelineMixin.__init__(self, 'minutes', 5) # key is hamlet name
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
 
     def load_item(self, et):
@@ -62,7 +62,7 @@ class Processor(PinholeBase, TimelineMixin):
             node_idx = gn['node']
             hamlet_name = self.node2variant[node_idx]
             series = value_series[hamlet_name]
-            gn['doc_count'] = sum(series)
+            gn['doc_count'] = sum(series) / (1 + 2 * self.puff)
 
     def process(self):
         value_series = self.get_value_series()

@@ -1,7 +1,7 @@
 import datetime
 
 class TimelineMixin:
-    def __init__(self, bin_scale):
+    def __init__(self, bin_scale, puff=0):
         if bin_scale == 'minutes':
             self.quantize = self.quantize_to_minutes
             self.get_step = self.get_step_minutes
@@ -11,6 +11,7 @@ class TimelineMixin:
         else:
             raise Exception("invalid time scale: " + bin_scale)
 
+        self.puff = puff
         self.key2timeline = {} # key -> list of datetime
         self.now_sorted = True # empty is sorted
         self.xseries = None # opt list of datetime
@@ -21,11 +22,23 @@ class TimelineMixin:
 
         timeline = self.key2timeline.get(key)
         if not timeline:
-            timeline = [ dt ]
+            timeline = []
             self.key2timeline[key] = timeline
-        else:
-            timeline.append(dt)
-            self.now_sorted = False
+
+        timeline.append(dt)
+
+        # inspired by http://dl.ifip.org/db/conf/im/im2019-ws1-annet/191658.pdf
+        if self.puff > 0:
+            delta = self.get_step()
+            before = dt
+            after = dt
+            for i in range(self.puff):
+                before -= delta
+                timeline.append(before)
+                after += delta
+                timeline.append(after)
+
+        self.now_sorted = False
 
     def is_empty(self):
         return not len(self.key2timeline)
