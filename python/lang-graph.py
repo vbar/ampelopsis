@@ -4,7 +4,7 @@
 
 import csv
 import json
-import re
+import random
 import sys
 from common import get_option, make_connection
 from known_names import KnownNames
@@ -13,17 +13,39 @@ from opt_util import get_quoted_list_option
 from pinhole_base import PinholeBase
 from token_util import tokenize
 
+class Payload:
+    def __init__(self, owner, url):
+        self.owner = owner
+        self.count = 1
+        self.samples = [ url ]
+
+    def append(self, url):
+        self.count += 1
+
+        r = random.random()
+        if r < self.owner.add_threshold:
+            self.samples.append(url)
+        elif r < self.owner.replace_threshold:
+            d = random.randrange(len(self.samples))
+            del self.samples[d]
+            self.samples.append(url)
+
+
 class Processor(PinholeBase):
     def __init__(self, cur, deconstructed):
         PinholeBase.__init__(self, cur, False, deconstructed)
+        random.seed()
         self.lang_recog = init_lang_recog()
+        self.add_threshold = float(get_option("lang_mem_add_threshold", "0.001"))
+        self.replace_threshold = self.add_threshold + float(get_option("lang_mem_replace_threshold", "0.5"))
         self.lang2total = {} # str lang -> int
-        self.variant2langmap = {} # str hamlet name / int party id -> str lang -> int
+        self.variant2langmap = {} # str hamlet name / int party id -> str lang -> Payload
 
     def dump_meta(self, output_path):
         meta = {
             'colors': self.make_meta(),
             'totals': self.lang2total,
+            'samples': self.make_samples(),
             # old D3 in frontend doesn't parse ISO format...
             'dateExtent': [dt.strftime("%Y-%m-%d") for dt in (self.mindate, self.maxdate)]
         }
@@ -41,12 +63,18 @@ class Processor(PinholeBase):
             for variant, langmap in self.variant2langmap.items():
                 row = [ self.get_presentation_name(variant) ]
                 for lng in tail_keys:
-                    row.append(langmap.get(lng, 0))
+                    cnt = 0
+                    payload = langmap.get(lng)
+                    if payload:
+                        cnt = payload.count
+
+                    row.append(cnt)
 
                 writer.writerow(row)
 
     def load_item(self, et):
         self.extend_date(et)
+        url = et['url']
         hamlet_name = et['osobaid']
         variant = self.get_variant(hamlet_name)
         if not variant:
@@ -64,11 +92,14 @@ class Processor(PinholeBase):
 
         langmap = self.variant2langmap.get(variant)
         if langmap is None:
-            langmap = { lng: 1 }
+            langmap = { lng: Payload(self, url) }
             self.variant2langmap[variant] = langmap
         else:
-            cnt = langmap.get(lng, 0)
-            langmap[lng] = cnt + 1
+            payload = langmap.get(lng)
+            if payload is None:
+                langmap[lng] = Payload(self, url)
+            else:
+                payload.append(url)
 
     def get_presentation_name(self, variant):
         if variant == 0:
@@ -86,6 +117,19 @@ class Processor(PinholeBase):
             name2color[name] = color
 
         return name2color
+
+    def make_samples(self):
+        samples = {}
+        for variant, langmap in self.variant2langmap.items():
+            name = self.get_presentation_name(variant)
+            lang2samples = {}
+            for lng, payload in langmap.items():
+                lang2samples[lng] = payload.samples
+
+            samples[name] = lang2samples
+
+        return samples
+
 
 def main():
     with make_connection() as conn:

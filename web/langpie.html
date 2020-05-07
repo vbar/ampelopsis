@@ -65,7 +65,8 @@ d3.json("lang.json",
 			.filter(function (d) { return d[ycol] > 0; })
 			.sort(function (a, b) { return b[ycol] - a[ycol]; });
 
-		    var aux = {}
+		    var party2index = {},
+			aux = {};
 		    data.forEach(function (d) {
 			aux[d["name"]] = d[ycol];
 		    });
@@ -84,9 +85,23 @@ d3.json("lang.json",
 			     )
 			.attr('fill', function (d) { return colormap[d.data.key]; })
 			.attr("stroke", "white")
-			.style("stroke-width", "1px");
+			.style("stroke-width", "1px")
+			.on("click", function (d) {
+			    if (d3.event.defaultPrevented) return;
 
-		    svg.selectAll("title")
+			    var samples = metadata.samples[d.data.key][ycol],
+				idx = (d.data.key in party2index) ? (party2index[d.data.key] + 1) : 0;
+			    if (idx >= samples.length) {
+				idx = 0;
+			    }
+
+			    window.open(samples[idx]);
+			    party2index[d.data.key] = idx;
+			})
+			.append("title").text("příklady");
+
+		    svg.append("g")
+			.selectAll("title")
 			.data([ycol])
 			.enter()
 			.append("text")
