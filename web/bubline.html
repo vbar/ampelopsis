@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Konverzace</title>
+<body>
+  <div id="the_graph"></div>
+  <div id="footer"></div>
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script>
+
+var margin = {top: 10, right: 10, bottom: 30, left: 10},
+    width = 1000 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom,
+    maxRadius = 160;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z");
+
+d3.json("cs-CZ.json").then(function (locale) {
+    d3.timeFormatDefaultLocale(locale);
+    var footerDateFormat = d3.timeFormat(locale.date);
+
+    d3.json("bubline.json").then(function (metadata) {
+	var colormap = metadata.colors,
+	    bubline = metadata.bubline,
+	    start = dateParse(metadata.dateExtent[0]),
+	    end = dateParse(metadata.dateExtent[1]),
+	    footer = document.getElementById('footer');
+	footer.innerHTML = footerDateFormat(start) + " - " + footerDateFormat(end);
+
+	var x = d3.scaleTime()
+	    .domain([start, end])
+	    .range([0, width]),
+	    y = d3.scaleTime()
+	    .domain([start, end])
+	    .range([0, height]);
+	svg.append("g")
+	    .attr("transform", "translate(0," + height + ")")
+	    .call(d3.axisBottom(x));
+
+	var sqrtScale = d3.scaleSqrt()
+	    .domain([0, bubline[0].size])
+	    .range([0, maxRadius]);
+
+	bubline.forEach(function (bubble) {
+	    var radius = sqrtScale(bubble.size),
+		bstart = dateParse(bubble.dateExtent[0]),
+		bend = dateParse(bubble.dateExtent[1]),
+		accounted = Object.values(bubble.party2detail).reduce(function (t, s) {
+		    return t + s.count;
+		}, 0),
+		missing = bubble.size - accounted,
+		participants = bubble.participants.join("\n"),
+		party2count = {},
+		party2index = {};
+
+	    if (missing) {
+		bubble.party2detail[" "] = {
+		    'count': missing,
+		    'samples': []
+		};
+	    }
+
+	    Object.keys(bubble.party2detail).forEach(function (nm) {
+		party2count[nm] = bubble.party2detail[nm].count;
+	    });
+
+	    var pie = d3.pie()
+		.value(function (d) { return d.value; }),
+		pieData = pie(d3.entries(party2count));
+
+	    svg.append("g")
+		.selectAll("span")
+		.data(pieData)
+		.enter()
+		.append('path')
+		.attr('d', d3.arc()
+		      .innerRadius(0)
+		      .outerRadius(radius)
+		     )
+		.attr('fill', function (d) {
+		    return (d.data.key != " ") ? colormap[d.data.key] : "#FFF";
+		})
+		.attr('opacity', function (d) {
+		    return (d.data.key != " ") ? 1 : 0.5;
+		})
+		.attr("stroke", "white")
+		.style("stroke-width", "1px")
+		.on("click", function (d) {
+		    if (d3.event.defaultPrevented) return;
+
+		    var samples = bubble.party2detail[d.data.key].samples,
+			idx = (d.data.key in party2index) ? (party2index[d.data.key] + 1) : 0;
+
+		    if (idx >= samples.length) {
+			idx = 0;
+		    }
+
+		    if (idx < samples.length) {
+			window.open(samples[idx]);
+			party2index[d.data.key] = idx;
+		    }
+		})
+		.attr("transform",
+		      "translate(" +
+		      ((x(bstart) + x(bend)) / 2) + "," +
+		      (140 + y(bend) - y(bstart)) + ")")
+		.append("title").text(participants);
+	});
+    });
+});
+
+  </script>
+</body>
