@@ -72,8 +72,8 @@ d3.json("lang.json",
 		    });
 
 		    var pie = d3.pie()
-			.value(function (d) {return d.value; });
-		    var pieData = pie(d3.entries(aux))
+			.value(function (d) { return d.value; }),
+			pieData = pie(d3.entries(aux));
 
 		    svg.selectAll("span")
 			.data(pieData)
@@ -98,7 +98,11 @@ d3.json("lang.json",
 			    window.open(samples[idx]);
 			    party2index[d.data.key] = idx;
 			})
-			.append("title").text("příklady");
+			.append("title").text(function (d) {
+			    var samples = metadata.samples[d.data.key][ycol];
+
+			    return samples.length == 1 ? "příklad" : "příklady";
+			});
 
 		    svg.append("g")
 			.selectAll("title")
