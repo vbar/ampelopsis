@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# requires download with funnel_links set to 1
+# requires download with funnel_links set (to at least 1)
 
 from common import make_connection
 from cursor_wrapper import CursorWrapper

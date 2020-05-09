@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-# requires download with funnel_links set to 1 and database filled by
-# running condensate.py
+# requires download with funnel_links set (to at least 1) and database
+# filled by running condensate.py
 
 import re
 from urllib.parse import urlparse
