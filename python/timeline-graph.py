@@ -41,7 +41,7 @@ and card_url_id is not null""", (mask,))
         rows = self.cur.fetchall()
         l = len(rows)
         if l != 1:
-            raise Exception("%s matched % records" % (raw_name, l))
+            raise Exception("%s matched %d records" % (raw_name, l))
 
         row = rows[0]
         return row[0]
