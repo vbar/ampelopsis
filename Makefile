@@ -2,10 +2,10 @@ SHELL=/bin/bash
 funnel_links=$(shell awk -F "[ \t]*=[ \t]*" '/^funnel_links/ {print $$2}' ampelopsis.ini)
 has_statuses=$(shell echo $$(( $(funnel_links) >= 1 )) )
 
-all: datetime datetimes volume lang sankey chord heatmap treemap distance timeline demanding
+main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline demanding
 
 ifeq ($(has_statuses),1)
-demanding: bubline
+demanding: reaction bubline
 else
 demanding:
 endif
