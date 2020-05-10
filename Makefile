@@ -67,7 +67,7 @@ timeline:
 	python/timeline-graph.py > web/timeline.json
 
 reaction:
-	python/react-graph.py > web/histogram.json
+	python/react-graph.py --segmented > web/dhist.json
 
 repeat:
 	python/repeat-graph.py > web/histogram.json

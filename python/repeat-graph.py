@@ -4,13 +4,14 @@
 # filled by running condensate.py
 
 import re
+import sys
 from common import make_connection
 from opt_util import get_quoted_list_option
 from timer_base import Occurence, TimerBase
 
 class RedirTimer(TimerBase):
-    def __init__(self, cur, deconstructed):
-        TimerBase.__init__(self, cur, deconstructed)
+    def __init__(self, cur, deconstructed, segmented):
+        TimerBase.__init__(self, cur, deconstructed, segmented)
 
     def load_item(self, et):
         url = et['url']
@@ -57,27 +58,20 @@ where f1.id=%s""", (url_id,))
         del self.expected[url_id]
 
     def add_redir(self, source_occ, target_occ):
-        if source_occ.hamlet_name == target_occ.hamlet_name:
-            return
-
-        variant = self.get_variant(target_occ.hamlet_name)
-        if not variant:
-            return
-
-        reactions = self.variant2react.get(variant)
-        if not reactions:
-            reactions = []
-            self.variant2react[variant] = reactions
-
         delta = target_occ.date_time - source_occ.date_time
-        reactions.append(delta.total_seconds())
+        sec = delta.total_seconds()
+        # same datetime for real URL and its redirect dominates,
+        # considered incorrect
+        if sec > 0:
+            self.add_timed_link(source_occ.hamlet_name, target_occ.hamlet_name, sec)
 
 
 def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
-            timer = RedirTimer(cur, parties)
+            segmented = (len(sys.argv) == 2) and (sys.argv[1] == '--segmented')
+            timer = RedirTimer(cur, parties, segmented)
             try:
                 timer.run()
                 timer.dump_final_state()

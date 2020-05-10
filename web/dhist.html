@@ -1,0 +1,133 @@
+<!-- based on https://bl.ocks.org/mbostock/3048166 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Rychlost reakce</title>
+
+    <!-- Load d3.js -->
+    <script src="https://d3js.org/d3.v4.js"></script>
+
+  </head>
+  <body>
+    <script>
+
+var margin = {top: 10, right: 30, bottom: 30, left: 40},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom,
+    halfHeight = height / 2;
+
+function formatNumber(n) {
+    return n.toLocaleString('en', { minimumIntegerDigits: 2});
+}
+
+d3.json("dhist.json", function (metadata) {
+    var mx = d3.max(metadata.reactions, function (row) {
+	return d3.max(row, function (segment) {
+	    return d3.max(segment, function (d) { return +d; });
+	});
+    });
+
+    var x = d3.scaleLinear()
+	.domain([0, mx])
+	.range([0, width]);
+    var xAxis = d3.axisBottom(x)
+	.tickFormat(function (d) {
+	    var hours = Math.floor(d / 3600),
+		minsec = d - 3600 * hours,
+		minutes = Math.floor(minsec / 60),
+		seconds = minsec - 60 * minutes;
+
+	    return hours + ":" + formatNumber(minutes) + ":" + formatNumber(seconds);
+	});
+
+    for (var idx = 0; idx < metadata.lineDesc.length; ++idx) {
+	var dummy = function (idx) {
+	    var svg = d3.select("body")
+		.append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+		.append("g")
+		.attr("transform",
+		      "translate(" + margin.left + "," + margin.top + ")");
+
+	    svg.append("g")
+		.attr("transform", "translate(0," + halfHeight + ")")
+		.call(xAxis)
+		.selectAll("text")
+		.style("text-anchor", "start")
+		.attr("dx", "-0.4em")
+		.attr("dy", "1.24em")
+		.attr("transform", "translate(0, -8) rotate(16)" );
+
+	    var histogram = d3.histogram()
+		.value(function (d) { return +d; })
+		.domain(x.domain())
+		.thresholds(12); // numbers of bins
+
+	    var binsSame = histogram(metadata.reactions[idx][0]);
+
+	    var ySame = d3.scaleLinear()
+		.range([halfHeight, 0])
+		.domain([0, 15]);
+	    svg.append("g")
+		.call(d3.axisLeft(ySame));
+
+	    svg.append("g")
+		.selectAll("rect")
+		.data(binsSame)
+		.enter()
+		.append("rect")
+		.attr("x", 1)
+		.attr("transform", function(d) {
+		    return "translate(" + x(d.x0) + "," + ySame(d.length) + ")";
+		})
+		.attr("width", function(d) { return x(d.x1) - x(d.x0) -1 ; })
+		.attr("height", function(d) { return halfHeight - ySame(d.length); })
+		.style("fill", metadata.lineDesc[idx].color);
+
+	    var binsOther = histogram(metadata.reactions[idx][1]);
+
+	    var yOther = d3.scaleLinear()
+		.range([halfHeight, height])
+		.domain([0, 15]);
+	    svg.append("g")
+		.call(d3.axisLeft(yOther));
+
+	    svg.append("g")
+		.selectAll("rect")
+		.data(binsOther)
+		.enter()
+		.append("rect")
+		.attr("x", 1)
+		.attr("transform", function(d) {
+		    return "translate(" + x(d.x0) + "," + halfHeight + ")";
+		})
+		.attr("width", function (d) { return x(d.x1) - x(d.x0) -1 ; })
+		.attr("height", function (d) { return yOther(d.length) - halfHeight; })
+		.style("fill", metadata.lineDesc[idx].color)
+		.attr('opacity', 0.5);
+
+	    svg.append("text")
+		.attr("x", width - 150)
+		.attr("y", 24)
+		.text(metadata.lineDesc[idx].name)
+		.attr("font-size", "19px")
+		.attr("fill", metadata.lineDesc[idx].color);
+	    }(idx);
+    }
+
+    if ('dateExtent' in metadata) {
+	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ];
+
+	d3.select("body").append("div")
+	    .attr("style", "margin-top:" + margin + "px;")
+	    .text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
+    }
+});
+
+    </script>
+  </body>
+</html>

@@ -7,12 +7,34 @@ from show_case import ShowCase
 Occurence = collections.namedtuple('Occurence', 'hamlet_name date_time')
 
 class TimerBase(ShowCase, PersonPartyMixin):
-    def __init__(self, cur, deconstructed):
+    def __init__(self, cur, deconstructed, segmented=False):
         ShowCase.__init__(self, cur)
         PersonPartyMixin.__init__(self, deconstructed)
+        self.segmented = segmented
         self.known = {} # int url id -> Occurence
         self.expected = {} # int url id -> set of Occurence
         self.variant2react = {}
+
+    def add_timed_link(self, source_name, target_name, time_sec):
+        if source_name == target_name:
+            return
+
+        variant = self.get_variant(target_name)
+        if not variant:
+            return
+
+        reactions = self.variant2react.get(variant)
+        if not reactions:
+            reactions = []
+            self.variant2react[variant] = reactions
+
+        if self.segmented:
+            source_party = self.hamlet2party.get(source_name)
+            target_party = self.hamlet2party.get(target_name)
+            same = (source_party is not None) and (target_party is not None) and (source_party == target_party)
+            reactions.append((time_sec, same))
+        else:
+            reactions.append(time_sec)
 
     def dump(self):
         desc = []
@@ -21,7 +43,19 @@ class TimerBase(ShowCase, PersonPartyMixin):
             name = self.get_presentation_name(variant)
             color = self.introduce_color(variant)
             desc.append({'name': name, 'color': color})
-            reactions.append(realn)
+
+            if self.segmented:
+                same = []
+                other = []
+                for timespan, flag in realn:
+                    if flag:
+                        same.append(timespan)
+                    else:
+                        other.append(timespan)
+
+                reactions.append([same, other])
+            else:
+                reactions.append(realn)
 
         custom = {
             'dateExtent': self.make_date_extent(),

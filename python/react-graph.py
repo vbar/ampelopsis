@@ -3,14 +3,15 @@
 # requires download with funnel_links set (to at least 1) and database
 # filled by running condensate.py
 
+import sys
 from common import make_connection
 from opt_util import get_quoted_list_option
 from reply_mixin import ReplyMixin
 from timer_base import Occurence, TimerBase
 
 class ReactionTimer(TimerBase, ReplyMixin):
-    def __init__(self, cur, deconstructed):
-        TimerBase.__init__(self, cur, deconstructed)
+    def __init__(self, cur, deconstructed, segmented):
+        TimerBase.__init__(self, cur, deconstructed, segmented)
         ReplyMixin.__init__(self)
 
     def load_item(self, et):
@@ -56,27 +57,16 @@ class ReactionTimer(TimerBase, ReplyMixin):
         del self.expected[url_id]
 
     def add_reaction(self, source_occ, target_occ):
-        if source_occ.hamlet_name == target_occ.hamlet_name:
-            return
-
-        variant = self.get_variant(target_occ.hamlet_name)
-        if not variant:
-            return
-
-        reactions = self.variant2react.get(variant)
-        if not reactions:
-            reactions = []
-            self.variant2react[variant] = reactions
-
         delta = target_occ.date_time - source_occ.date_time
-        reactions.append(delta.total_seconds())
+        self.add_timed_link(source_occ.hamlet_name, target_occ.hamlet_name, delta.total_seconds())
 
 
 def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
-            timer = ReactionTimer(cur, parties)
+            segmented = (len(sys.argv) == 2) and (sys.argv[1] == '--segmented')
+            timer = ReactionTimer(cur, parties, segmented)
             try:
                 timer.run()
                 timer.dump_final_state()
