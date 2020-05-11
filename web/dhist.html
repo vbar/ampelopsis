@@ -21,6 +21,15 @@ function formatNumber(n) {
     return n.toLocaleString('en', { minimumIntegerDigits: 2});
 }
 
+var formatTime = function (d) {
+    var hours = Math.floor(d / 3600),
+	minsec = d - 3600 * hours,
+	minutes = Math.floor(minsec / 60),
+	seconds = minsec - 60 * minutes;
+
+    return hours + ":" + formatNumber(minutes) + ":" + formatNumber(seconds);
+};
+
 d3.json("dhist.json", function (metadata) {
     var mx = d3.max(metadata.reactions, function (row) {
 	return d3.max(row, function (segment) {
@@ -32,14 +41,7 @@ d3.json("dhist.json", function (metadata) {
 	.domain([0, mx])
 	.range([0, width]);
     var xAxis = d3.axisBottom(x)
-	.tickFormat(function (d) {
-	    var hours = Math.floor(d / 3600),
-		minsec = d - 3600 * hours,
-		minutes = Math.floor(minsec / 60),
-		seconds = minsec - 60 * minutes;
-
-	    return hours + ":" + formatNumber(minutes) + ":" + formatNumber(seconds);
-	});
+	.tickFormat(formatTime);
 
     for (var idx = 0; idx < metadata.lineDesc.length; ++idx) {
 	var dummy = function (idx) {
@@ -60,7 +62,8 @@ d3.json("dhist.json", function (metadata) {
 		.attr("dy", "1.24em")
 		.attr("transform", "translate(0, -8) rotate(16)" );
 
-	    var histogram = d3.histogram()
+	    var arrow = d3.symbol().type(d3.symbolTriangle).size(64),
+		histogram = d3.histogram()
 		.value(function (d) { return +d; })
 		.domain(x.domain())
 		.thresholds(12); // numbers of bins
@@ -86,6 +89,20 @@ d3.json("dhist.json", function (metadata) {
 		.attr("height", function(d) { return halfHeight - ySame(d.length); })
 		.style("fill", metadata.lineDesc[idx].color);
 
+	    if (metadata.reactions[idx][0].length) {
+		var medianSame = Math.round(d3.median(metadata.reactions[idx][0]));
+
+		svg.append("path")
+		    .attr('d', arrow)
+		    .attr("fill", "white")
+		    .attr("stroke", "black")
+		    .attr("stroke-width", 1)
+		    .attr("transform",
+			  "translate(" + x(medianSame) + "," + (halfHeight - 7) + ") " +
+			  "rotate(180)")
+		    .append("title").text("vnitrostranický medián " + formatTime(medianSame));
+	    }
+
 	    var binsOther = histogram(metadata.reactions[idx][1]);
 
 	    var yOther = d3.scaleLinear()
@@ -107,6 +124,19 @@ d3.json("dhist.json", function (metadata) {
 		.attr("height", function (d) { return yOther(d.length) - halfHeight; })
 		.style("fill", metadata.lineDesc[idx].color)
 		.attr('opacity', 0.5);
+
+	    if (metadata.reactions[idx][1].length) {
+		var medianOther = Math.round(d3.median(metadata.reactions[idx][1]));
+
+		svg.append("path")
+		    .attr('d', arrow)
+		    .attr("fill", "white")
+		    .attr("stroke", "black")
+		    .attr("stroke-width", 1)
+		    .attr("transform",
+			  "translate(" + x(medianOther) + "," + (halfHeight + 8) + ")")
+		    .append("title").text("mezistranický medián " + formatTime(medianOther));
+	    }
 
 	    svg.append("text")
 		.attr("x", width - 150)

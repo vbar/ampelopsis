@@ -20,6 +20,15 @@ function formatNumber(n) {
     return n.toLocaleString('en', { minimumIntegerDigits: 2});
 }
 
+var formatTime = function (d) {
+    var hours = Math.floor(d / 3600),
+	minsec = d - 3600 * hours,
+	minutes = Math.floor(minsec / 60),
+	seconds = minsec - 60 * minutes;
+
+    return hours + ":" + formatNumber(minutes) + ":" + formatNumber(seconds);
+};
+
 d3.json("histogram.json", function (metadata) {
     var mx = d3.max(metadata.reactions, function (row) {
 	return d3.max(row, function (d) { return +d; });
@@ -29,14 +38,7 @@ d3.json("histogram.json", function (metadata) {
 	.domain([0, mx])
 	.range([0, width]);
     var xAxis = d3.axisBottom(x)
-	.tickFormat(function (d) {
-	    var hours = Math.floor(d / 3600),
-		minsec = d - 3600 * hours,
-		minutes = Math.floor(minsec / 60),
-		seconds = minsec - 60 * minutes;
-
-	    return hours + ":" + formatNumber(minutes) + ":" + formatNumber(seconds);
-	});
+	.tickFormat(formatTime);
 
     for (var idx = 0; idx < metadata.lineDesc.length; ++idx) {
 	var dummy = function (idx) {
@@ -79,6 +81,19 @@ d3.json("histogram.json", function (metadata) {
 		.attr("width", function(d) { return x(d.x1) - x(d.x0) -1 ; })
 		.attr("height", function(d) { return height - y(d.length); })
 		.style("fill", metadata.lineDesc[idx].color);
+
+	    var median = Math.round(d3.median(metadata.reactions[idx])),
+		arrow = d3.symbol().type(d3.symbolTriangle).size(64);
+
+	    svg.append("path")
+		.attr('d', arrow)
+		.attr("fill", "white")
+		.attr("stroke", "black")
+		.attr("stroke-width", 1)
+		.attr("transform",
+		      "translate(" + x(median) + "," + (height - 7) + ") " +
+		      "rotate(180)")
+		.append("title").text("medián " + formatTime(median));
 
 	    svg.append("text")
 		.attr("x", width - 150)
