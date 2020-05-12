@@ -3,9 +3,9 @@
 # requires download with funnel_links set (to at least 1) and database
 # filled by running condensate.py
 
-import re
 from urllib.parse import urlparse
 from common import make_connection
+from funnel_parser import status_rx
 from opt_util import get_quoted_list_option
 from pinhole_args import ConfigArgs
 from pinhole_base import PinholeBase
@@ -13,7 +13,6 @@ from pinhole_base import PinholeBase
 class RefNet(PinholeBase):
     def __init__(self, cur, distinguish, deconstructed):
         PinholeBase.__init__(self, cur, distinguish, deconstructed)
-        self.status_rx = re.compile("/([-\\w]+)/status/")
 
     def load_item(self, et):
         self.extend_date(et)
@@ -28,7 +27,7 @@ where f1.url=%s""", (town_url,))
             rows = self.cur.fetchall()
             for row in rows:
                 pr = urlparse(row[0])
-                m = self.status_rx.match(pr.path)
+                m = status_rx.match(pr.path)
                 if m:
                     town_name = m.group(1)
                     target_hamlet_name = self.town2hamlet.get(town_name)
