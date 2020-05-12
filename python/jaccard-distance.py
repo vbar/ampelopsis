@@ -2,7 +2,6 @@
 
 # requires database filled by running condensate.py
 
-import csv
 import json
 import networkx as nx
 import sys
