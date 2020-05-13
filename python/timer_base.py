@@ -1,18 +1,15 @@
-import collections
 import json
 import sys
 from person_party_mixin import PersonPartyMixin
 from show_case import ShowCase
+from timer_mixin import Occurence, TimerMixin
 
-Occurence = collections.namedtuple('Occurence', 'hamlet_name date_time')
-
-class TimerBase(ShowCase, PersonPartyMixin):
+class TimerBase(ShowCase, PersonPartyMixin, TimerMixin):
     def __init__(self, cur, deconstructed, segmented=False):
         ShowCase.__init__(self, cur)
         PersonPartyMixin.__init__(self, deconstructed)
+        TimerMixin.__init__(self)
         self.segmented = segmented
-        self.known = {} # int url id -> Occurence
-        self.expected = {} # int url id -> set of Occurence
         self.variant2react = {}
 
     def add_timed_link(self, source_name, target_name, time_sec):
@@ -64,13 +61,6 @@ class TimerBase(ShowCase, PersonPartyMixin):
         }
 
         print(json.dumps(custom, indent=2))
-
-    def dump_final_state(self):
-        for url_id, targets in sorted(self.expected.items()):
-            url = self.get_url(url_id)
-            print(url, file=sys.stderr)
-            for target_occ in sorted(targets):
-                print("\t" + target_occ.hamlet_name, file=sys.stderr)
 
     def make_date_extent(self):
         return [dt.isoformat() for dt in (self.mindate, self.maxdate)]

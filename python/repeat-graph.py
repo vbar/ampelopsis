@@ -7,7 +7,8 @@ import re
 import sys
 from common import make_connection
 from opt_util import get_quoted_list_option
-from timer_base import Occurence, TimerBase
+from timer_base import TimerBase
+from timer_mixin import Occurence
 
 class RedirTimer(TimerBase):
     def __init__(self, cur, deconstructed, segmented):
@@ -40,24 +41,9 @@ where f1.id=%s""", (url_id,))
                 else:
                     targets.add(target_occ)
             else:
-                self.add_redir(source_occ, target_occ)
+                self.add_resolved(source_occ, target_occ)
 
-    def add_known(self, url_id, occ):
-        if url_id in self.known:
-            return
-
-        self.known[url_id] = occ
-
-        targets = self.expected.get(url_id)
-        if not targets:
-            return
-
-        for target_occ in targets:
-            self.add_redir(occ, target_occ)
-
-        del self.expected[url_id]
-
-    def add_redir(self, source_occ, target_occ):
+    def add_resolved(self, source_occ, target_occ):
         delta = target_occ.date_time - source_occ.date_time
         sec = delta.total_seconds()
         # same datetime for real URL and its redirect dominates,

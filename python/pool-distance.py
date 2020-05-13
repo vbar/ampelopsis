@@ -3,14 +3,12 @@
 # requires download with funnel_links set (to at least 1) and database
 # filled by running condensate.py
 
-import collections
 import json
 import networkx as nx
 import sys
 from common import get_option, make_connection
 from pinhole_base import PinholeBase
-
-Occurence = collections.namedtuple('Occurence', 'hamlet_name date_time')
+from timer_mixin import Occurence, TimerMixin
 
 def weighted_jaccard_score(a, b):
     nom = 0
@@ -33,12 +31,11 @@ def weighted_jaccard_score(a, b):
 
     return nom / den
 
-class Processor(PinholeBase):
+class Processor(PinholeBase, TimerMixin):
     def __init__(self, cur):
         PinholeBase.__init__(self, cur, False, '*')
+        TimerMixin.__init__(self)
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
-        self.known = {} # int url id -> Occurence
-        self.expected = {} # int url id -> set of Occurence
         self.terrain = {} # source hamlet name -> target hamlet name -> count
         self.hamlet2count = {}
 
@@ -69,14 +66,7 @@ where f1.id=%s""", (url_id,))
                 else:
                     targets.add(target_occ)
             else:
-                self.add_redir(source_occ, target_occ)
-
-    def dump_final_state(self):
-        for url_id, targets in sorted(self.expected.items()):
-            url = self.get_url(url_id)
-            print(url, file=sys.stderr)
-            for target_occ in sorted(targets):
-                print("\t" + target_occ.hamlet_name, file=sys.stderr)
+                self.add_resolved(source_occ, target_occ)
 
     def dump(self):
         ebunch = [(edge[0], edge[1], dist) for edge, dist in self.ref_map.items()]
@@ -119,22 +109,7 @@ where f1.id=%s""", (url_id,))
                     edge = (low_node, high_node)
                     self.ref_map[edge] = 1 / sim
 
-    def add_known(self, url_id, occ):
-        if url_id in self.known:
-            return
-
-        self.known[url_id] = occ
-
-        targets = self.expected.get(url_id)
-        if not targets:
-            return
-
-        for target_occ in targets:
-            self.add_redir(occ, target_occ)
-
-        del self.expected[url_id]
-
-    def add_redir(self, source_occ, target_occ):
+    def add_resolved(self, source_occ, target_occ):
         if source_occ.date_time == target_occ.date_time:
             self.add_link(source_occ.hamlet_name, target_occ.hamlet_name)
 
