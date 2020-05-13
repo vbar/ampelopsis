@@ -3,13 +3,14 @@
 # requires download with funnel_links set (to at least 1) and database
 # filled by running condensate.py
 
+import collections
 import json
 import networkx as nx
 import sys
-from urllib.parse import urlparse
 from common import get_option, make_connection
-from funnel_parser import status_rx
 from pinhole_base import PinholeBase
+
+Occurence = collections.namedtuple('Occurence', 'hamlet_name date_time')
 
 def weighted_jaccard_score(a, b):
     nom = 0
@@ -36,25 +37,46 @@ class Processor(PinholeBase):
     def __init__(self, cur):
         PinholeBase.__init__(self, cur, False, '*')
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
-        self.terrain = {} # source hamlet name -> target town name -> count
+        self.known = {} # int url id -> Occurence
+        self.expected = {} # int url id -> set of Occurence
+        self.terrain = {} # source hamlet name -> target hamlet name -> count
         self.hamlet2count = {}
 
     def load_item(self, et):
-        self.extend_date(et)
-        source_hamlet_name = et['osobaid']
-        town_url = et.get('url')
-        if town_url:
-            self.cur.execute("""select f2.url
+        url = et['url']
+        url_id = self.get_url_id(url)
+        if not url_id:
+            return
+
+        target_hamlet_name = et['osobaid']
+        target_date = self.extend_date(et)
+        target_occ = Occurence(target_hamlet_name, target_date)
+        self.add_known(url_id, target_occ)
+
+        self.cur.execute("""select f2.id
 from field f1
 join redirect on f1.id=from_id
 join field f2 on to_id=f2.id
-where f1.url=%s""", (town_url,))
-            rows = self.cur.fetchall()
-            for row in rows:
-                pr = urlparse(row[0])
-                m = status_rx.match(pr.path)
-                if m:
-                    self.add_link(source_hamlet_name, m.group(1))
+where f1.id=%s""", (url_id,))
+        rows = self.cur.fetchall()
+        for row in rows:
+            source_url_id = row[0]
+            source_occ = self.known.get(source_url_id)
+            if source_occ is None:
+                targets = self.expected.get(source_url_id)
+                if targets is None:
+                    self.expected[source_url_id] = set((target_occ,))
+                else:
+                    targets.add(target_occ)
+            else:
+                self.add_redir(source_occ, target_occ)
+
+    def dump_final_state(self):
+        for url_id, targets in sorted(self.expected.items()):
+            url = self.get_url(url_id)
+            print(url, file=sys.stderr)
+            for target_occ in sorted(targets):
+                print("\t" + target_occ.hamlet_name, file=sys.stderr)
 
     def dump(self):
         ebunch = [(edge[0], edge[1], dist) for edge, dist in self.ref_map.items()]
@@ -97,13 +119,32 @@ where f1.url=%s""", (town_url,))
                     edge = (low_node, high_node)
                     self.ref_map[edge] = 1 / sim
 
-    def add_link(self, source_hamlet_name, target_town_name):
-        target2count = self.terrain.get(source_hamlet_name)
+    def add_known(self, url_id, occ):
+        if url_id in self.known:
+            return
+
+        self.known[url_id] = occ
+
+        targets = self.expected.get(url_id)
+        if not targets:
+            return
+
+        for target_occ in targets:
+            self.add_redir(occ, target_occ)
+
+        del self.expected[url_id]
+
+    def add_redir(self, source_occ, target_occ):
+        if source_occ.date_time == target_occ.date_time:
+            self.add_link(source_occ.hamlet_name, target_occ.hamlet_name)
+
+    def add_link(self, source_name, target_name):
+        target2count = self.terrain.get(source_name)
         if target2count is None:
-            self.terrain[source_hamlet_name] = { target_town_name: 1 }
+            self.terrain[source_name] = { target_name: 1 }
         else:
-            cnt = target2count.get(target_town_name, 0)
-            target2count[target_town_name] = cnt + 1
+            cnt = target2count.get(target_name, 0)
+            target2count[target_name] = cnt + 1
 
     def get_target_keys(self):
         target_keys = set()
@@ -113,12 +154,12 @@ where f1.url=%s""", (town_url,))
 
         return sorted(target_keys)
 
-    def get_weight(self, source_hamlet_name, target_town_name):
-        target2count = self.terrain.get(source_hamlet_name)
+    def get_weight(self, source_name, target_name):
+        target2count = self.terrain.get(source_name)
         if target2count is None:
             return 0
         else:
-            return target2count.get(target_town_name, 0)
+            return target2count.get(target_name, 0)
 
 
 def main():
@@ -128,6 +169,7 @@ def main():
             try:
                 processor.run()
                 processor.process()
+                processor.dump_final_state()
                 processor.dump()
             finally:
                 processor.close()

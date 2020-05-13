@@ -60,8 +60,8 @@ distance:
 jaccard:
 	python/jaccard-distance.py > web/distance.json
 
-basin:
-	python/basin-distance.py > web/distance.json
+pool:
+	python/pool-distance.py > web/distance.json
 
 reply:
 	python/reply-graph.py --chord web/chord.json
