@@ -37,6 +37,14 @@ class PinholeBase(ShowCase, PersonPartyMixin):
         with open(output_path, 'w') as f:
             json.dump(custom, f, indent=2, ensure_ascii=False)
 
+    def dump_undirected(self):
+        ebunch = [(edge[0], edge[1], 1 / weight) for edge, weight in self.ref_map.items()]
+        graph = nx.Graph()
+        graph.add_weighted_edges_from(ebunch)
+        gd = nx.node_link_data(graph, {'name': 'node'})
+        self.enrich(gd)
+        print(json.dumps(gd, indent=2))
+
     def lazy_ref_map(self):
         pass
 

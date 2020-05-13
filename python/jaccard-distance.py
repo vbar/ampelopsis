@@ -2,8 +2,6 @@
 
 # requires database filled by running condensate.py
 
-import json
-import networkx as nx
 import sys
 from common import get_option, make_connection
 from pinhole_base import PinholeBase
@@ -45,14 +43,6 @@ class Processor(PinholeBase, TimelineMixin):
         hamlet_name = et['osobaid']
         self.add_sample(hamlet_name, dt)
 
-    def dump(self):
-        ebunch = [(edge[0], edge[1], dist) for edge, dist in self.ref_map.items()]
-        graph = nx.Graph()
-        graph.add_weighted_edges_from(ebunch)
-        gd = nx.node_link_data(graph, {'name': 'node'})
-        self.enrich(gd)
-        print(json.dumps(gd, indent=2))
-
     def enrich(self, gd):
         PinholeBase.enrich(self, gd)
 
@@ -91,7 +81,7 @@ def main():
             try:
                 processor.run()
                 processor.process()
-                processor.dump()
+                processor.dump_undirected()
             finally:
                 processor.close()
 

@@ -2,9 +2,6 @@
 
 # requires database filled by running condensate.py
 
-import csv
-import json
-import networkx as nx
 import numpy as np
 import os
 import re
@@ -75,14 +72,6 @@ class Processor(PinholeBase):
         lst = tokenize(et['text'], True)
         return " ".join(lst)
 
-    def dump(self):
-        ebunch = [(edge[0], edge[1], 1 / weight) for edge, weight in self.ref_map.items()]
-        graph = nx.Graph()
-        graph.add_weighted_edges_from(ebunch)
-        gd = nx.node_link_data(graph, {'name': 'node'})
-        self.enrich(gd)
-        print(json.dumps(gd, indent=2))
-
     def enrich(self, gd):
         PinholeBase.enrich(self, gd)
 
@@ -141,7 +130,7 @@ def main():
             try:
                 processor.run()
                 processor.process()
-                processor.dump()
+                processor.dump_undirected()
             finally:
                 processor.close()
 
