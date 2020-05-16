@@ -15,7 +15,8 @@ def by_reverse_value_sum(p):
 class Processor(PinholeBase, TimelineMixin):
     def __init__(self, cur):
         PinholeBase.__init__(self, cur, False, '*')
-        TimelineMixin.__init__(self, 'minutes', 5) # key is hamlet name
+        puff = int(get_option("event_distance_puff", "5"))
+        TimelineMixin.__init__(self, 'minutes', puff) # key is hamlet name
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
 
     def load_item(self, et):
