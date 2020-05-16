@@ -2,11 +2,11 @@ import json
 from lxml import etree
 import re
 import sys
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urljoin, urlparse, urlunparse
 from baker import make_personage_query_urls
 from common import get_option
 from personage import parse_personage
-from url_heads import green_url_head, hamlet_url_head, town_url_head
+from url_heads import alt_town_url_head, green_url_head, hamlet_url_head, town_url_head
 
 status_rx = re.compile("/([-\\w]+)/status/")
 
@@ -15,13 +15,16 @@ class FunnelParser:
         self.owner = owner
         self.page_url = url
         self.funnel_links = int(get_option('funnel_links', "0"))
-        if (self.funnel_links < 0) or (self.funnel_links > 2):
+        if (self.funnel_links < 0) or (self.funnel_links > 3):
             raise Exception("invalid option funnel_links")
 
         schema = (
             ( "^" + hamlet_url_head + "\\?desc=1&page=(?P<page>\\d+)&q=server%3ATwitter&sort=datum$", self.process_overview ),
-            ( "^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$", self.process_card )
+            ( "^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$", self.process_card ),
+            ( "^" + alt_town_url_head + "/[-a-zA-Z0-9]+/following", self.process_sequence )
         )
+
+        self.base = url
 
         self.match = None
         for url_rx, proc_meth in schema:
@@ -67,13 +70,18 @@ class FunnelParser:
                 if town_url:
                     self.owner.add_link(town_url)
 
-                    if self.funnel_links == 2:
+                    if self.funnel_links >= 2:
                         pr = urlparse(town_url)
                         m = status_rx.match(pr.path)
                         if m:
-                            profile_pr = (pr.scheme, pr.netloc, m.group(1), '', '', '')
+                            town_name = m.group(1)
+                            profile_pr = (pr.scheme, pr.netloc, town_name, '', '', '')
                             profile_url = urlunparse(profile_pr)
                             self.owner.add_link(profile_url)
+
+                            if self.funnel_links == 3:
+                                following_url = "%s/%s/following" % (alt_town_url_head, town_name)
+                                self.owner.add_link(following_url)
 
     def process_card(self, fp):
         context = etree.iterparse(fp, events=('end',), tag=('title'), html=True, recover=True)
@@ -85,6 +93,27 @@ class FunnelParser:
                 wikidata_urls = make_personage_query_urls(person)
                 for wikidata_url in wikidata_urls:
                     self.owner.add_link(wikidata_url)
+
+            # cleanup
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+
+    def process_sequence(self, fp):
+        # must use start event to get parent div before child a
+        context = etree.iterparse(fp, events=('start',), tag=('a', 'div'), html=True, recover=True)
+        inmore = False
+        for action, elem in context:
+            if elem.tag == 'div':
+                cls = elem.get('class')
+                if cls == 'w-button-more':
+                    inmore = True
+            elif inmore and elem.tag == 'a':
+                href = elem.get('href')
+                if href:
+                    next_page = urljoin(self.base, href)
+                    self.owner.add_link(next_page)
+                    inmore = False
 
             # cleanup
             elem.clear()

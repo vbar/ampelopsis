@@ -22,10 +22,10 @@ class Condensator(JsonFrame):
         self.town_rx = re.compile("^" + town_url_head + "/(?P<tname>[^/]+)")
 
         self.funnel_links = int(get_option('funnel_links', "0"))
-        if (self.funnel_links < 0) or (self.funnel_links > 2):
+        if (self.funnel_links < 0) or (self.funnel_links > 3):
             raise Exception("invalid option funnel_links")
 
-        if self.funnel_links == 2:
+        if self.funnel_links >= 2:
             self.rec2qname = {} # vn_record ID => personage query name
 
     def run(self):
@@ -40,7 +40,7 @@ order by url""" % green_url_head)
         for row in rows:
             self.process_page(*row)
 
-        if self.funnel_links == 2:
+        if self.funnel_links >= 2:
             self.cur.execute("""select url, id
 from field
 left join download_error on id=url_id
@@ -167,7 +167,7 @@ on conflict do nothing""", (record_id, town_name))
             print("%s matches %d persons" % (town_name, mcnt), file=sys.stderr)
 
     def condensate_party(self, record_id, person):
-        if self.funnel_links == 2:
+        if self.funnel_links >= 2:
             self.rec2qname[record_id] = person.query_name
 
         name_rx = re.compile("\\b" + re.escape(person.query_name) + "\\b", re.IGNORECASE)
