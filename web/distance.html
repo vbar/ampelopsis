@@ -19,7 +19,9 @@ line {
 var margin = {top: 10, right: 10, bottom: 10, left: 10},
     width = 1000 - margin.left - margin.right,
     height = 800 - margin.top - margin.bottom,
-    maxRadius = 32;
+    maxRadius = 32,
+    rawModel = location.search.split('m=')[1],
+    model = rawModel ? rawModel.replace(/[^a-zA-Z0-9_.]+/g, '') : 'distance.json';
 
 var svg = d3.select("#the_graph").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -29,7 +31,7 @@ var svg = d3.select("#the_graph").append("svg")
 	  "translate(" + margin.left + "," + margin.top + ")");
 
 // load the data
-d3.json("distance.json").then(function(graph) {
+d3.json(model).then(function(graph) {
     if ('dateExtent' in graph) {
 	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
 	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),

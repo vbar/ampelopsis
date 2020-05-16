@@ -2,10 +2,12 @@ SHELL=/bin/bash
 funnel_links=$(shell awk -F "[ \t]*=[ \t]*" '/^funnel_links/ {print $$2}' ampelopsis.ini)
 has_statuses=$(shell echo $$(( $(funnel_links) >= 1 )) )
 
-main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline demanding
+all: fulltext main
+
+main: datetime datetimes volume lang sankey chord heatmap treemap distance jaccard timeline demanding
 
 ifeq ($(has_statuses),1)
-demanding: reaction bubline
+demanding: reaction bubline pool
 else
 demanding:
 endif
@@ -58,10 +60,10 @@ distance:
 	python/cosine-distance.py > web/distance.json
 
 jaccard:
-	python/jaccard-distance.py > web/distance.json
+	python/jaccard-distance.py > web/jaccard.json
 
 pool:
-	python/pool-distance.py > web/distance.json
+	python/pool-distance.py > web/pool.json
 
 reply:
 	python/reply-graph.py --chord web/chord.json
