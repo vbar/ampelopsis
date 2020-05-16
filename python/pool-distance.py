@@ -5,29 +5,9 @@
 
 import sys
 from common import get_option, make_connection
+from jaccard_util import weighted_jaccard_score
 from pinhole_base import PinholeBase
 from timer_mixin import Occurence, TimerMixin
-
-def weighted_jaccard_score(a, b):
-    nom = 0
-    den = 0
-    l = len(a)
-    assert l == len(b)
-    for i in range(l):
-        if a[i]:
-            if b[i]:
-                nom += a[i]
-                nom += b[i]
-
-            den += a[i]
-            den += b[i]
-        else:
-            den += b[i]
-
-    if not den:
-        return None
-
-    return nom / den
 
 class Processor(PinholeBase, TimerMixin):
     def __init__(self, cur):

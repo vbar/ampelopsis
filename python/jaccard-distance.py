@@ -4,29 +4,12 @@
 
 import sys
 from common import get_option, make_connection
+from jaccard_util import jaccard_score
 from pinhole_base import PinholeBase
 from timeline_mixin import TimelineMixin
 
 def by_reverse_value_sum(p):
     return (-1 * sum(p[1]), p[0])
-
-
-# SciKit has it, but apparently only in a newer than installed version...
-def jaccard_score(a, b):
-    nom = 0
-    den = 0
-    l = len(a)
-    assert l == len(b)
-    for i in range(l):
-        if a[i]:
-            if b[i]:
-                nom += 1
-
-            den += 1
-        elif b[i]:
-            den += 1
-
-    return nom /den
 
 
 class Processor(PinholeBase, TimelineMixin):
@@ -66,7 +49,7 @@ class Processor(PinholeBase, TimelineMixin):
             for j in range(i + 1, l):
                 print("measuring similarity between %s and %s..." % (persons[i], persons[j]), file=sys.stderr)
                 sim = jaccard_score(matrix[i], matrix[j])
-                if sim > self.link_threshold:
+                if (sim is not None) and (sim > self.link_threshold):
                     # hamlet name is-a variant
                     low_node = self.introduce_node(persons[i], False)
                     high_node = self.introduce_node(persons[j], False)
