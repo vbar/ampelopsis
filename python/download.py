@@ -75,10 +75,11 @@ class Target:
             os.rename(get_loose_path(self.url_id, True), get_loose_path(self.eff_id, True))
 
             old_path = get_loose_path(self.url_id)
-            if self.retrieve_body:
-                os.rename(old_path, get_loose_path(self.eff_id))
-            elif os.path.exists(old_path):
-                os.remove(old_path)
+            if os.path.exists(old_path):
+                if self.retrieve_body:
+                    os.rename(old_path, get_loose_path(self.eff_id))
+                else:
+                    os.remove(old_path)
 
         self.owner.finish_page(self.url_id, self.eff_id, self.retrieve_body)
 
