@@ -4,7 +4,7 @@
 # filled by running condensate.py
 
 import json
-from common import make_connection
+from common import get_option, make_connection
 from known_names import KnownNames
 from party_mixin import by_reverse_value, PartyMixin
 from show_case import ShowCase
@@ -14,6 +14,7 @@ class Hierarchy(ShowCase, PartyMixin):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
         PartyMixin.__init__(self)
+        self.party_threshold = int(get_option("treemap_party_threshold", "10"))
         self.person2urls = {} # hamlet name -> set of status URL
         self.party2total = {}
 
@@ -44,14 +45,15 @@ class Hierarchy(ShowCase, PartyMixin):
     def make_parties(self):
         parties = []
         for party_id, ttl in sorted(self.party2total.items(), key=by_reverse_value):
-            party_name = self.party_map.get(party_id, KnownNames.OTHER_NAME)
-            persons = self.make_persons(party_id)
-            parties.append({
-                'name': party_name,
-                'color': self.convert_color(party_id),
-                'children': persons,
-                'colname': 'party'
-            })
+            if ttl >= self.party_threshold:
+                party_name = self.party_map.get(party_id, KnownNames.OTHER_NAME)
+                persons = self.make_persons(party_id)
+                parties.append({
+                    'name': party_name,
+                    'color': self.convert_color(party_id),
+                    'children': persons,
+                    'colname': 'party'
+                })
 
         return parties
 
