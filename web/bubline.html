@@ -50,6 +50,7 @@ d3.json("cs-CZ.json").then(function (locale) {
 
 	bubline.forEach(function (bubble) {
 	    var radius = sqrtScale(bubble.size),
+		innerRadius = sqrtScale(bubble.size / 3),
 		bstart = dateParse(bubble.dateExtent[0]),
 		bend = dateParse(bubble.dateExtent[1]),
 		accounted = Object.values(bubble.party2detail).reduce(function (t, s) {
@@ -81,7 +82,7 @@ d3.json("cs-CZ.json").then(function (locale) {
 		.enter()
 		.append('path')
 		.attr('d', d3.arc()
-		      .innerRadius(0)
+		      .innerRadius(innerRadius)
 		      .outerRadius(radius)
 		     )
 		.attr('fill', function (d) {
