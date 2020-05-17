@@ -39,3 +39,20 @@ def weighted_jaccard_score(a, b):
         return None
 
     return nom / den
+
+
+def set_jaccard_score(a, b):
+    nom = 0
+    den = 0
+    l = len(a)
+    assert l == len(b)
+    for i in range(l):
+        intersection = a[i] & b[i]
+        union = a[i] | b[i]
+        nom += len(intersection)
+        den += len(union)
+
+    if not den:
+        return None
+
+    return nom / den

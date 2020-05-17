@@ -65,6 +65,9 @@ jaccard:
 pool:
 	python/pool-distance.py > web/pool.json
 
+rain:
+	python/rain-distance.py > web/rain.json
+
 reply:
 	python/reply-graph.py --chord web/chord.json
 
