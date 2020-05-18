@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popularita účtů</title>
+<body>
+  <div id="the_graph"></div>
+  <div id="footer"></div>
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script>
+
+var margin = {top: 10, right: 10, bottom: 30, left: 10},
+    width = 1000 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom,
+    maxRadius = 80;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+    footerDateFormat = d3.timeFormat('%-d.%-m.%Y');
+
+d3.json("profile.json").then(function (metadata) {
+    var colormap = metadata.colors,
+	profiles = metadata.profiles,
+	minDate = dateParse(metadata.dateExtent[0]),
+	maxDate = dateParse(metadata.dateExtent[1]),
+	start = d3.min(profiles, function (d) {
+	    return d.since ? dateParse(d.since) : new Date();
+	}),
+	end = d3.max(profiles, function (d) {
+	    return d.since ? dateParse(d.since) : new Date(0);
+	}),
+	maxFollowing = d3.max(profiles, function (d) {
+	    return d.following ? d.following : 0;
+	}),
+	minFollowers = d3.min(profiles, function (d) {
+	    return d.followers ? d.followers : 0;
+	}),
+	maxFollowers = d3.max(profiles, function (d) {
+	    return d.followers ? d.followers : 0;
+	}),
+	footer = document.getElementById('footer');
+    footer.innerHTML = footerDateFormat(minDate) + " - " + footerDateFormat(maxDate);
+
+    var x = d3.scaleTime()
+	.domain([start, end])
+	.range([0, width]),
+	y = d3.scaleLog()
+	.domain([minFollowers, maxFollowers])
+	.range([height, 0]),
+	sqrtScale = d3.scaleSqrt()
+	.domain([0, maxFollowing])
+	.range([0, maxRadius]);
+
+    svg.append("g")
+	.attr("transform", "translate(0," + height + ")")
+	.call(d3.axisBottom(x));
+
+    svg.append("g")
+	.selectAll('circle')
+	.data(profiles)
+	.enter()
+	.append('circle')
+	.attr('r', function (d) {
+	    return sqrtScale(d.following);
+	})
+	.attr("fill", function (d) {
+	    return colormap[d.party];
+	})
+	.attr("stroke", "white")
+	.style("stroke-width", "1px")
+	.attr('opacity', function (d) {
+	    return d.core ? 1 : 0.5;
+	})
+	.on("click", function (d) {
+	    if (d3.event.defaultPrevented) return;
+
+	    window.open(d.url);
+	})
+	.attr('cx', function (d) {
+	    return x(d.since ? dateParse(d.since) : new Date());
+	})
+	.attr('cy', function (d) {
+	    return y(d.followers);
+	})
+	.append("title").text(function (d) {
+	    return d.name + "\n" + d.following + " sledování\n" +
+		d.followers + " sledujících";
+	});
+});
+
+  </script>
+</body>

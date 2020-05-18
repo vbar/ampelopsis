@@ -82,3 +82,6 @@ repeat:
 
 bubline:
 	python/conversation-graph.py > web/bubline.json
+
+profile:
+	python/profile-graph.py > web/profile.json
