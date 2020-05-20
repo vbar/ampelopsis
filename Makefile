@@ -85,3 +85,6 @@ bubline:
 
 profile:
 	python/profile-graph.py > web/profile.json
+
+following:
+	python/graph-distance.py > web/following.json
