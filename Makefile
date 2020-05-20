@@ -4,10 +4,10 @@ has_statuses=$(shell echo $$(( $(funnel_links) >= 1 )) )
 
 all: fulltext main
 
-main: datetime datetimes volume lang sankey chord heatmap treemap distance jaccard timeline demanding
+main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline demanding
 
 ifeq ($(has_statuses),1)
-demanding: reaction bubline pool
+demanding: reaction bubline pool rain
 else
 demanding:
 endif

@@ -20,8 +20,22 @@ var margin = {top: 10, right: 10, bottom: 10, left: 10},
     width = 1000 - margin.left - margin.right,
     height = 800 - margin.top - margin.bottom,
     maxRadius = 32,
-    rawModel = location.search.split('m=')[1],
-    model = rawModel ? rawModel.replace(/[^a-zA-Z0-9_.]+/g, '') : 'distance.json';
+    params = location.search.split('&'),
+    model = 'distance.json',
+    strength = -500;
+
+params.forEach(function (assig) {
+    var modelPair = assig.split('m='),
+	strengthPair = assig.split('strength=');
+
+    if (modelPair.length == 2) {
+	model = modelPair[1].replace(/[^a-zA-Z0-9_.]+/g, '');
+    }
+
+    if (strengthPair.length == 2) {
+	strength = +strengthPair[1];
+    }
+});
 
 var svg = d3.select("#the_graph").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -45,7 +59,7 @@ d3.json(model).then(function(graph) {
 	.range([0, maxRadius]);
 
     var simulation = d3.forceSimulation(graph.nodes)
-	.force('charge', d3.forceManyBody().strength(-500))
+	.force('charge', d3.forceManyBody().strength(strength))
 	.force('center', d3.forceCenter(width / 2, height / 2))
 	.force('link', d3.forceLink(graph.links).distance(function (d) {
 	    return d.value;
