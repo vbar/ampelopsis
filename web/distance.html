@@ -29,7 +29,7 @@ params.forEach(function (assig) {
 	strengthPair = assig.split('strength=');
 
     if (modelPair.length == 2) {
-	model = modelPair[1].replace(/[^a-zA-Z0-9_.]+/g, '');
+	model = modelPair[1].replace(/[^a-zA-Z0-9_.-]+/g, '');
     }
 
     if (strengthPair.length == 2) {

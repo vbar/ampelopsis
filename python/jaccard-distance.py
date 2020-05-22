@@ -4,6 +4,7 @@
 
 import sys
 from common import get_option, make_connection
+from distance_args import ConfigArgs
 from jaccard_util import jaccard_score
 from pinhole_base import PinholeBase
 from timeline_mixin import TimelineMixin
@@ -59,6 +60,7 @@ class Processor(PinholeBase, TimelineMixin):
 
 
 def main():
+    ca = ConfigArgs()
     with make_connection() as conn:
         with conn.cursor() as cur:
             processor = Processor(cur)
@@ -66,6 +68,8 @@ def main():
                 processor.run()
                 processor.process()
                 processor.dump_undirected()
+                if ca.histogram:
+                    processor.dump_distance_histogram(ca.histogram)
             finally:
                 processor.close()
 

@@ -47,6 +47,33 @@ class PinholeBase(ShowCase, PersonPartyMixin):
         self.enrich(gd)
         print(json.dumps(gd, indent=2))
 
+    def dump_distance_histogram(self, output_path):
+        self.lazy_ref_map()
+
+        same = []
+        other = []
+        for edge, weight in sorted(self.ref_map.items(), key=lambda p: -1 * p[1]):
+            party_ids = []
+            for node in edge:
+                variant = self.node2variant[node]
+                party_ids.append(self.get_party_id(variant))
+
+            if party_ids[0] == party_ids[1]:
+                same.append(weight)
+            else:
+                other.append(weight)
+
+        custom = {
+            'same': same,
+            'other': other
+        }
+
+        if self.mindate and self.maxdate:
+            custom['dateExtent'] = self.make_date_extent()
+
+        with open(output_path, 'w') as f:
+            json.dump(custom, f, indent=2, ensure_ascii=False)
+
     def lazy_ref_map(self):
         pass
 

@@ -57,16 +57,16 @@ treemap:
 	python/hierarchy-graph.py > web/treemap.json
 
 distance:
-	python/cosine-distance.py > web/distance.json
+	python/cosine-distance.py --histogram web/distance-check.json > web/distance.json
 
 jaccard:
-	python/jaccard-distance.py > web/jaccard.json
+	python/jaccard-distance.py --histogram web/jaccard-check.json > web/jaccard.json
 
 pool:
-	python/pool-distance.py > web/pool.json
+	python/pool-distance.py --histogram web/pool-check.json > web/pool.json
 
 rain:
-	python/rain-distance.py > web/rain.json
+	python/rain-distance.py --histogram web/rain-check.json > web/rain.json
 
 reply:
 	python/reply-graph.py --chord web/chord.json

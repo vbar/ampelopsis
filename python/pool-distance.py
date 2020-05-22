@@ -5,6 +5,7 @@
 
 import sys
 from common import get_option, make_connection
+from distance_args import ConfigArgs
 from jaccard_util import weighted_jaccard_score
 from pinhole_base import PinholeBase
 from timer_mixin import Occurence, TimerMixin
@@ -108,6 +109,7 @@ where f1.id=%s""", (url_id,))
 
 
 def main():
+    ca = ConfigArgs()
     with make_connection() as conn:
         with conn.cursor() as cur:
             processor = Processor(cur)
@@ -116,6 +118,8 @@ def main():
                 processor.process()
                 processor.dump_final_state()
                 processor.dump_undirected()
+                if ca.histogram:
+                    processor.dump_distance_histogram(ca.histogram)
             finally:
                 processor.close()
 

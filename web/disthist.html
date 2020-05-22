@@ -1,0 +1,122 @@
+<!-- based on https://bl.ocks.org/mbostock/3048166 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Data pro spřízněnost</title>
+
+    <!-- Load d3.js -->
+    <script src="https://d3js.org/d3.v4.js"></script>
+
+  </head>
+  <body>
+    <div id="the_graph"></div>
+    <div id="footer"></div>
+    <script>
+
+var margin = {top: 10, right: 30, bottom: 30, left: 40},
+    width = 460 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom,
+    halfHeight = height / 2,
+    params = location.search.split('&'),
+    model = 'distance-check.json';
+
+params.forEach(function (assig) {
+    var modelPair = assig.split('m=');
+
+    if (modelPair.length == 2) {
+	model = modelPair[1].replace(/[^a-zA-Z0-9_.-]+/g, '');
+    }
+});
+
+function maxDefault(a) {
+    return a.length ? d3.max(a) : 0;
+}
+
+d3.json(model, function (metadata) {
+    var mx = Math.max(maxDefault(metadata.same), maxDefault(metadata.other));
+
+    var x = d3.scaleLinear()
+	.domain([0, mx])
+	.range([0, width]),
+	xAxis = d3.axisBottom(x);
+
+    var svg = d3.select("#the_graph")
+	.append("svg")
+	.attr("width", width + margin.left + margin.right)
+	.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+	.attr("transform",
+	      "translate(" + margin.left + "," + margin.top + ")");
+
+    svg.append("g")
+	.attr("transform", "translate(0," + halfHeight + ")")
+	.call(xAxis)
+	.selectAll("text")
+	.style("text-anchor", "start")
+	.attr("dx", "-0.4em")
+	.attr("dy", "1.24em")
+	.attr("transform", "translate(0, -8) rotate(16)" );
+
+    var histogram = d3.histogram()
+	.value(function (d) { return +d; })
+	.domain(x.domain())
+	.thresholds(24); // numbers of bins
+
+    var binsSame = histogram(metadata.same),
+	binsOther = histogram(metadata.other),
+	maxScale = d3.max(binsSame.concat(binsOther), function (d) {
+	    return d.length;
+	});
+
+    var ySame = d3.scaleLinear()
+	.range([halfHeight, 0])
+	.domain([0, maxScale]);
+    svg.append("g")
+	.call(d3.axisLeft(ySame));
+
+    svg.append("g")
+	.selectAll("rect")
+	.data(binsSame)
+	.enter()
+	.append("rect")
+	.attr("x", 1)
+	.attr("transform", function(d) {
+	    return "translate(" + x(d.x0) + "," + ySame(d.length) + ")";
+	})
+	.attr("width", function(d) { return x(d.x1) - x(d.x0) - 1 ; })
+	.attr("height", function(d) { return halfHeight - ySame(d.length); })
+	.style("fill", "steelblue");
+
+    var yOther = d3.scaleLinear()
+	.range([halfHeight, height])
+	.domain([0, maxScale]);
+    svg.append("g")
+	.call(d3.axisLeft(yOther));
+
+    svg.append("g")
+	.selectAll("rect")
+	.data(binsOther)
+	.enter()
+	.append("rect")
+	.attr("x", 1)
+	.attr("transform", function(d) {
+	    return "translate(" + x(d.x0) + "," + halfHeight + ")";
+	})
+	.attr("width", function (d) { return x(d.x1) - x(d.x0) -1 ; })
+	.attr("height", function (d) { return yOther(d.length) - halfHeight; })
+	.style("fill", "steelblue")
+	.attr('opacity', 0.5);
+
+    if ('dateExtent' in metadata) {
+	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+	    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+	    footer = document.getElementById('footer');
+	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+    }
+});
+
+    </script>
+  </body>
+</html>

@@ -11,6 +11,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 import sys
 from analyzer import Analyzer
 from common import get_option, make_connection
+from distance_args import ConfigArgs
 from jaccard_util import set_jaccard_score
 from pinhole_base import PinholeBase
 from stem_recon import reconstitute
@@ -186,6 +187,7 @@ class Processor(PinholeBase, TimelineHelperMixin):
 
 
 def main():
+    ca = ConfigArgs()
     stop_words = load_stop_words()
     with make_connection() as conn:
         with conn.cursor() as cur:
@@ -194,6 +196,8 @@ def main():
                 processor.run()
                 processor.process()
                 processor.dump_undirected()
+                if ca.histogram:
+                    processor.dump_distance_histogram(ca.histogram)
             finally:
                 processor.close()
 

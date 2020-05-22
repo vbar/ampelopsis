@@ -39,10 +39,11 @@ order by party_id""", (tuple(deco_set),))
         else:
             return self.party_map[variant]
 
-    def introduce_color(self, variant):
+    def get_party_id(self, variant):
         if type(variant) is str:
-            party_id = self.hamlet2party.get(variant, 0)
+            return self.hamlet2party.get(variant, 0)
         else:
-            party_id = variant
+            return variant
 
-        return self.convert_color(party_id)
+    def introduce_color(self, variant):
+        return self.convert_color(self.get_party_id(variant))
