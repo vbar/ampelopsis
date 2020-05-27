@@ -68,6 +68,9 @@ pool:
 rain:
 	python/rain-distance.py --histogram web/rain-check.json > web/rain.json
 
+followers:
+	python/graph-distance.py --histogram web/followers-check.json > web/followers.json
+
 reply:
 	python/reply-graph.py --chord web/chord.json
 
@@ -85,6 +88,3 @@ bubline:
 
 profile:
 	python/profile-graph.py > web/profile.json
-
-following:
-	python/graph-distance.py > web/following.json

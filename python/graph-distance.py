@@ -8,6 +8,7 @@ import re
 import sys
 from urllib.parse import urljoin
 from common import get_option, make_connection
+from distance_args import ConfigArgs
 from pinhole_base import PinholeBase
 from url_heads import alt_town_url_head
 
@@ -31,15 +32,15 @@ class Processor(PinholeBase):
         self.silent = True
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
         self.html_parser = etree.HTMLParser()
-        self.hamlet2following = {}
+        self.hamlet2followers = {}
 
     def load_item(self, et):
         hamlet_name = et['osobaid']
         town_name = self.hamlet2town.get(hamlet_name)
         if town_name:
             self.extend_date(et)
-            if hamlet_name not in self.hamlet2following:
-                self.hamlet2following[hamlet_name] = self.make_following_set(town_name)
+            if hamlet_name not in self.hamlet2followers:
+                self.hamlet2followers[hamlet_name] = self.make_followers_set(town_name)
 
     def enrich(self, gd):
         PinholeBase.enrich(self, gd)
@@ -47,13 +48,13 @@ class Processor(PinholeBase):
         for gn in gd['nodes']:
             node_idx = gn['node']
             hamlet_name = self.node2variant[node_idx]
-            following = self.hamlet2following[hamlet_name]
+            following = self.hamlet2followers[hamlet_name]
             gn['doc_count'] = len(following)
 
     def process(self):
         persons = []
         vector = []
-        for hamlet_name, fset in sorted(self.hamlet2following.items(), key=lambda p: (-1 * len(p[1]), p[0])):
+        for hamlet_name, fset in sorted(self.hamlet2followers.items(), key=lambda p: (-1 * len(p[1]), p[0])):
             persons.append(hamlet_name)
             vector.append(fset)
 
@@ -69,9 +70,9 @@ class Processor(PinholeBase):
                     edge = (low_node, high_node)
                     self.ref_map[edge] = 1 / sim
 
-    def make_following_set(self, town_name):
+    def make_followers_set(self, town_name):
         town_set = set()
-        url = "%s/%s/following" % (alt_town_url_head, town_name)
+        url = "%s/%s/followers" % (alt_town_url_head, town_name)
         while url:
             url_id = self.get_url_id(url)
             if not url_id:
@@ -82,13 +83,13 @@ class Processor(PinholeBase):
                 print("cannot parse: " + url, file=sys.stderr)
                 return town_set
 
-            town_set = town_set | self.get_following_set(root)
-            url = self.get_following_next(url, root)
+            town_set = town_set | self.get_followers_set(root)
+            url = self.get_followers_next(url, root)
 
         return frozenset(town_set)
 
     @staticmethod
-    def get_following_set(root):
+    def get_followers_set(root):
         page_set = set()
         attrs = root.xpath("//a[@data-scribe-action='profile_click']/@href")
         for a in attrs:
@@ -100,7 +101,7 @@ class Processor(PinholeBase):
         return page_set
 
     @staticmethod
-    def get_following_next(base_url, root):
+    def get_followers_next(base_url, root):
         next_url = None
         attrs = root.xpath("//div[@class='w-button-more']/a/@href")
         for a in attrs:
@@ -125,6 +126,7 @@ class Processor(PinholeBase):
 
 
 def main():
+    ca = ConfigArgs()
     with make_connection() as conn:
         with conn.cursor() as cur:
             processor = Processor(cur)
@@ -132,6 +134,8 @@ def main():
                 processor.run()
                 processor.process()
                 processor.dump_undirected()
+                if ca.histogram:
+                    processor.dump_distance_histogram(ca.histogram)
             finally:
                 processor.close()
 

@@ -21,7 +21,7 @@ class FunnelParser:
         schema = (
             ( "^" + hamlet_url_head + "\\?desc=1&page=(?P<page>\\d+)&q=server%3ATwitter&sort=datum$", self.process_overview ),
             ( "^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$", self.process_card ),
-            ( "^" + alt_town_url_head + "/[-a-zA-Z0-9]+/following", self.process_sequence )
+            ( "^" + alt_town_url_head + "/[-a-zA-Z0-9]+/followers", self.process_sequence )
         )
 
         self.base = url
@@ -80,8 +80,8 @@ class FunnelParser:
                             self.owner.add_link(profile_url)
 
                             if self.funnel_links == 3:
-                                following_url = "%s/%s/following" % (alt_town_url_head, town_name)
-                                self.owner.add_link(following_url)
+                                furl = "%s/%s/followers" % (alt_town_url_head, town_name)
+                                self.owner.add_link(furl)
 
     def process_card(self, fp):
         context = etree.iterparse(fp, events=('end',), tag=('title'), html=True, recover=True)
