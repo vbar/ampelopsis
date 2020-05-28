@@ -7,20 +7,20 @@ import collections
 from datetime import datetime
 import json
 import locale
-from lxml import etree
 import pytz
 import re
 import sys
-from common import make_connection
+from common import get_option, make_connection
 from party_mixin import PartyMixin
 from show_case import ShowCase
+from trail_mixin import TrailMixin
 from url_heads import short_town_url_head
 
 profile_pattern = '^%s/([^/?#]+)$' % short_town_url_head
 
 profile_rx = re.compile(profile_pattern)
 
-ProfileDesc = collections.namedtuple('ProfileDesc', 'since following_count follower_count')
+ProfileDesc = collections.namedtuple('ProfileDesc', 'since following_count follower_count checked_follower_count')
 
 
 def by_follower_count(p):
@@ -30,11 +30,15 @@ def by_follower_count(p):
     return (-1 * major, -1 * minor, p[0])
 
 
-class Processor(ShowCase, PartyMixin):
+class Processor(ShowCase, PartyMixin, TrailMixin):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
         PartyMixin.__init__(self)
-        self.html_parser = etree.HTMLParser()
+        TrailMixin.__init__(self)
+
+        self.funnel_links = int(get_option('funnel_links', "0"))
+        if (self.funnel_links < 0) or (self.funnel_links > 3):
+            raise Exception("invalid option funnel_links")
 
         # not necessarily correct, but it's where the accounts should
         # have been created as well as where the client downloaded
@@ -96,6 +100,9 @@ order by url""" % re.sub("\\(\\)", "", profile_pattern))
             if profile.follower_count is not None:
                 out['followers'] = profile.follower_count
 
+            if profile.checked_follower_count > 0:
+                out['checkedFollowers'] = profile.checked_follower_count
+
             profiles.append(out)
 
         custom = {
@@ -120,10 +127,13 @@ order by url""" % re.sub("\\(\\)", "", profile_pattern))
             return
 
         town_name = self.get_town_name(url)
+        print("checking %s..." % town_name, file=sys.stderr)
+        chc = 0 if self.funnel_links < 3 else len(self.make_followers_set(town_name))
         self.town2profile[town_name] = ProfileDesc(
             self.get_since(root),
             self.get_count(root, 'following'),
-            self.get_count(root, 'followers'))
+            self.get_count(root, 'followers'),
+            chc)
 
     @staticmethod
     def get_town_name(url):
@@ -160,17 +170,6 @@ order by url""" % re.sub("\\(\\)", "", profile_pattern))
                 print("cannot parse date:", sys.exc_info()[0], file=sys.stderr)
 
         return self.timezone.localize(since)
-
-    def get_html_document(self, url_id):
-        volume_id = self.get_volume_id(url_id)
-        reader = self.open_page(url_id, volume_id)
-        if not reader:
-            return None
-
-        try:
-            return etree.parse(reader, self.html_parser)
-        finally:
-            reader.close()
 
     def make_date_extent(self):
         return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
