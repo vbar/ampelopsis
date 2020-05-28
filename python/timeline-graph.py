@@ -4,47 +4,16 @@
 
 import json
 import sys
-from common import get_mandatory_option, make_connection
-from opt_util import get_quoted_list_option
+from common import make_connection
 from party_mixin import PartyMixin
-from personage import normalize_name
 from show_case import ShowCase
 
 class Timeline(ShowCase, PartyMixin):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
         PartyMixin.__init__(self)
-
-        names = get_quoted_list_option("selected_individuals", None)
-        if not names:
-            raise Exception("must specify selected_individuals option")
-
-        selected_names = set() # of hamlet name
-        for name in names:
-            selected_names.add(self.ensure_name(name))
-
-        person_map = {}
-        for hamlet_name, present_name in self.person_map.items():
-            if hamlet_name in selected_names:
-                person_map[hamlet_name] = present_name
-
-        self.person_map = person_map
+        self.restrict_persons()
         self.hamlet2timeline = {}
-
-    def ensure_name(self, raw_name):
-        name = normalize_name(raw_name)
-        mask = '%' + name + '%'
-        self.cur.execute("""select hamlet_name
-from vn_record
-where presentation_name ilike %s
-and card_url_id is not null""", (mask,))
-        rows = self.cur.fetchall()
-        l = len(rows)
-        if l != 1:
-            raise Exception("%s matched %d records" % (raw_name, l))
-
-        row = rows[0]
-        return row[0]
 
     def dump(self):
         desc = []

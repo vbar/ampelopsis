@@ -1,3 +1,6 @@
+from opt_util import get_quoted_list_option
+from personage import normalize_name
+
 def by_reverse_value(p):
     return (-1 * p[1], p[0])
 
@@ -38,6 +41,22 @@ order by hamlet_name, town_name""")
                 if color:
                     self.party2color[party_id] = color
 
+    def restrict_persons(self):
+        names = get_quoted_list_option("selected_individuals", None)
+        if not names:
+            raise Exception("must specify selected_individuals option")
+
+        selected_names = set() # of hamlet name
+        for name in names:
+            selected_names.add(self.ensure_name(name))
+
+        person_map = {}
+        for hamlet_name, present_name in self.person_map.items():
+            if hamlet_name in selected_names:
+                person_map[hamlet_name] = present_name
+
+        self.person_map = person_map
+
     def convert_color(self, party_id):
         color = self.party2color.get(party_id)
         if not color:
@@ -49,3 +68,18 @@ order by hamlet_name, town_name""")
             self.party2color[party_id] = color
 
         return '#' + color
+
+    def ensure_name(self, raw_name):
+        name = normalize_name(raw_name)
+        mask = '%' + name + '%'
+        self.cur.execute("""select hamlet_name
+from vn_record
+where presentation_name ilike %s
+and card_url_id is not null""", (mask,))
+        rows = self.cur.fetchall()
+        l = len(rows)
+        if l != 1:
+            raise Exception("%s matched %d records" % (raw_name, l))
+
+        row = rows[0]
+        return row[0]
