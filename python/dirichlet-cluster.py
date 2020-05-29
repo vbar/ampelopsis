@@ -53,7 +53,7 @@ class Processor(ShowCase):
         docs = [ doc for url, doc in sorted(self.url2doc.items(), key=lambda p: p[0]) ]
         df = cv.fit_transform(docs)
         words = cv.get_feature_names()
-        lda = LatentDirichletAllocation(n_components=self.cluster_count)
+        lda = LatentDirichletAllocation(n_components=self.cluster_count, learning_method='online')
         lda.fit(df)
 
         for index, topic in enumerate(lda.components_):
