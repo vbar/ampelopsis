@@ -127,34 +127,18 @@ order by url""" % re.sub("\\(\\)", "", profile_pattern))
             return
 
         town_name = self.get_town_name(url)
-        print("checking %s..." % town_name, file=sys.stderr)
+        print("walking %s..." % town_name, file=sys.stderr)
         chc = 0 if self.funnel_links < 3 else len(self.make_followers_set(town_name))
         self.town2profile[town_name] = ProfileDesc(
             self.get_since(root),
-            self.get_count(root, 'following'),
-            self.get_count(root, 'followers'),
+            self.get_profile_count(root, 'following'),
+            self.get_profile_count(root, 'followers'),
             chc)
 
     @staticmethod
     def get_town_name(url):
         m = profile_rx.match(url)
         return m.group(1)
-
-    @staticmethod
-    def get_count(root, nav):
-        attrs = root.xpath("//a[@data-nav='%s']/span[@class='ProfileNav-value']/@data-count" % nav)
-        count = None
-        for a in attrs:
-            try:
-                c = int(a)
-                if count is None:
-                    count = c
-                elif count != c:
-                    raise Exception("profile has multiple %s counts" % nav)
-            except:
-                print("cannot parse count:", sys.exc_info()[0], file=sys.stderr)
-
-        return count
 
     def get_since(self, root):
         attrs = root.xpath("//span[contains(@class, 'ProfileHeaderCard-joinDateText')]/@title")

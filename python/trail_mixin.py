@@ -1,7 +1,7 @@
 from lxml import etree
 import re
 import sys
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlparse
 from url_heads import alt_town_url_head
 
 rel_town_rx = re.compile("^/([a-zA-Z0-9_./-]+)")
@@ -10,23 +10,67 @@ class TrailMixin:
     def __init__(self):
         self.html_parser = etree.HTMLParser()
 
-    def make_followers_set(self, town_name):
+    def make_followers_set(self, town_name, include_trail=False):
+        def make_return_value():
+            primary = frozenset(town_set)
+            return (primary, trail) if include_trail else primary
+
         town_set = set()
+        trail = None
         url = "%s/%s/followers" % (alt_town_url_head, town_name)
         while url:
+            if include_trail:
+                if trail is None:
+                    trail = []
+                else:
+                    cursor = self.get_cursor(url)
+                    if cursor is None:
+                        print("URL " + url + " has no cursor", file=sys.stderr)
+                    else:
+                        trail.append(cursor)
+
             url_id = self.get_url_id(url)
             if not url_id:
-                return town_set
+                return make_return_value()
 
             root = self.get_html_document(url_id)
             if not root:
                 print("cannot parse: " + url, file=sys.stderr)
-                return town_set
+                return make_return_value()
 
             town_set = town_set | self.get_followers_set(root)
             url = self.get_followers_next(url, root)
 
-        return frozenset(town_set)
+        return make_return_value()
+
+    @staticmethod
+    def get_profile_count(root, nav):
+        attrs = root.xpath("//a[@data-nav='%s']/span[@class='ProfileNav-value']/@data-count" % nav)
+        count = None
+        for a in attrs:
+            try:
+                c = int(a)
+                if count is None:
+                    count = c
+                elif count != c:
+                    raise Exception("profile has multiple %s counts" % nav)
+            except:
+                print("cannot parse count:", sys.exc_info()[0], file=sys.stderr)
+
+        return count
+
+    @staticmethod
+    def get_cursor(url):
+        pr = urlparse(url)
+        params = parse_qs(pr.query)
+        vals = params['cursor']
+        if not vals:
+            return None
+
+        try:
+            return int(vals[0])
+        except:
+            return None
 
     @staticmethod
     def get_followers_set(root):
