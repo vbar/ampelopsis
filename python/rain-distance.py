@@ -83,7 +83,7 @@ class Processor(PinholeBase, TimelineHelperMixin):
             docs.append(doc)
 
         df = cv.fit_transform(docs)
-        lda = LatentDirichletAllocation(n_components=self.cluster_count)
+        lda = LatentDirichletAllocation(n_components=self.cluster_count, learning_method='online')
         lda.fit(df)
         self.matrix = lda.transform(df)
 
