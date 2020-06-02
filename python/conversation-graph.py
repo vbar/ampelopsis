@@ -90,7 +90,6 @@ class Processor(TimerBase, ReplyMixin):
         if not url_id:
             return
 
-        self.extend_date(et)
         target_hamlet_name = et['osobaid']
         target_date = self.extend_date(et)
         target_occ = StatusOcc(url_id, target_hamlet_name, target_date)
