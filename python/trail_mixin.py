@@ -2,7 +2,7 @@ from lxml import etree
 import re
 import sys
 from urllib.parse import parse_qs, urljoin, urlparse
-from url_heads import alt_town_url_head
+from url_heads import alt_town_url_head, short_town_url_head
 
 rel_town_rx = re.compile("^/([a-zA-Z0-9_./-]+)")
 
@@ -42,6 +42,19 @@ class TrailMixin:
             url = self.get_followers_next(url, root)
 
         return make_return_value()
+
+    def get_follower_count(self, town_name):
+        url = "%s/%s" % (short_town_url_head, town_name)
+        url_id = self.get_url_id(url)
+        if not url_id:
+            return None
+
+        root = self.get_html_document(url_id)
+        if not root:
+            print("no profile for " + town_name, file=sys.stderr)
+            return None
+
+        return self.get_profile_count(root, 'followers')
 
     @staticmethod
     def get_profile_count(root, nav):
