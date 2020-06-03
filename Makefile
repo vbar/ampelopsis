@@ -4,7 +4,7 @@ has_statuses=$(shell echo $$(( $(funnel_links) >= 1 )) )
 
 all: fulltext main
 
-main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline demanding
+main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline vocab demanding
 
 ifeq ($(has_statuses),1)
 demanding: reaction bubline pool rain
@@ -88,3 +88,9 @@ bubline:
 
 profile:
 	python/profile-graph.py > web/profile.json
+
+trail:
+	python/trail-graph.py --selected > web/trail.json
+
+vocab:
+	python/word-graph.py > web/vocab.json
