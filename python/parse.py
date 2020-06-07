@@ -8,7 +8,7 @@ from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
 from host_check import get_instance_id, HostCheck
 from mem_cache import MemCache
-from page_parser import PageParser
+from trail_parser import TrailParser
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
 from volume_holder import VolumeHolder
@@ -36,7 +36,7 @@ class PolyParser(VolumeHolder, HostCheck):
         self.page_limit = int(page_limit) if page_limit else None
         self.page_count = 0
 
-        self.max_url_len = int(get_option("max_url_len", "512"))
+        self.max_url_len = int(get_option("max_url_len", "1024"))
 
         # ignore case flag would be better dynamic, but Python 3.5.2
         # doesn't support that...
@@ -100,7 +100,7 @@ from download_queue""")
         reader = self.open_page(url_id, volume_id)
         if reader:
             try:
-                parser = PageParser(self, url)
+                parser = TrailParser(self, url)
                 parser.parse_links(reader)
             finally:
                 reader.close()

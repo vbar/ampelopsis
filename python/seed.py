@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
+import datetime
 import re
 import sys
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse, urlunparse
 from act_util import act_reset
 from common import get_option, make_connection
 from host_check import get_instance_id, make_canonicalizer
@@ -69,6 +70,47 @@ order by id""")
         for row in rows:
             self.add_work(*row)
 
+
+# search URL from twint (except with sorted query params)
+class Formatter:
+    def __init__(self, days_before):
+        self.since = datetime.datetime.now() - datetime.timedelta(days=days_before)
+
+    def format_urls(self, town_name):
+        templ = [ "https", "twitter.com", "/i/search/timeline", "", "", "" ]
+        urls = []
+
+        for retweets in (False, True):
+            templ[4] = self.format_params(town_name, retweets)
+            urls.append(urlunparse(templ))
+
+        return urls
+
+    def format_params(self, town_name, retweets):
+        params = [
+            ('f', 'tweets'),
+            ('include_available_features', '1'),
+            ('include_entities', '1'),
+            ('max_position', '-1')
+        ]
+
+        params.append(('q', self.format_query(town_name, retweets)))
+        params.extend([
+            ('reset_error_state', 'false'),
+            ('src', 'unkn'),
+            ('vertical', 'default'),
+        ])
+
+        return urlencode(params)
+
+    def format_query(self, town_name, retweets):
+        q = "from:%s since:%d" % (town_name, self.since.timestamp())
+        if retweets:
+            q += " filter:nativeretweets"
+
+        return q
+
+
 def main():
     top_protocols = get_option('top_protocols', 'http')
     protocols = re.split('\\s+', top_protocols)
@@ -78,15 +120,25 @@ def main():
             act_reset(cur)
 
             seeder = Seeder(cur)
-            for a in sys.argv[1:]:
-                if a.startswith('http'):
-                    pr = urlparse(a)
-                    seeder.add_host(pr.hostname)
-                    seeder.add_url(a)
-                else:
-                    seeder.add_host(a)
-                    for protocol in protocols:
-                        seeder.add_url("%s://%s" % (protocol, a))
+            if (len(sys.argv) == 2) and (sys.argv[1] == "-t"):
+                seeder.add_host("twitter.com")
+                frm = Formatter(int(get_option("seed_days_before_now", "5")))
+                for ln in sys.stdin:
+                    raw_name = ln.rstrip()
+                    if raw_name:
+                        urls = frm.format_urls(raw_name.lower())
+                        for url in urls:
+                            seeder.add_url(url)
+            else:
+                for a in sys.argv[1:]:
+                    if a.startswith('http'):
+                        pr = urlparse(a)
+                        seeder.add_host(pr.hostname)
+                        seeder.add_url(a)
+                    else:
+                        seeder.add_host(a)
+                        for protocol in protocols:
+                            seeder.add_url("%s://%s" % (protocol, a))
 
             seeder.seed_queue()
 
