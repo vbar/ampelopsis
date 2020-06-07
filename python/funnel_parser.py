@@ -13,7 +13,6 @@ status_rx = re.compile("/([-\\w]+)/status/")
 class FunnelParser:
     def __init__(self, owner, url):
         self.owner = owner
-        self.page_url = url
         self.funnel_links = int(get_option('funnel_links', "0"))
         if (self.funnel_links < 0) or (self.funnel_links > 3):
             raise Exception("invalid option funnel_links")
