@@ -10,7 +10,7 @@ from trail_util import get_next_url
 from volume_holder import VolumeHolder
 
 
-StatusItem = collections.namedtuple('StatusItem', 'url dt')
+StatusItem = collections.namedtuple('StatusItem', 'url dt rt')
 
 
 class Page:
@@ -73,7 +73,9 @@ class PageFrame(VolumeHolder, CursorWrapper):
             else:
                 raise Exception("%d times in %s" % (len(time_attrs), url))
 
-            si = StatusItem(urljoin(url, path_attr), datetime.fromtimestamp(int(time_attr)))
+            rt_nodes = node.xpath(".//span[@class='js-retweet-text']")
+
+            si = StatusItem(urljoin(url, path_attr), datetime.fromtimestamp(int(time_attr)), len(rt_nodes) > 0)
             page.items.append(si)
 
         return page
