@@ -1,0 +1,113 @@
+<!-- based on code from d3-graph-gallery.com -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Celková aktivita v čase</title>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<div id="the_graph"></div>
+<div id="footer"></div>
+<script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 1000 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#the_graph")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+//Read the data
+d3.json(
+    "cs-CZ.json",
+    function(error, locale) {
+	if (error) throw error;
+
+	d3.timeFormatDefaultLocale(locale);
+
+	d3.csv(
+	    "datetime.csv",
+	    function (d) {
+		var r = { date : d3.timeParse("%Y-%m-%d %H:%M:%S%Z")(d.date), value : +d.value }
+		if ('redirOnly' in d) {
+		    r.redirOnly = +d.redirOnly
+		}
+
+		return r;
+	    },
+	    function (data) {
+		var dateSelect = function (d) { return d.date; },
+		    dateFormat = d3.timeFormat(locale.date),
+		    dateExtent = d3.extent(data, dateSelect),
+		    footer = document.getElementById('footer');
+		footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
+		var x = d3.scaleTime()
+		    .domain(dateExtent)
+		    .range([ 0, width ]);
+		svg.append("g")
+		    .attr("transform", "translate(0," + height + ")")
+		    .call(d3.axisBottom(x));
+
+		var y = d3.scaleLinear()
+		    .domain([0, d3.max(data, function(d) { return +d.value; })])
+		    .range([ height, 0 ]);
+		svg.append("g")
+		    .call(d3.axisLeft(y));
+
+		svg.append("path")
+		    .datum(data)
+		    .attr("fill", "none")
+		    .attr("stroke", "steelblue")
+		    .attr("stroke-width", 1.5)
+		    .attr("d", d3.line()
+			  .x(function(d) { return x(d.date) })
+			  .y(function(d) { return y(d.value) })
+			 )
+
+		if ('redirOnly' in data[0]) {
+		    svg.append("path")
+			.datum(data)
+			.attr("fill", "none")
+			.attr("stroke", "steelblue")
+			.attr("stroke-width", 1.5)
+			.style("stroke-dasharray", ("3, 2"))
+			.attr("d", d3.line()
+			      .x(function(d) { return x(d.date) })
+			      .y(function(d) { return y(d.redirOnly) })
+			     )
+
+		    svg.append("path")
+			.attr("fill", "none")
+			.attr("stroke", "steelblue")
+			.attr("stroke-width", 1.5)
+			.attr("d", d3.line()([[width - 150, 20], [width - 140, 20]]));
+		    svg.append("text")
+			.attr("x", width - 137)
+			.attr("y", 24)
+			.text("celkem")
+			.style("font-size", "12px");
+
+		    svg.append("path")
+			.attr("fill", "none")
+			.attr("stroke", "steelblue")
+			.attr("stroke-width", 1.5)
+			.style("stroke-dasharray", ("3, 2"))
+			.attr("d", d3.line()([[width - 150, 34], [width - 140, 34]]));
+		    svg.append("text")
+			.attr("x", width - 137)
+			.attr("y", 38)
+			.text("z toho retweetů")
+			.style("font-size", "12px");
+		}
+	    });
+    });
+
+</script>

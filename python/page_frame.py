@@ -3,6 +3,7 @@ from datetime import datetime
 from io import StringIO
 import json
 from lxml import etree
+import pytz
 import sys
 from urllib.parse import urljoin
 from cursor_wrapper import CursorWrapper
@@ -25,6 +26,11 @@ class PageFrame(VolumeHolder, CursorWrapper):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
         self.html_parser = etree.HTMLParser()
+
+        # not necessarily correct, but it's where the accounts should
+        # have been created as well as where the client downloaded
+        # from, and we have to use something...
+        self.timezone = pytz.timezone('Europe/Prague')
 
     def get_trail(self, url, url_id):
         trail = []
@@ -75,7 +81,8 @@ class PageFrame(VolumeHolder, CursorWrapper):
 
             rt_nodes = node.xpath(".//span[@class='js-retweet-text']")
 
-            si = StatusItem(urljoin(url, path_attr), datetime.fromtimestamp(int(time_attr)), len(rt_nodes) > 0)
+            dt = datetime.fromtimestamp(int(time_attr))
+            si = StatusItem(urljoin(url, path_attr), self.timezone.localize(dt), len(rt_nodes) > 0)
             page.items.append(si)
 
         return page
