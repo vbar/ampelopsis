@@ -62,6 +62,11 @@ returning url_id""", (url_id, 0, hostname))
         if self.cur.fetchone() is None:
             print("URL %s already in queue" % (url_id,), file=sys.stderr)
 
+    def add_name(self, town_name):
+        self.cur.execute("""insert into panel_names(town_name)
+values(%s)
+on conflict do nothing""", (town_name,))
+
     def seed_queue(self):
         self.cur.execute("""select url, id from field
 where checkd is null
@@ -126,7 +131,9 @@ def main():
                 for ln in sys.stdin:
                     raw_name = ln.rstrip()
                     if raw_name:
-                        urls = frm.format_urls(raw_name.lower())
+                        name = raw_name.lower()
+                        seeder.add_name(name)
+                        urls = frm.format_urls(name)
                         for url in urls:
                             seeder.add_url(url)
             else:
