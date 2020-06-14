@@ -92,6 +92,9 @@ class Processor(PinholeBase):
             payload = self.variant2payload[variant]
             docs.append(payload.text)
 
+        if not len(docs): # seen w/ incorrect download config
+            raise Exception("No input documents found - check filtering conditions in load_item.")
+
         tfidf = vzr.fit_transform(docs)
         matrix = linear_kernel(tfidf, tfidf)
         shape = matrix.shape

@@ -51,6 +51,9 @@ class Processor(ShowCase):
     def process(self):
         cv = CountVectorizer(max_df=0.95, min_df=2, analyzer=Analyzer(self.stop_words))
         docs = [ doc for url, doc in sorted(self.url2doc.items(), key=lambda p: p[0]) ]
+        if not len(docs): # seen w/ incorrect download config
+            raise Exception("No input documents found - check filtering conditions in load_item.")
+
         df = cv.fit_transform(docs)
         words = cv.get_feature_names()
         lda = LatentDirichletAllocation(n_components=self.cluster_count, learning_method='online')
