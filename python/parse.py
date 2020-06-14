@@ -102,6 +102,8 @@ from download_queue""")
             try:
                 parser = TrailParser(self, url)
                 parser.parse_links(reader)
+            except Exception as ex:
+                print("parsing failed: %s: %s" % (type(ex), ex.msg if hasattr(ex, 'msg') else str(ex)), file=sys.stderr)
             finally:
                 reader.close()
 
