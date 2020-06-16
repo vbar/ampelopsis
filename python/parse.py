@@ -7,10 +7,11 @@ from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
 from host_check import get_instance_id, HostCheck
+from itemizer import Itemizer
 from mem_cache import MemCache
-from trail_parser import TrailParser
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
+from trail_parser import TrailParser
 from volume_holder import VolumeHolder
 
 class PolyParser(VolumeHolder, HostCheck):
@@ -54,6 +55,8 @@ order by nameval""")
             rows = self.cur.fetchall()
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
+
+        self.itemizer = Itemizer()
 
     def parse_all(self):
         row = self.pop_work_item()

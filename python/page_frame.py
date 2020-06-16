@@ -1,12 +1,9 @@
 import collections
 from datetime import datetime
-from io import StringIO
 import json
-from lxml import etree
-import pytz
 import sys
-from urllib.parse import urljoin
 from cursor_wrapper import CursorWrapper
+from itemizer import Itemizer
 from trail_util import get_next_url
 from volume_holder import VolumeHolder
 
@@ -25,12 +22,7 @@ class PageFrame(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
-        self.html_parser = etree.HTMLParser()
-
-        # not necessarily correct, but it's where the accounts should
-        # have been created as well as where the client downloaded
-        # from, and we have to use something...
-        self.timezone = pytz.timezone('Europe/Prague')
+        self.itemizer = Itemizer()
 
     def get_trail(self, url, url_id):
         trail = []
@@ -57,32 +49,12 @@ class PageFrame(VolumeHolder, CursorWrapper):
 
         page = Page(url, doc.get('min_position'))
         items = doc.get('items_html')
-        html = """<!DOCTYPE html>
-<html><body><ol>
-%s
-</ol></body></html>""" % items
-        root = etree.parse(StringIO(html), self.html_parser)
-
-        nodes = root.xpath("//li[starts-with(@class, 'js-stream-item ')]")
+        nodes = self.itemizer.split_items(items)
         for node in nodes:
-            path_attrs = node.xpath("div/@data-permalink-path")
-            if len(path_attrs) == 1:
-                path_attr = path_attrs[0]
-            else:
-                raise Exception("%d permalinks in %s" % (len(path_attrs), url))
-
-            # doesn't agree w/ string representation in title, but
-            # title is incorrect...
-            time_attrs = node.xpath(".//a[starts-with(@class, 'tweet-timestamp ')]/span/@data-time")
-            if len(time_attrs) == 1:
-                time_attr = time_attrs[0]
-            else:
-                raise Exception("%d times in %s" % (len(time_attrs), url))
-
-            rt_nodes = node.xpath(".//span[@class='js-retweet-text']")
-
-            dt = datetime.fromtimestamp(int(time_attr))
-            si = StatusItem(urljoin(url, path_attr), self.timezone.localize(dt), len(rt_nodes) > 0)
+            item_url = self.itemizer.get_item_url(url, node)
+            item_dt = self.itemizer.get_item_time(node)
+            rt_flag = self.itemizer.is_retweet(node)
+            si = StatusItem(item_url, item_dt, rt_flag)
             page.items.append(si)
 
         return page

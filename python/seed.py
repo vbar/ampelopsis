@@ -3,9 +3,10 @@
 import datetime
 import re
 import sys
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import urlparse
 from act_util import act_reset
 from common import get_option, make_connection
+from query_format import QueryFormat
 from host_check import get_instance_id, make_canonicalizer
 
 class Seeder:
@@ -76,46 +77,6 @@ order by id""")
             self.add_work(*row)
 
 
-# search URL from twint (except with sorted query params)
-class Formatter:
-    def __init__(self, days_before):
-        self.since = datetime.datetime.now() - datetime.timedelta(days=days_before)
-
-    def format_urls(self, town_name):
-        templ = [ "https", "twitter.com", "/i/search/timeline", "", "", "" ]
-        urls = []
-
-        for retweets in (False, True):
-            templ[4] = self.format_params(town_name, retweets)
-            urls.append(urlunparse(templ))
-
-        return urls
-
-    def format_params(self, town_name, retweets):
-        params = [
-            ('f', 'tweets'),
-            ('include_available_features', '1'),
-            ('include_entities', '1'),
-            ('max_position', '-1')
-        ]
-
-        params.append(('q', self.format_query(town_name, retweets)))
-        params.extend([
-            ('reset_error_state', 'false'),
-            ('src', 'unkn'),
-            ('vertical', 'default'),
-        ])
-
-        return urlencode(params)
-
-    def format_query(self, town_name, retweets):
-        q = "from:%s since:%d" % (town_name, self.since.timestamp())
-        if retweets:
-            q += " filter:nativeretweets"
-
-        return q
-
-
 def main():
     top_protocols = get_option('top_protocols', 'http')
     protocols = re.split('\\s+', top_protocols)
@@ -127,13 +88,17 @@ def main():
             seeder = Seeder(cur)
             if (len(sys.argv) == 2) and (sys.argv[1] == "-t"):
                 seeder.add_host("twitter.com")
-                frm = Formatter(int(get_option("seed_days_before_now", "5")))
+                if not get_option("match_domain", False):
+                    seeder.add_host("mobile.twitter.com")
+
+                days_before = int(get_option("seed_days_before_now", "5"))
+                frm = QueryFormat(datetime.datetime.now() - datetime.timedelta(days=days_before))
                 for ln in sys.stdin:
                     raw_name = ln.rstrip()
                     if raw_name:
                         name = raw_name.lower()
                         seeder.add_name(name)
-                        urls = frm.format_urls(name)
+                        urls = frm.format_all(name)
                         for url in urls:
                             seeder.add_url(url)
             else:
