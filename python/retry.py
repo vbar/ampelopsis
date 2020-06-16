@@ -19,7 +19,7 @@ where id in (
             kicker.run()
 
             seeder = Seeder(cur)
-            seeder.run()
+            seeder.seed_queue()
 
 if __name__ == "__main__":
     main()
