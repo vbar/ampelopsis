@@ -95,6 +95,7 @@ class Retriever(DownloadBase):
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
 
+        self.hold_after_all_errors = get_option('hold_after_all_errors', False)
         retry_after_default = get_option('retry_after_default', None)
         self.retry_after_default = None if retry_after_default is None else int(retry_after_default)
 
@@ -219,7 +220,7 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                         # Retry-After (apparently it depends on the
                         # server) while Retry-After is specified for a
                         # couple of HTTP error codes
-                        if (target.retry_after is not None) or ((target.http_code == 429) and (self.retry_after_default is not None)):
+                        if (target.retry_after is not None) or (((target.http_code == 429) or self.hold_after_all_errors) and (self.retry_after_default is not None)):
                             if eff_hostname is None:
                                 pr = urlparse(target.url)
                                 eff_hostname = pr.hostname
