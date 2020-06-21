@@ -11,13 +11,17 @@ def format_home(town_name):
     return "https://mobile.twitter.com/" + town_name
 
 
+def format_quarry(town_name):
+    return "http://www.twitterjoindate.com/search?commit=Search&name=" + town_name
+
+
 class QueryFormat:
     def __init__(self, since):
         self.since = since
 
     def format_all(self, town_name):
         templ = [ "https", "twitter.com", "/i/search/timeline", "", "", "" ]
-        urls = [ format_home(town_name) ]
+        urls = [ format_home(town_name), format_quarry(town_name) ]
         for query_mode in (QUERY_FROM, QUERY_RE, QUERY_TO):
             templ[4] = self.format_params(town_name, query_mode)
             urls.append(urlunparse(templ))

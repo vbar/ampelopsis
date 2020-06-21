@@ -1,7 +1,7 @@
 import json
 import re
 import sys
-from query_format import format_home
+from query_format import format_home, format_quarry
 from urllib.parse import urlparse
 from trail_util import get_next_url
 
@@ -36,5 +36,6 @@ class TrailParser:
             if len(segments) > 1:
                 raw_name = segments[1]
                 if raw_name:
-                    home_url = format_home(raw_name.lower())
-                    self.owner.add_link(home_url)
+                    town_name = raw_name.lower()
+                    self.owner.add_link(format_home(town_name))
+                    self.owner.add_link(format_quarry(town_name))

@@ -91,6 +91,8 @@ def main():
                 if not get_option("match_domain", False):
                     seeder.add_host("mobile.twitter.com")
 
+                seeder.add_host("www.twitterjoindate.com")
+
                 days_before = int(get_option("seed_days_before_now", "5"))
                 frm = QueryFormat(datetime.datetime.now() - datetime.timedelta(days=days_before))
                 for ln in sys.stdin:

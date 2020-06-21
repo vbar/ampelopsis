@@ -1,15 +1,17 @@
 import collections
 from datetime import datetime
 import json
+from lxml import etree
 import sys
 from cursor_wrapper import CursorWrapper
-from itemizer import Itemizer
+from systemizer import Systemizer
+from query_format import format_home, format_quarry
 from trail_util import get_next_url
 from volume_holder import VolumeHolder
 
-
 StatusItem = collections.namedtuple('StatusItem', 'url dt rt')
 
+ProfileDesc = collections.namedtuple('ProfileDesc', 'name since following followers')
 
 class Page:
     def __init__(self, base_url, cursor_next):
@@ -22,7 +24,23 @@ class PageFrame(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
-        self.itemizer = Itemizer()
+        self.systemizer = Systemizer()
+
+    def get_profile(self, town_name):
+        url = format_home(town_name)
+        url_id = self.get_url_id(url)
+        if not url_id:
+            return None
+
+        root = self.get_html_document(url_id)
+        if not root:
+            return None
+
+        name = self.systemizer.get_profile_name(root)
+        since = self.get_since(town_name)
+        following = self.systemizer.get_profile_following(root)
+        followers = self.systemizer.get_profile_followers(root)
+        return ProfileDesc(name, since, following, followers)
 
     def get_trail(self, url, url_id):
         trail = []
@@ -42,6 +60,18 @@ class PageFrame(VolumeHolder, CursorWrapper):
 
         return trail
 
+    def get_since(self, town_name):
+        url = format_quarry(town_name)
+        url_id = self.get_url_id(url)
+        if not url_id:
+            return None
+
+        root = self.get_html_document(url_id)
+        if not root:
+            return None
+
+        return self.systemizer.get_quarry_since(root)
+
     def parse_page(self, url, url_id):
         doc = self.get_document(url_id)
         if not doc:
@@ -49,11 +79,11 @@ class PageFrame(VolumeHolder, CursorWrapper):
 
         page = Page(url, doc.get('min_position'))
         items = doc.get('items_html')
-        nodes = self.itemizer.split_items(items)
+        nodes = self.systemizer.split_items(items)
         for node in nodes:
-            item_url = self.itemizer.get_item_url(url, node)
-            item_dt = self.itemizer.get_item_time(node)
-            rt_flag = self.itemizer.is_retweet(node)
+            item_url = self.systemizer.get_item_url(url, node)
+            item_dt = self.systemizer.get_item_time(node)
+            rt_flag = self.systemizer.is_retweet(node)
             si = StatusItem(item_url, item_dt, rt_flag)
             page.items.append(si)
 
@@ -88,3 +118,14 @@ where url=%s""", (url,))
             reader.close()
 
         return json.loads(buf.decode('utf-8'))
+
+    def get_html_document(self, url_id):
+        volume_id = self.get_volume_id(url_id)
+        reader = self.open_page(url_id, volume_id)
+        if not reader:
+            return None
+
+        try:
+            return etree.parse(reader, self.systemizer.html_parser)
+        finally:
+            reader.close()
