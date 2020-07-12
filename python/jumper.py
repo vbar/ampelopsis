@@ -463,6 +463,11 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         pos_clauses = []
         if minister_position:
             np = 'wd:' + minister_position
+            # e.g. Q25515749 (Minister for Regional Development) is a
+            # direct subclass of minister...
+            pos_clauses.append(wrap_pos_clause('?p wdt:P279 %s.' % np, l0))
+            # ...while Q25507811 (Minister of Industry and Trade) is a
+            # subclass of industry and commerce ministers...
             pos_clauses.append(wrap_pos_clause('?p wdt:P279/wdt:P279 %s.' % np, l0))
 
         if ambassador_position:
