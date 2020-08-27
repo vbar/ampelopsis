@@ -6,9 +6,11 @@ from rulebook_util import get_org_name
 
 # Specific regional representative entities match better than the
 # generic region_councillor_entities (which are also added inside
-# RegionCouncilLevel), but mostly they aren't available. Prague is not
-# included because it is a city, and is handled on a higher level (not
-# using even Q27830328 - perhaps it should?)
+# RegionCouncilLevel), but they aren't always available. Looking for
+# them as subclasses of Q83275550 could be automated, but it's
+# non-trivial to automate matching them to the region label. Prague is
+# not included because it is a city, and is handled on a higher level
+# (not using even Q27830328 - perhaps it should?)
 region2councillor = {
     'jihočeský kraj': RegionCouncilLevel('Q55670007'),
 
@@ -16,7 +18,7 @@ region2councillor = {
     # match anything in the first place...
     'jihomoravský kraj': RegionCouncilLevel('Q59583668'),
 
-    'karlovarský kraj': region_councillor_entities,
+    'karlovarský kraj': RegionCouncilLevel('Q63532689'),
     'kraj vysočina': region_councillor_entities,
     'krajský úřad středočeského kraje': region_councillor_entities,
     'královéhradecký kraj': RegionCouncilLevel('Q59539134'),
@@ -26,8 +28,8 @@ region2councillor = {
     'pardubický kraj': region_councillor_entities,
     'plzeňský kraj': region_councillor_entities,
     'středočeský kraj': region_councillor_entities,
-    'ústecký kraj': region_councillor_entities,
-    'zlínský kraj': region_councillor_entities,
+    'ústecký kraj': RegionCouncilLevel('Q83275550'),
+    'zlínský kraj': RegionCouncilLevel('Q9613465')
 }
 
 unknown_council_set = set([
