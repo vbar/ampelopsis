@@ -62,7 +62,7 @@ class Entity:
     rector_of_charles_university = 'Q12049166'
 
 deputy_minister_position_entities = (
-    # is "Assistant Secretary" still used?
+    # "Assistant Secretary" is actually used...
     'Q15735113',
 
     'Q26204040'
