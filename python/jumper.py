@@ -169,10 +169,11 @@ class Jumper:
         self.city2mayor = {}
         self.last_legislature = None
 
-        # hardcoded, for now - Wikidata probably doesn't have a a city
-        # assembly member entity for any Czech city beside Prague...
+        # hardcoded, for now - but Wikidata does have city assembly
+        # member entitities for multiple Czech cities...
         self.city2councillor = {
             'praha': 'Q27830380',
+            'brno': 'Q97482758',
         }
 
         # hardcoded list is not really satisfactory...
