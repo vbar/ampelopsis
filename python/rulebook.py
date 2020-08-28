@@ -1,7 +1,7 @@
 import re
 
 from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, PoliceLevel, RegionCouncilLevel, UniversityLevel
-from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities, region_councillor_entities
+from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entities, mayor_position_entities, region_councillor_entities
 from rulebook_util import get_org_name
 
 # Specific regional representative entities match better than the
@@ -79,8 +79,8 @@ class Rulebook:
             # premier)
             'člen vlády': Entity.minister,
 
-            'náměstek člena vlády': Entity.deputy_minister,
-            'náměstek pro řízení sekce': Entity.deputy_minister,
+            'náměstek člena vlády': deputy_minister_position_entities,
+            'náměstek pro řízení sekce': deputy_minister_position_entities,
             'poslanec': ParliamentLevel(Entity.mp),
             'senátor': 'Q18941264',
             'starosta': MuniLevel(mayor_position_entities),

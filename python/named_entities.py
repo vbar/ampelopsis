@@ -58,9 +58,15 @@ class Entity:
     politician = 'Q82955'
 
     # not particularly special but do repeat
-    deputy_minister = 'Q15735113'
     director = 'Q1162163'
     rector_of_charles_university = 'Q12049166'
+
+deputy_minister_position_entities = (
+    # is "Assistant Secretary" still used?
+    'Q15735113',
+
+    'Q26204040'
+)
 
 # mayors are special because there's so many the name match may
 # produce false positives - so for mayors we also match the city
