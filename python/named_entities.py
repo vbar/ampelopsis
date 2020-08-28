@@ -78,6 +78,7 @@ deputy_mayor_position_entities = (
 # councillors are even commoner than mayors
 councillor_position_entities = (
     'Q708492',
+    'Q97482814',
     'Q4657217',
 
     # "representative" might match both on municipal and region level,
