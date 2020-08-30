@@ -178,6 +178,7 @@ class Jumper:
 
         # hardcoded list is not really satisfactory...
         self.name2city = {
+            'magistrát hlavního města prahy': 'praha',
             'magistrát města české budějovice': 'české budějovice',
             'magistrát města chomutova': 'chomutov',
             'magistrát města ústí n.l.': 'ústí nad labem',
@@ -187,8 +188,19 @@ class Jumper:
             'magistrát města opavy': 'opava',
             'magistrát města pardubic': 'pardubice',
             'magistrát města plzně': 'plzeň',
-            'magistrát hlavního města prahy': 'praha',
+            'magistrát města ústí n.l.': 'ústí',
+            'statutární město brno - magistrát města brna': 'brno',
+            'statutární město karviná, magistrát města karviné': 'karviná',
+            'statutární město ostrava, magistrát města ostravy': 'ostrava',
             'úřad městské části města brna, brno-komín': 'brno',
+            'úřad městské části brno-střed': 'brno',
+            'úřad městské části brno-vinohrady': 'brno',
+            'úřad městské části praha': 'praha',
+            'úřad městské části praha - újezd': 'praha',
+            'úřad městské části praha-troja': 'praha',
+            'úřad městského obvodu pardubice vi': 'pardubice',
+            'úřad městského obvodu plzeň 1': 'plzeň',
+            'úřad městského obvodu ústí nad labem - neštěmice': 'ústí',
         }
 
         # Does not include district & regional courts - for those we
