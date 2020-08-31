@@ -451,8 +451,10 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         engineer_flag = False
         if Entity.engineer in position_set:
             position_set.remove(Entity.engineer)
-            # not added to occupation_list
-            engineer_flag = True
+            # Not added to occupation_list. For judges, we don't care
+            # whether they're Ing.
+            if not judge_position:
+                engineer_flag = True
 
         for occupation in (Entity.diplomat, Entity.police_officer, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
             if occupation in position_set:
