@@ -32,6 +32,7 @@ class Entity:
     police_officer = 'Q384593'
     physician = 'Q39631'
     psychiatrist = 'Q211346'
+    hygienist = 'Q651566'
     veterinarian = 'Q202883'
     archaeologist = 'Q3621491'
     academic = 'Q3400985'

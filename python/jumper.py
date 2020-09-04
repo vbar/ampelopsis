@@ -440,13 +440,23 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         if prosecutor_position:
             occupation_list.append(prosecutor_position)
 
+        hygienist_flag = False
+        if Entity.hygienist in position_set:
+            position_set.remove(Entity.hygienist)
+            occupation_list.append(Entity.hygienist)
+            hygienist_flag = True
+
         # doctors by themselves produce false positives, so we always
-        # combine them with other occupations
+        # combine them with other occupations...
         physician_flag = False
         if Entity.physician in position_set:
             position_set.remove(Entity.physician)
-            occupation_list.append(Entity.politician)
-            physician_flag = True
+            # ...except for hygienists; a hygienist may or may not be
+            # MUDr., but even if they are, wikidata usually don't list
+            # them as physician...
+            if not hygienist_flag:
+                occupation_list.append(Entity.politician)
+                physician_flag = True
 
         engineer_flag = False
         if Entity.engineer in position_set:

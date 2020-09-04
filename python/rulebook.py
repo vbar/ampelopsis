@@ -43,6 +43,7 @@ unknown_council_set = set([
 # can actually contain both positions and occupations; every new
 # occupation must be special-cased in Jumper
 organization2occupation = {
+    'krajská hygienická stanice': Entity.hygienist,
     'úřad vlády': 'Q15712674',
     # 'kancelář prezidenta republiky' should have something as well...
     'ředitelství silnic a dálnic čr': ('Q63486417', Entity.director),
@@ -72,6 +73,8 @@ class Rulebook:
 
             'člen statutárního orgánu': director_level,
 
+            'vedoucí organizační složky státu': director_level,
+            'vedoucí služebního úřadu': director_level,
             'vedoucí zaměstnanec 2. stupně řízení': UniversityLevel(organization2occupation, False),
             'vedoucí zaměstnanec 3. stupně řízení': director_level,
             'vedoucí zaměstnanec 4. stupně řízení': director_level,
@@ -97,7 +100,8 @@ class Rulebook:
             'soudce': JudgeLevel(),
             'státní zástupce': Entity.prosecutor,
             'ředitel bezpečnostního sboru': PoliceLevel(False),
-            # ředitel odboru/sekce doesn't match any more directors
+            'ředitel odboru': director_level,
+            'ředitel sekce': director_level,
 
             # 2nd level exists but doesn't match anybody new
             'vedoucí příslušník bezpečnostního sboru 1. řídící úrovně': PoliceLevel(True),
