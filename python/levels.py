@@ -41,16 +41,38 @@ class MuniLevel:
     def __call__(self, it):
         return self.positions
 
+class OrgLevel:
+    def __init__(self, organization2occupation):
+        self.organization2occupation = organization2occupation
+
+    # not actually used, since this class is only used as base, and
+    # all derived classes use match directly
+    def __call__(self, it):
+        org_name = get_org_name(it)
+        return self.match(org_name)
+
+    def match(self, org_name):
+        for org, occ in self.organization2occupation.items():
+            if org_name.startswith(org):
+                return occ
+
+        return None
+
 # Match for an academic functionary.
-class UniversityLevel:
+class UniversityLevel(OrgLevel):
     # currently set up for just Charles University, but can be
     # extended, if there are other rector entities...
-    def __init__(self, upper):
+    def __init__(self, organization2occupation, upper):
+        OrgLevel.__init__(self, organization2occupation)
         self.upper = upper
         self.university_corrector = Corrector(4, charles_university)
 
     def __call__(self, it):
         org_name = get_org_name(it)
+        base_found = self.match(org_name)
+        if base_found:
+            return base_found
+
         university = self.university_corrector.match(org_name)
         found_uni = len(university)
 
@@ -84,16 +106,16 @@ class PoliceLevel:
     def __call__(self, it):
         return self.entities
 
-class DirectorLevel:
+class DirectorLevel(OrgLevel):
     def __init__(self, organization2occupation):
-        self.organization2occupation = organization2occupation
+        OrgLevel.__init__(self, organization2occupation)
         self.org_corrector = Corrector(2, organization2occupation.keys())
 
     def __call__(self, it):
         org_name = get_org_name(it)
-
-        if self.org_corrector.is_correct(org_name):
-            return self.organization2occupation[org_name]
+        base_found = self.match(org_name)
+        if base_found:
+            return base_found
 
         entities = set()
         if hospital_name_rx.match(org_name):
