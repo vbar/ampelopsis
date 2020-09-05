@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 
-# requires database created with config option jump_links = 2
-
 import json
 import os
 import sys
@@ -10,9 +8,10 @@ from json_lookup import JsonLookup
 from rulebook_util import get_org_name
 
 class Scanner(JsonLookup):
-    def __init__(self, cur, org_start):
+    def __init__(self, cur, org_start, verbose):
         JsonLookup.__init__(self, cur)
         self.org_start = org_start
+        self.verbose = verbose
         self.names = set()
 
     def run(self):
@@ -33,6 +32,7 @@ order by url""")
             return
 
         lst = detail['workingPositions']
+        verbose = self.verbose
         for it in lst:
             nm = get_org_name(it)
             if nm.startswith(self.org_start):
@@ -40,6 +40,10 @@ order by url""")
                 if wp:
                     pnm = wp.get('name')
                     if pnm:
+                        if verbose:
+                            print(url, file=sys.stderr)
+                            verbose = False
+
                         self.names.add(pnm)
 
     def dump(self):
@@ -49,12 +53,18 @@ order by url""")
 
 def main():
     l = len(sys.argv)
-    if l != 2:
-        raise Exception("usage: %s org_start" % sys.argv[0])
+    if l < 2:
+        raise Exception("usage: %s [ -v | --verbose ] org_start" % sys.argv[0])
+
+    verbose = sys.argv[1] in ('-v', '--verbose')
+    if (verbose and (l == 2)) or (l > 3):
+        raise Exception("usage: %s [ -v | --verbose ] org_start" % sys.argv[0])
+
+    org_start = sys.argv[2] if verbose else sys.argv[1]
 
     with make_connection() as conn:
         with conn.cursor() as cur:
-            scanner = Scanner(cur, sys.argv[1])
+            scanner = Scanner(cur, org_start, verbose)
             scanner.run()
 
 if __name__ == "__main__":
