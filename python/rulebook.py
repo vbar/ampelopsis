@@ -44,6 +44,7 @@ unknown_council_set = set([
 # occupation must be special-cased in Jumper
 organization2occupation = {
     'krajská hygienická stanice': Entity.hygienist,
+    'khs ': Entity.hygienist,
     'úřad vlády': 'Q15712674',
     # 'kancelář prezidenta republiky' should have something as well...
     'ředitelství silnic a dálnic čr': ('Q63486417', Entity.director),
