@@ -45,7 +45,7 @@ unknown_council_set = set([
 organization2occupation = {
     'krajská hygienická stanice': Entity.hygienist,
     'khs ': Entity.hygienist,
-    'úřad vlády': 'Q15712674',
+    'úřad vlády': Entity.head_of_office_of_government,
     # 'kancelář prezidenta republiky' should have something as well...
     'ředitelství silnic a dálnic čr': ('Q63486417', Entity.director),
     'psychiatrická nemocnice bohnice': Entity.psychiatrist,
@@ -74,6 +74,7 @@ class Rulebook:
 
             'člen statutárního orgánu': director_level,
 
+            'vedoucí ústředního správního úřadu': director_level,
             'vedoucí organizační složky státu': director_level,
             'vedoucí služebního úřadu': director_level,
             'vedoucí zaměstnanec 2. stupně řízení': UniversityLevel(organization2occupation, False),

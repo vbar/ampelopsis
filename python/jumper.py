@@ -395,6 +395,11 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             position_set.remove(Entity.minister)
             minister_position = Entity.minister
 
+        office_of_government_flag = False
+        if Entity.head_of_office_of_government in position_set:
+            position_set.remove(Entity.head_of_office_of_government)
+            office_of_government_flag = True
+
         mp_position = None
         if Entity.mp in position_set:
             position_set.remove(Entity.mp)
@@ -495,6 +500,16 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             # subclass of industry and commerce ministers...
             pos_clauses.append(wrap_pos_clause('?p wdt:P279/wdt:P279 %s.' % np, l0))
 
+        if office_of_government_flag:
+            np = 'wd:' + Entity.head_of_office_of_government
+            np2 = 'wd:' + 'Q11089595'
+            # never wrapped
+            pos_clauses.append("""{
+                ?w wdt:P39 %s.
+        } union {
+                %s wdt:P1308 ?w.
+        }""" % (np, np2))
+
         if ambassador_position:
             np = 'wd:' + ambassador_position
             pos_clauses.append(wrap_pos_clause('?p wdt:P279 %s.' % np, l0))
@@ -579,6 +594,8 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         mainline_block = ''
         loc_occ = False
         if judge_position:
+            # ignoring office_of_government_flag in this branch -
+            # hopefully there'll be no overlap...
             if not l:
                 political_constraint = 'wdt:P106 ?o;'
                 mainline_block = 'optional { ?w wdt:P39 ?p. }'
@@ -593,7 +610,7 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             mainline_block += 'values ?o { %s }' % vl
         else:
             if not l0:
-                if specific:
+                if specific and not office_of_government_flag:
                     political_constraint ='wdt:P39 ?p;'
                     mainline_block = 'optional { ?w wdt:P106 ?o. }'
                 else:
@@ -601,12 +618,16 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         optional { ?w wdt:P106 ?o. }"""
             else:
                 if not l:
+                    assert not office_of_government_flag
                     if not prosecutor_position:
                         political_constraint = 'wdt:P106 ?o;'
                         mainline_block = 'optional { ?w wdt:P39 ?p. }'
                     else:
                         loc_occ = True
                 else:
+                    if office_of_government_flag:
+                        mainline_block = 'optional { ?w wdt:P39 ?p. }'
+
                     loc_occ = True
 
         if len(occupation_list):

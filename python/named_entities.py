@@ -40,6 +40,10 @@ class Entity:
     engineer = 'Q81096'
     manager = 'Q2462658'
 
+    # A specific civil servant; the entity isn't just a position, but
+    # may also occur in statements linking it to the office.
+    head_of_office_of_government = 'Q15712674'
+
     # Q462390 "docent" is also possible, but isn't that common (to be
     # expected, considering it's no longer issued), doesn't match
     # anybody new and causes timeouts, too...
