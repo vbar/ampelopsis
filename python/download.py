@@ -95,6 +95,9 @@ class Retriever(DownloadBase):
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
 
+        retry_after_default = get_option('retry_after_default', None)
+        self.retry_after_default = None if retry_after_default is None else int(retry_after_default)
+
         self.mime_whitelist = { 'text/html' }
         mime_whitelist = get_option('mime_whitelist', None)
         if mime_whitelist:
@@ -212,11 +215,11 @@ where host_id = any(%s)""", (sorted(avail),))
                         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
 values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.http_phrase))
 
-                        if target.retry_after is not None:
-                            # Retry-After is specified for a couple of
-                            # HTTP error codes; if it accompanies some
-                            # other error, we can still try the same
-                            # reaction...
+                        # HTTP 429 response need not include
+                        # Retry-After (apparently it depends on the
+                        # server) while Retry-After is specified for a
+                        # couple of HTTP error codes
+                        if (target.retry_after is not None) or ((target.http_code == 429) and (self.retry_after_default is not None)):
                             if eff_hostname is None:
                                 pr = urlparse(target.url)
                                 eff_hostname = pr.hostname
@@ -224,7 +227,8 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                             if eff_hostname is None:
                                 print("cannot parse " + target.url, file=sys.stderr)
                             else:
-                                added_hold = self.add_hold(eff_hostname, target.retry_after)
+                                retry_after = self.retry_after_default if target.retry_after is None else target.retry_after
+                                added_hold = self.add_hold(eff_hostname, retry_after)
 
                         if target.http_code is None:
                             msg += " with no HTTP status"

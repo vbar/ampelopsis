@@ -29,8 +29,8 @@ returning hostname""", (canon_host,))
 values(%s)
 on conflict do nothing
 returning id""", (self.inst_name,))
-            row = self.cur.fetchone()
-            self.inst_id = row[0] if row else get_instance_id(self.cur, self.inst_name)
+                row = self.cur.fetchone()
+                self.inst_id = row[0] if row else get_instance_id(self.cur, self.inst_name)
 
             self.cur.execute("""insert into tops(hostname, instance_id)
 values(%s, %s)

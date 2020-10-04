@@ -47,9 +47,15 @@ class DownloadBase(HostCheck):
     def add_hold(self, hostname, retry_after):
         host_id = self.get_host_id(hostname)
         if host_id:
-            m = self.relative_rx.match(retry_after)
-            if m:
-                relative = int(m.group(1))
+            relative = None
+            if isinstance(retry_after, int):
+                relative = retry_after
+            else:
+                m = self.relative_rx.match(retry_after)
+                if m:
+                    relative = int(m.group(1))
+
+            if relative is not None:
                 now = self.cond_expire()
                 future = now + relative
                 old = self.holds.get(host_id)
