@@ -8,13 +8,15 @@ from selenium.common import exceptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from common import get_loose_path, get_parent_directory, make_connection
+from common import get_loose_path, get_option, get_parent_directory, make_connection
 from download_base import DownloadBase
 
 class Driver(DownloadBase):
     def __init__(self, single_action, conn, cur):
         DownloadBase.__init__(self, conn, cur, single_action)
         self.br = None
+        self.socks_proxy_host = get_option('socks_proxy_host', None)
+        self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
         self.download_dir = os.path.join(get_parent_directory(), "down")
         if not os.path.exists(self.download_dir):
             os.makedirs(self.download_dir)
@@ -25,9 +27,14 @@ class Driver(DownloadBase):
 
         options = webdriver.ChromeOptions();
         options.add_argument("--start-maximized");
+
+        if self.socks_proxy_host:
+            proxy_url = "socks5://%s:%d" % (self.socks_proxy_host, self.socks_proxy_port)
+            options.add_argument("--proxy-server=" + proxy_url);
+
         prefs = { "download.default_directory": self.download_dir }
         options.add_experimental_option("prefs", prefs)
-        self.br = webdriver.Chrome(executable_path='chromedriver', chrome_options=options)
+        self.br = webdriver.Chrome(executable_path='chromedriver', options=options)
 
     def run(self):
         self.cur.execute("""select count(*)
