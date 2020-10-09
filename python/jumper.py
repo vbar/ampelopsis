@@ -119,7 +119,9 @@ def format_councillor_bare_clause(councillor_position_iterable, city_set):
         filter(lang(?t) = "cs" && %s)""" % (vl, filter_expr)
 
 def make_meta_query_url():
-    vl = format_position_iterable(mayor_position_entities)
+    mayor_superclasses = list(mayor_position_entities)
+    mayor_superclasses.append('Q99356295')
+    vl = format_position_iterable(mayor_superclasses)
     query = """select ?q ?j ?l ?p ?t {
         {
                 ?q wdt:P279 ?p;
