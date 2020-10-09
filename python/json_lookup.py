@@ -111,8 +111,10 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         return pellets
 
     def make_name_rx(self, detail):
-        name = self.make_person_name(detail)
-        return re.compile("\\b" + re.escape(name) + "\\b", re.IGNORECASE)
+        names = self.make_person_names(detail)
+        alts = [ "(" + re.escape(name) + ")" for name in names ]
+        expr = '|'.join(alts)
+        return re.compile("\\b" + expr + "\\b", re.IGNORECASE)
 
     # only matches w/ specific position(s)
     def get_query_documents(self, detail):

@@ -3,16 +3,13 @@
 from datetime import datetime
 import re
 from corrector import Corrector
+from name_check import name_char_rx, normalize_name, NameCheck
 from tree_check import TreeCheck
 from levels import JudgeLevel, MuniLevel, ParliamentLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
 from rulebook_util import convert_answer_to_iterable, get_org_name, reduce_substrings_to_shortest, school_name_rx
 from urlize import create_query_url, whitespace_rx
-
-# we could include single quote, but there probably aren't any Czech
-# politicians named O'Something...
-name_char_rx = re.compile("[^\\w ./-]")
 
 city_start_rx = re.compile("^(?:mč|město|měú|městská část|městský obvod|mo|městský úřad|městys|obec|obecní úřad|oú|úřad městské části|úmč|úřad mč|úřad městského obvodu|úmo|úřad městyse|ves|statutární město|zastupitelstvo obce|zastupitelstvo města) ")
 
@@ -30,10 +27,6 @@ city_district_rx = re.compile("^.+-([^-]{3,})$")
 school_tail_rx = re.compile(" [asv]$")
 
 date_rx = re.compile("^([0-9]{4})-[0-9]{2}-[0-9]{2}")
-
-def normalize_name(raw):
-    name = name_char_rx.sub("", raw.strip())
-    return name.lower()
 
 def convert_city_set_to_dict(city_set):
     city_dict = {}
@@ -71,10 +64,17 @@ def check_school(raw_name):
 def format_position_iterable(position_iterable):
     return ' '.join('wd:' + p for p in sorted(position_iterable))
 
-def format_court_set(court_set):
-    terms = [ 'contains(lcase(?g), "%s")' % stem for stem in sorted(court_set) ]
+def format_string_set(sub_expr, string_set):
+    assert len(string_set)
+    terms = [ 'contains(lcase(%s), "%s")' % (sub_expr, stem) for stem in sorted(string_set) ]
     cond = ' || '.join(terms)
     return cond if len(terms) < 2 else '(%s)' % cond
+
+def format_name_set(name_set):
+    return format_string_set('?l', name_set)
+
+def format_court_set(court_set):
+    return format_string_set('?g', court_set)
 
 def format_neg_court_set(neg_court_set):
     terms = [ '!contains(lcase(?g), "%s")' % stem for stem in sorted(neg_court_set) ]
@@ -92,9 +92,7 @@ def format_city_set(city_set):
     return cond if len(terms) < 2 else '(%s)' % cond
 
 def format_school_set(school_set):
-    terms = [ 'contains(lcase(?k), "%s")' % stem for stem in sorted(school_set) ]
-    cond = ' || '.join(terms)
-    return cond if len(terms) < 2 else '(%s)' % cond
+    return format_string_set('?k', school_set)
 
 def format_mayor_bare_clause(mayor_position_set, city_set):
     vl = format_position_iterable(mayor_position_set)
@@ -156,6 +154,8 @@ class Jumper:
         today = datetime.now()
         self.recent_year = today.year - 2
         self.year_precision = 9
+
+        self.name_check = NameCheck()
 
         self.tree_check = TreeCheck()
         self.tree_check.add('titleBefore', 'mudr', Entity.physician)
@@ -274,8 +274,12 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         shorter = city_start_rx.sub("", safer)
         return whitespace_rx.sub(" ", shorter.strip())
 
-    def make_person_name(self, detail):
-        return "%s %s" % tuple(normalize_name(detail[n]) for n in ('firstName', 'lastName'))
+    def make_person_names(self, detail):
+        names = self.name_check.walk(detail)
+        if not len(names):
+            raise Exception("Person detail has no name")
+
+        return names
 
     def make_position_set(self, detail):
         sought = set()
@@ -387,7 +391,7 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
         return year
 
     def make_query_urls(self, detail, position_set):
-        name_cond = 'contains(lcase(?l), "%s")' % self.make_person_name(detail)
+        name_cond = format_name_set(self.make_person_names(detail))
 
         specific = len(position_set)
         position_list = list(position_set)
