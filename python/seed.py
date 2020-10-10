@@ -25,12 +25,7 @@ returning hostname""", (canon_host,))
                 print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
         else:
             if not self.inst_id:
-                self.cur.execute("""insert into instances(instance_name)
-values(%s)
-on conflict do nothing
-returning id""", (self.inst_name,))
-                row = self.cur.fetchone()
-                self.inst_id = row[0] if row else get_instance_id(self.cur, self.inst_name)
+                self.do_add_instance()
 
             self.cur.execute("""insert into tops(hostname, instance_id)
 values(%s, %s)
@@ -61,6 +56,10 @@ returning url_id""", (url_id, 0, hostname))
         if self.cur.fetchone() is None:
             print("URL %s already in queue" % (url_id,), file=sys.stderr)
 
+    def cond_add_instance(self):
+        if self.inst_name and not self.inst_id:
+            self.do_add_instance()
+
     def seed_queue(self):
         self.cur.execute("""select url, id from field
 where checkd is null
@@ -68,6 +67,15 @@ order by id""")
         rows = self.cur.fetchall()
         for row in rows:
             self.add_work(*row)
+
+    def do_add_instance(self):
+        self.cur.execute("""insert into instances(instance_name)
+values(%s)
+on conflict do nothing
+returning id""", (self.inst_name,))
+        row = self.cur.fetchone()
+        self.inst_id = row[0] if row else get_instance_id(self.cur, self.inst_name)
+
 
 def main():
     top_protocols = get_option('top_protocols', 'http')
@@ -88,6 +96,7 @@ def main():
                     for protocol in protocols:
                         seeder.add_url("%s://%s" % (protocol, a))
 
+            seeder.cond_add_instance() # for seeding w/o arguments
             seeder.seed_queue()
 
 if __name__ == "__main__":
