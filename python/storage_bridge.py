@@ -4,7 +4,7 @@ from cursor_wrapper import CursorWrapper
 from host_check import get_instance_id
 from volume_holder import VolumeHolder
 
-content_type_rx = re.compile("^content-type:\\s*(.+)", re.I)
+content_type_rx = re.compile(b"^content-type:\\s*(.+)", re.I)
 
 class StorageBridge(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
@@ -35,9 +35,10 @@ where id=%s and checkd is not null and failed is null and instance_id=%s""", (ur
         if reader:
             try:
                 for ln in reader:
-                    m = content_type_rx.match()
+                    m = content_type_rx.match(ln)
                     if m:
-                        return m.group(1)
+                        b = m.group(1)
+                        return b.decode('utf-8')
             finally:
                 reader.close()
 
