@@ -164,7 +164,7 @@ on conflict(url_id) do nothing
 returning url_id""", (url_id, self.inst_id))
             row = self.cur.fetchone()
             if row is None:
-                cur.execute("""select instance_id
+                self.cur.execute("""select instance_id
 from locality
 where url_id=%s""", (url_id,))
                 row = self.cur.fetchone()
