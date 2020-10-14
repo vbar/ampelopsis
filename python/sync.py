@@ -17,6 +17,9 @@ class TargetBase:
         self.http_code = None
         self.http_phrase = None
 
+    def succeeded(self):
+        return self.http_code and ((self.http_code // 100) == 2)
+
     def handle_header(self, data):
         header_line = data.decode('iso-8859-1')
         if header_line.startswith('HTTP/'):
@@ -88,14 +91,23 @@ class BodyTarget(TargetBase):
             self.target.close()
             self.target = None
 
-        self.owner.finish_page(self.url_id)
+        self.owner.finish_page(self.url_id, self.succeeded())
 
 
 class Retriever(CursorWrapper):
     def __init__(self, cur, inst_name=None):
         CursorWrapper.__init__(self, cur)
         self.own_max_num_conn = int(get_option('own_max_num_conn', "4"))
+        self.healthcheck_interval = int(get_option("healthcheck_interval", "100"))
+        self.healthcheck_threshold = int(get_option("healthcheck_threshold", "80"))
+        if self.healthcheck_threshold <= 0:
+            # disabled
+            self.healthcheck_interval = 0
+
         self.progressing = [] # of URL IDs
+        self.total_checked = 0
+        self.total_processed = 0
+        self.total_error = 0
 
         server_name = get_mandatory_option('server_name')
         raw_port = get_option('server_port', "8888")
@@ -180,7 +192,7 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
                     m.remove_handle(c)
                     eff_url = c.getinfo(pycurl.EFFECTIVE_URL)
                     msg = "got " + eff_url
-                    if target.http_code != 200:
+                    if not target.succeeded():
                         if target.http_code is None:
                             msg += " with no HTTP status"
                         else:
@@ -201,6 +213,9 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
                     freelist.append(c)
 
                 num_processed += len(ok_list) + len(err_list)
+
+                if self.healthcheck_interval and (self.total_processed >= self.total_checked + self.healthcheck_interval):
+                    self.healthcheck()
 
                 if num_q == 0:
                     break
@@ -268,17 +283,29 @@ limit 1""" % (cond_sql, self.remote_inst_id))
         elif not self.remote_inst_id:
             raise Exception("Neither local nor remote instance is set")
 
-    def finish_page(self, url_id):
-        if self.inst_id:
-            self.cur.execute("""insert into locality(url_id, instance_id)
+    def finish_page(self, url_id, succeeded):
+        if succeeded:
+            if self.inst_id:
+                self.cur.execute("""insert into locality(url_id, instance_id)
 values(%s, %s)
 on conflict(url_id) do update
 set instance_id=%s""", (url_id, self.inst_id, self.inst_id))
-        else:
-            self.cur.execute("""delete from locality
+            else:
+                self.cur.execute("""delete from locality
 where url_id=%s""", (url_id,))
+        else:
+            self.total_error += 1
 
+        self.total_processed += 1
         self.progressing.remove(url_id)
+
+    def healthcheck(self):
+        err_perc = (100 * self.total_error) / self.total_processed
+        if err_perc >= self.healthcheck_threshold:
+            msg = "on %d downloads, failed on %d" % (self.total_processed, self.total_error)
+            raise Exception(msg)
+
+        self.total_checked = self.total_processed
 
     def report_error(self, target, errno, errmsg):
         if (errno == 23) and not target.retrieve_body:
