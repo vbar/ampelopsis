@@ -616,7 +616,7 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             mainline_block += 'values ?o { %s }' % vl
         else:
             if not l0:
-                if specific and not office_of_government_flag:
+                if specific:
                     political_constraint ='wdt:P39 ?p;'
                     mainline_block = 'optional { ?w wdt:P106 ?o. }'
                 else:
