@@ -78,6 +78,22 @@ class RootTarget(TargetBase):
         self.owner.set_remote_instance(remote_inst.strip())
 
 
+class HeaderTarget(TargetBase):
+    def __init__(self, owner, url, url_id):
+        TargetBase.__init__(self, owner, url)
+        self.url_id = url_id
+
+    def make_target(self):
+        return open(get_loose_path(self.url_id, True), 'wb')
+
+    def close(self):
+        if self.target:
+            self.target.close()
+            self.target = None
+
+        self.owner.continue_page(self.url_id, self.succeeded())
+
+
 class BodyTarget(TargetBase):
     def __init__(self, owner, url, url_id):
         TargetBase.__init__(self, owner, url)
@@ -104,6 +120,7 @@ class Retriever(CursorWrapper):
             # disabled
             self.healthcheck_interval = 0
 
+        self.target_queue = [] # of TargetBase descendants
         self.progressing = [] # of URL IDs
         self.total_checked = 0
         self.total_processed = 0
@@ -124,6 +141,7 @@ class Retriever(CursorWrapper):
     # adapted from https://github.com/pycurl/pycurl/blob/master/examples/retriever-multi.py
     def retrieve(self):
         if self.remote_inst_id is None:
+            self.target_queue.append(RootTarget(self, self.endpoint_root))
             num_conn = 1
             full = True
         else:
@@ -235,15 +253,20 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
         m.close()
         return full
 
-    def get_url(self, url_id):
+    def get_url(self, url_id, headers_flag):
         if schema:
-            return "%s/%s/%d" % (self.endpoint_root, schema, url_id)
+            url = "%s/%s/%d" % (self.endpoint_root, schema, url_id)
         else:
-            return "%s/%d" % (self.endpoint_root, url_id)
+            url = "%s/%d" % (self.endpoint_root, url_id)
+
+        if headers_flag:
+            url += 'h'
+
+        return url
 
     def pop_target(self):
-        if self.remote_inst_id is None:
-            return RootTarget(self, self.endpoint_root)
+        if len(self.target_queue):
+            return self.target_queue.pop(0)
 
         cond_sql = ""
         if len(self.progressing):
@@ -271,9 +294,9 @@ limit 1""" % (cond_sql, self.remote_inst_id))
             return None
 
         url_id = row[0]
-        url = self.get_url(url_id)
+        url = self.get_url(url_id, True)
         self.progressing.append(url_id)
-        return BodyTarget(self, url, url_id)
+        return HeaderTarget(self, url, url_id)
 
     def set_remote_instance(self, remote_inst):
         self.remote_inst_id = get_instance_id(self.cur, remote_inst) if remote_inst else ""
@@ -282,6 +305,18 @@ limit 1""" % (cond_sql, self.remote_inst_id))
                 raise Exception("Remote instance same as local")
         elif not self.remote_inst_id:
             raise Exception("Neither local nor remote instance is set")
+
+    def continue_page(self, url_id, succeeded):
+        if succeeded: # we could ignore the error, but then the body
+                      # download might succeed, leading to silent loss
+                      # of headers in the process of changing
+                      # locality...
+            url = self.get_url(url_id, False)
+            self.target_queue.append(BodyTarget(self, url, url_id))
+        else:
+            self.total_error += 1
+
+        self.total_processed += 1
 
     def finish_page(self, url_id, succeeded):
         if succeeded:

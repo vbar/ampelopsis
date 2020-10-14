@@ -22,7 +22,7 @@ def get_connection():
 
 
 def get_path_rx():
-    id_rx_group = "([0-9]{1,10})"
+    id_rx_group = "([0-9]{1,10})h?"
     if schema:
         path_rx = re.compile("^/" + re.escape(schema) + "/" + id_rx_group + "$")
     else:
@@ -46,7 +46,7 @@ class StorageHandler(BaseHTTPRequestHandler):
         conn = get_connection()
         try:
             with conn.cursor() as cur:
-                self._serve(cur, int(m.group(1)))
+                self._serve(cur, int(m.group(1)), self.path.endswith('h'))
         finally:
             the_pool.putconn(conn)
 
@@ -62,7 +62,7 @@ instance=%s
         self.wfile.write(config.encode("utf-8"))
         # self.close_connection = False
 
-    def _serve(self, cur, url_id):
+    def _serve(self, cur, url_id, headers_flag):
         bridge = StorageBridge(cur)
         try:
             if not bridge.has_local_data(url_id):
@@ -70,10 +70,16 @@ instance=%s
                 return
 
             volume_id = bridge.get_volume_id(url_id)
-            ct = bridge.get_content_type(url_id, volume_id)
-            reader = bridge.open_page(url_id, volume_id)
+            if headers_flag:
+                ct = "text/plain"
+                reader = bridge.open_headers(url_id, volume_id)
+            else:
+                ct = bridge.get_content_type(url_id, volume_id)
+                reader = bridge.open_page(url_id, volume_id)
+
             if reader is None:
-                # assuming redirect
+                # headers are optional (e.g. drive.py doesn't store
+                # them); for bodies, assuming redirect
                 self.send_error(204, "No content")
                 return
 
