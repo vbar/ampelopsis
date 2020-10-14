@@ -17,6 +17,9 @@ class TargetBase:
         self.http_code = None
         self.http_phrase = None
 
+    def get_verb(self):
+        return 'GET'
+
     def succeeded(self):
         return self.http_code and ((self.http_code // 100) == 2)
 
@@ -110,6 +113,23 @@ class BodyTarget(TargetBase):
         self.owner.finish_page(self.url_id, self.succeeded())
 
 
+class DeleteTarget(TargetBase):
+    def __init__(self, owner, url, url_id):
+        TargetBase.__init__(self, owner, url)
+        self.url_id = url_id
+
+    def get_verb(self):
+        return 'DELETE'
+
+    def make_target(self):
+        # technically we could ignore the data, but our server isn't
+        # supposed to send any...
+        raise Exception("got DELETE response w/ body")
+
+    def close(self):
+        assert self.target is None
+
+
 class Retriever(CursorWrapper):
     def __init__(self, cur, inst_name=None):
         CursorWrapper.__init__(self, cur)
@@ -187,8 +207,14 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
 
                 c = freelist.pop()
                 num_started += 1
-                c.target = target
+                if target.get_verb() == 'DELETE':
+                    c.setopt(pycurl.CUSTOMREQUEST, 'DELETE')
+                else: # reset after potential DELETE
+                    c.unsetopt(pycurl.CUSTOMREQUEST)
+                    c.setopt(pycurl.HTTPGET, True)
+
                 c.setopt(pycurl.URL, target.url)
+                c.target = target
                 c.setopt(c.HEADERFUNCTION, target.handle_header)
                 c.setopt(pycurl.WRITEDATA, target)
                 m.add_handle(c)
@@ -208,8 +234,9 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
                 for c in ok_list:
                     target = c.target
                     m.remove_handle(c)
+                    msg_verb = "deleted" if target.get_verb() == 'DELETE' else "got"
                     eff_url = c.getinfo(pycurl.EFFECTIVE_URL)
-                    msg = "got " + eff_url
+                    msg = msg_verb + " " + eff_url
                     if not target.succeeded():
                         if target.http_code is None:
                             msg += " with no HTTP status"
@@ -244,7 +271,7 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
             m.select(1.0)
 
         for c in m.handles:
-            if c.target is not None:
+            if hasattr(c, 'target') and (c.target is not None):
                 c.target.close()
                 c.target = None
 
@@ -328,6 +355,9 @@ set instance_id=%s""", (url_id, self.inst_id, self.inst_id))
             else:
                 self.cur.execute("""delete from locality
 where url_id=%s""", (url_id,))
+
+            url = self.get_url(url_id, False)
+            self.target_queue.append(DeleteTarget(self, url, url_id))
         else:
             self.total_error += 1
 

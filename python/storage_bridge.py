@@ -1,5 +1,6 @@
+import os
 import re
-from common import get_option
+from common import get_loose_path, get_option
 from cursor_wrapper import CursorWrapper
 from host_check import get_instance_id
 from volume_holder import VolumeHolder
@@ -30,6 +31,27 @@ where id=%s and checkd is not null and failed is null and instance_id=%s""", (ur
         row = self.cur.fetchone()
         return row[0]
 
+    def has_remote_instance(self, url_id):
+        if self.inst_id is None:
+            # for DELETE, we require a not-obviously-incorrect configuration
+            return False
+
+        self.cur.execute("""select instance_id
+from field
+left join download_error on id=download_error.url_id
+join locality on id=locality.url_id
+where id=%s and checkd is not null and failed is null and instance_id is not null""", (url_id,))
+
+        rows = self.cur.fetchall()
+        found = False
+        for row in rows:
+            if row[0] == self.inst_id:
+                return False
+
+            found = True
+
+        return found
+
     def get_content_type(self, url_id, volume_id):
         reader = self.open_headers(url_id, volume_id)
         if reader:
@@ -43,3 +65,9 @@ where id=%s and checkd is not null and failed is null and instance_id=%s""", (ur
                 reader.close()
 
         return "text/plain"
+
+    def delete_storage(self, url_id):
+        for hdr in (True, False):
+            loose_path = get_loose_path(url_id, hdr)
+            if os.path.exists(loose_path):
+                os.remove(loose_path)

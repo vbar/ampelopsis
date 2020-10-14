@@ -50,6 +50,21 @@ class StorageHandler(BaseHTTPRequestHandler):
         finally:
             the_pool.putconn(conn)
 
+    def do_DELETE(self):
+        path_rx = get_path_rx()
+        m = path_rx.match(self.path)
+        if not m:
+            self.send_error(404, "Path not found")
+            return
+
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                # always delete both header & body
+                self._delete(cur, int(m.group(1)))
+        finally:
+            the_pool.putconn(conn)
+
     def _serve_root(self):
         inst_name = get_option("instance", "")
         config = """[root]
@@ -91,6 +106,23 @@ instance=%s
                 # self.close_connection = False
             finally:
                 reader.close()
+        finally:
+            bridge.close()
+
+    def _delete(self, cur, url_id):
+        bridge = StorageBridge(cur)
+        try:
+            if not bridge.has_remote_instance(url_id):
+                self.send_error(403, "Forbidden")
+                return
+
+            volume_id = bridge.get_volume_id(url_id)
+            if volume_id:
+                self.send_error(403, "Already archived")
+                return
+
+            bridge.delete_storage(url_id)
+            self.send_error(204, "No content")
         finally:
             bridge.close()
 
