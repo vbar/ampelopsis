@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import gzip
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from psycopg2 import pool
 import re
@@ -78,6 +79,7 @@ instance=%s
         # self.close_connection = False
 
     def _serve(self, cur, url_id, headers_flag):
+        compress_threshold = int(get_option("compress_threshold", "100"))
         bridge = StorageBridge(cur)
         try:
             if not bridge.has_local_data(url_id):
@@ -86,9 +88,11 @@ instance=%s
 
             volume_id = bridge.get_volume_id(url_id)
             if headers_flag:
+                sz = None
                 ct = "text/plain"
                 reader = bridge.open_headers(url_id, volume_id)
             else:
+                sz = bridge.get_body_size(url_id, volume_id)
                 ct = bridge.get_content_type(url_id, volume_id)
                 reader = bridge.open_page(url_id, volume_id)
 
@@ -99,10 +103,23 @@ instance=%s
                 return
 
             try:
+                compress = (sz is not None) and (sz >= compress_threshold) and ('accept-encoding' in self.headers) and ('gzip' in self.headers['accept-encoding'])
+
                 self.send_response(200)
-                self.send_header('Content-type', ct)
+                self.send_header('Content-Type', ct)
+
+                if compress:
+                    self.send_header('Content-Encoding', 'gzip')
+                elif sz is not None:
+                    self.send_header('Content-Length', sz)
+
                 self.end_headers()
-                shutil.copyfileobj(reader, self.wfile)
+
+                if compress:
+                    self._write_compressed(reader)
+                else:
+                    shutil.copyfileobj(reader, self.wfile)
+
                 # self.close_connection = False
             finally:
                 reader.close()
@@ -125,6 +142,13 @@ instance=%s
             self.send_error(204, "No content")
         finally:
             bridge.close()
+
+    def _write_compressed(self, reader):
+        compressor = gzip.GzipFile(fileobj=self.wfile, mode='w', compresslevel=5)
+        try:
+            shutil.copyfileobj(reader, compressor)
+        finally:
+            compressor.close()
 
 
 def main():

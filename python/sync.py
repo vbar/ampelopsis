@@ -178,7 +178,7 @@ left join download_error on id=download_error.url_id
 join locality on id=locality.url_id
 where checkd is not null and failed is null and instance_id=%s""", (self.remote_inst_id,))
             row = self.cur.fetchone()
-            num_conn = row[0]
+            num_conn = 3 * row[0] + len(self.target_queue)
             if not num_conn:
                 return False
 
@@ -215,6 +215,7 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
 
                 c.setopt(pycurl.URL, target.url)
                 c.target = target
+                c.setopt(pycurl.ENCODING, b'gzip')
                 c.setopt(c.HEADERFUNCTION, target.handle_header)
                 c.setopt(pycurl.WRITEDATA, target)
                 m.add_handle(c)
@@ -278,7 +279,7 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
             c.close()
 
         m.close()
-        return full
+        return full or len(self.target_queue)
 
     def get_url(self, url_id, headers_flag):
         if schema:
