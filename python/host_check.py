@@ -36,14 +36,17 @@ class HostCheck(CursorWrapper):
         self.canonicalizer = make_canonicalizer()
 
         self.host_white = {}
-        sql_cond = ""
-        if self.inst_id:
-            sql_cond = "where instance_id=%d" % self.inst_id
-
-        cur.execute("""select id, hostname
+        if not self.inst_id:
+            cur.execute("""select id, hostname
 from tops
 %s
-order by id""" % (sql_cond,))
+order by id""")
+        else:
+            cur.execute("""select id, hostname
+from tops
+join host_inst on id=host_id
+where instance_id=%s
+order by id""", (self.inst_id,))
         rows = cur.fetchall()
         for row in rows:
             host = self.canonicalizer.canonicalize_host(row[1])
