@@ -142,34 +142,46 @@ on conflict do nothing""", (url_id, new_url_id))
         return (new_url_id, known)
 
     def finish_page(self, url_id, eff_id, has_body):
-        self.finish_url(url_id)
+        self.finish_url(url_id, True)
         if url_id != eff_id:
-            self.finish_url(eff_id)
+            self.finish_url(eff_id, False)
 
         if has_body:
             self.cur.execute("""insert into parse_queue(url_id) values(%s)
 on conflict(url_id) do nothing""", (eff_id,))
 
-    def finish_url(self, url_id):
+    def finish_url(self, url_id, upd_inst):
         if self.inst_id:
-            # The on conflict clause prevents crash on conflict, but
-            # changing instance isn't really implemented (or even
-            # implementable - e.g. what should be done to a previous
-            # file in another instance, and how?)... Let's hope
-            # conflict will only happen after re-seeding, when old and
-            # new instance are the same...
-            self.cur.execute("""insert into locality(url_id, instance_id)
+            # Mostly there should be no existing record.
+            if upd_inst:
+                # When there is (e.g. after restarting download), the
+                # download locality should be updated.
+                self.cur.execute("""insert into locality(url_id, instance_id)
+values(%s, %s)
+on conflict(url_id) do update
+set instance_id=%s""", (url_id, self.inst_id, self.inst_id))
+            else:
+                # On the other hand, if somebody (e.g. sync.py)
+                # changed instance after download, hopefully they knew
+                # what they were doing...
+                self.cur.execute("""insert into locality(url_id, instance_id)
 values(%s, %s)
 on conflict(url_id) do nothing
 returning url_id""", (url_id, self.inst_id))
-            row = self.cur.fetchone()
-            if row is None:
-                self.cur.execute("""select instance_id
+                row = self.cur.fetchone()
+                if row is None:
+                    self.cur.execute("""select instance_id
 from locality
 where url_id=%s""", (url_id,))
-                row = self.cur.fetchone()
-                if row[0] != self.inst_id:
-                    raise Exception("Cannot change instance of %d (from %d to %d)." % (url_id, row[0], self.inst_id))
+                    row = self.cur.fetchone()
+                    if row[0] != self.inst_id:
+                        print("cannot change instance of %d (from %d to %d)" % (url_id, row[0], self.inst_id), file=sys.stderr)
+        # correct but unnecessary work (provided that either every
+        # config used for a download has an instance, or none do)
+#         else:
+#             if upd_inst:
+#                 self.cur.execute("""delete from locality
+# where url_id=%s""", (url_id,))
 
         self.cur.execute("""update field
 set checkd=localtimestamp
