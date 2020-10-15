@@ -7,7 +7,8 @@ from host_check import HostCheck
 
 class DownloadBase(HostCheck):
     def __init__(self, conn, cur, single_action):
-        HostCheck.__init__(self, cur)
+        # download (as opposed to parsing) host check is restricted by instance
+        HostCheck.__init__(self, cur, get_option("instance", None))
 
         self.conn = conn
         self.single_action = single_action
@@ -46,9 +47,15 @@ class DownloadBase(HostCheck):
     def add_hold(self, hostname, retry_after):
         host_id = self.get_host_id(hostname)
         if host_id:
-            m = self.relative_rx.match(retry_after)
-            if m:
-                relative = int(m.group(1))
+            relative = None
+            if isinstance(retry_after, int):
+                relative = retry_after
+            else:
+                m = self.relative_rx.match(retry_after)
+                if m:
+                    relative = int(m.group(1))
+
+            if relative is not None:
                 now = self.cond_expire()
                 future = now + relative
                 old = self.holds.get(host_id)
@@ -104,6 +111,70 @@ returning url_id""", (tops,))
                 else:
                     return None
 
+    def add_redirect(self, url_id, new_url):
+        known = False
+        new_url_id = None
+        while new_url_id is None:
+            self.cur.execute("""select id
+from field
+where url=%s""", (new_url,))
+            row = self.cur.fetchone()
+            if row is not None:
+                new_url_id = row[0]
+                known = True
+            else:
+                self.cur.execute("""insert into field(url) values(%s)
+on conflict(url) do nothing
+returning id""", (new_url,))
+                row = self.cur.fetchone()
+                # conflict probably won't happen, but theoretically
+                # it's possible that a parallel download inserted the
+                # URL since the select above, in which case we'll just
+                # try again...
+                if row is None:
+                    print("parallel insert for " + new_url, file=sys.stderr)
+                else:
+                    new_url_id = row[0]
+
+        self.cur.execute("""insert into redirect(from_id, to_id) values(%s, %s)
+on conflict do nothing""", (url_id, new_url_id))
+
+        return (new_url_id, known)
+
+    def finish_page(self, url_id, eff_id, has_body):
+        self.finish_url(url_id)
+        if url_id != eff_id:
+            self.finish_url(eff_id)
+
+        if has_body:
+            self.cur.execute("""insert into parse_queue(url_id) values(%s)
+on conflict(url_id) do nothing""", (eff_id,))
+
+    def finish_url(self, url_id):
+        if self.inst_id:
+            # The on conflict clause prevents crash on conflict, but
+            # changing instance isn't really implemented (or even
+            # implementable - e.g. what should be done to a previous
+            # file in another instance, and how?)... Let's hope
+            # conflict will only happen after re-seeding, when old and
+            # new instance are the same...
+            self.cur.execute("""insert into locality(url_id, instance_id)
+values(%s, %s)
+on conflict(url_id) do nothing
+returning url_id""", (url_id, self.inst_id))
+            row = self.cur.fetchone()
+            if row is None:
+                self.cur.execute("""select instance_id
+from locality
+where url_id=%s""", (url_id,))
+                row = self.cur.fetchone()
+                if row[0] != self.inst_id:
+                    raise Exception("Cannot change instance of %d (from %d to %d)." % (url_id, row[0], self.inst_id))
+
+        self.cur.execute("""update field
+set checkd=localtimestamp
+where id=%s""", (url_id,))
+
     def cond_notify(self):
         live = False
         if not self.single_action:
@@ -148,8 +219,7 @@ from parse_queue""")
 
         now = int(time.time() + 0.5)
         interval = mn - now
-        # sleep until after hold expires
-        return interval + 1 if interval > 0 else 1
+        return interval if interval > 0 else 1
 
     def cond_expire(self):
         now = int(time.time() + 0.5)

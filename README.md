@@ -39,12 +39,13 @@ the value of max_num_conn setting, and parse.py is generally fast
 enough to keep up with download), but becomes handy when using
 drive.py (see doc/js.md).
 
-This package contains just one parser, but it's expected that specific
-scraping projects will modify or replace it, primarily to be more
-selective in which URLs it feeds back to downloader. Using the
-unmodified parse.py, found links can be filtered by specifying
-url_whitelist_rx or url_blacklist_rx setting. Downloader and parser
-communicate through the database, using PostgreSQL notifications.
+The 'master' branch contains just one parser, but it's expected that
+specific scraping projects will modify or replace it, e.g. to be more
+selective in which URLs it feeds back to downloader (see the 'cro'
+branch for a more advanced example). Using the unmodified parse.py,
+found links can be filtered by specifying url_whitelist_rx or
+url_blacklist_rx setting. Downloader and parser communicate through
+the database, using PostgreSQL notifications.
 
 Some other notes are available in the doc directory. For more detail,
 use the source.

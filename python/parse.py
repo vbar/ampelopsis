@@ -7,7 +7,7 @@ import sys
 from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
-from host_check import HostCheck
+from host_check import get_instance_id, HostCheck
 from mem_cache import MemCache
 from json_parser import JsonParser
 from jumper import Jumper
@@ -19,6 +19,9 @@ class PolyParser(VolumeHolder, HostCheck):
     def __init__(self, single_action, conn, cur):
         VolumeHolder.__init__(self)
         HostCheck.__init__(self, cur)
+
+        inst_name = get_option("instance", None)
+        self.instance_id = get_instance_id(cur, inst_name) # self.inst_id already used by HostCheck
 
         self.mem_cache = MemCache(int(get_option('parse_cache_high_mark', "2000")), int(get_option('parse_cache_low_mark', "1000")))
 
@@ -150,16 +153,22 @@ where id=%s""", (url_id,))
         if self.is_done():
             return None
 
+        sql_cond = ""
+        if self.instance_id:
+            sql_cond = """join locality on parse_queue.url_id=locality.url_id
+where instance_id=%d""" % self.instance_id
+
         # https://blog.2ndquadrant.com/what-is-select-skip-locked-for-in-postgresql-9-5/
         self.cur.execute("""delete from parse_queue
 where url_id = (
-        select url_id
+        select parse_queue.url_id
         from parse_queue
-        order by url_id
+        %s
+        order by parse_queue.url_id
         for update skip locked
         limit 1
 )
-returning url_id""")
+returning url_id""" % sql_cond)
         row = self.cur.fetchone()
         if row:
             self.page_count += 1
@@ -234,7 +243,6 @@ where id=%s""", (url_id,))
     def set_jumper(self, jumper):
         jumper.store(self.cur)
         self.jumper = jumper
-
 
 def main():
     single_action = (len(sys.argv) == 2) and (sys.argv[1] == '--single-action')

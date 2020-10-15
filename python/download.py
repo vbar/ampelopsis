@@ -75,10 +75,11 @@ class Target:
             os.rename(get_loose_path(self.url_id, True), get_loose_path(self.eff_id, True))
 
             old_path = get_loose_path(self.url_id)
-            if self.retrieve_body:
-                os.rename(old_path, get_loose_path(self.eff_id))
-            elif os.path.exists(old_path):
-                os.remove(old_path)
+            if os.path.exists(old_path):
+                if self.retrieve_body:
+                    os.rename(old_path, get_loose_path(self.eff_id))
+                else:
+                    os.remove(old_path)
 
         self.owner.finish_page(self.url_id, self.eff_id, self.retrieve_body)
 
@@ -90,8 +91,12 @@ class Retriever(DownloadBase):
         self.max_num_conn = int(get_option('max_num_conn', "10"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
         self.user_agent = get_option('user_agent', None)
+        self.extra_header = get_option('extra_header', None)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
+
+        retry_after_default = get_option('retry_after_default', None)
+        self.retry_after_default = None if retry_after_default is None else int(retry_after_default)
 
         self.mime_whitelist = { 'text/html' }
         mime_whitelist = get_option('mime_whitelist', None)
@@ -108,50 +113,6 @@ class Retriever(DownloadBase):
         lst = content_type.split(';', 2)
         mime_type = lst[0]
         return mime_type.lower() in self.mime_whitelist
-
-    def finish_page(self, url_id, eff_id, has_body):
-        self.cur.execute("""update field
-set checkd=localtimestamp
-where id=%s""", (url_id,))
-
-        if url_id != eff_id:
-            self.cur.execute("""update field
-set checkd=localtimestamp
-where id=%s""", (eff_id,))
-
-        if has_body:
-            self.cur.execute("""insert into parse_queue(url_id) values(%s)
-on conflict(url_id) do nothing""", (eff_id,))
-
-    def add_redirect(self, url_id, new_url):
-        known = False
-        new_url_id = None
-        while new_url_id is None:
-            self.cur.execute("""select id
-from field
-where url=%s""", (new_url,))
-            row = self.cur.fetchone()
-            if row is not None:
-                new_url_id = row[0]
-                known = True
-            else:
-                self.cur.execute("""insert into field(url) values(%s)
-on conflict(url) do nothing
-returning id""", (new_url,))
-                row = self.cur.fetchone()
-                # conflict probably won't happen, but theoretically
-                # it's possible that a parallel download inserted the
-                # URL since the select above, in which case we'll just
-                # try again...
-                if row is None:
-                    print("parallel insert for " + new_url, file=sys.stderr)
-                else:
-                    new_url_id = row[0]
-
-        self.cur.execute("""insert into redirect(from_id, to_id) values(%s, %s)
-on conflict do nothing""", (url_id, new_url_id))
-
-        return (new_url_id, known)
 
     def retrieve_all(self):
         while self.retrieve():
@@ -186,6 +147,9 @@ where host_id = any(%s)""", (sorted(avail),))
 
             if self.user_agent:
                 c.setopt(pycurl.USERAGENT, self.user_agent)
+
+            if self.extra_header:
+                c.setopt(pycurl.HTTPHEADER, [self.extra_header])
 
             if self.socks_proxy_host:
                 c.setopt(pycurl.PROXY, self.socks_proxy_host)
@@ -251,11 +215,11 @@ where host_id = any(%s)""", (sorted(avail),))
                         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
 values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.http_phrase))
 
-                        if target.retry_after is not None:
-                            # Retry-After is specified for a couple of
-                            # HTTP error codes; if it accompanies some
-                            # other error, we can still try the same
-                            # reaction...
+                        # HTTP 429 response need not include
+                        # Retry-After (apparently it depends on the
+                        # server) while Retry-After is specified for a
+                        # couple of HTTP error codes
+                        if (target.retry_after is not None) or ((target.http_code == 429) and (self.retry_after_default is not None)):
                             if eff_hostname is None:
                                 pr = urlparse(target.url)
                                 eff_hostname = pr.hostname
@@ -263,7 +227,8 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                             if eff_hostname is None:
                                 print("cannot parse " + target.url, file=sys.stderr)
                             else:
-                                added_hold = self.add_hold(eff_hostname, target.retry_after)
+                                retry_after = self.retry_after_default if target.retry_after is None else target.retry_after
+                                added_hold = self.add_hold(eff_hostname, retry_after)
 
                         if target.http_code is None:
                             msg += " with no HTTP status"
