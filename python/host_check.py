@@ -39,7 +39,6 @@ class HostCheck(CursorWrapper):
         if not self.inst_id:
             cur.execute("""select id, hostname
 from tops
-%s
 order by id""")
         else:
             cur.execute("""select id, hostname
