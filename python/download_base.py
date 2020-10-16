@@ -250,7 +250,8 @@ from parse_queue""")
 
     def healthcheck(self):
         print("checking success rate...", file=sys.stderr)
-        q = """select count(*)
+        if not self.inst_id:
+            q = """select count(*)
 from (
         select id
         from field
@@ -259,6 +260,18 @@ from (
         limit %d
 ) sq
 join download_error on id=url_id""" % self.healthcheck_tail
+        else:
+            q = """select count(*)
+from (
+        select id
+        from field
+        join locality on id=url_id
+        where checkd is not null and instance_id=%d
+        order by checkd desc
+        limit %d
+) sq
+join download_error on id=url_id""" % (self.inst_id, self.healthcheck_tail)
+
         self.cur.execute(q)
         row = self.cur.fetchone()
         err_count = row[0]
