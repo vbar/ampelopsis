@@ -16,23 +16,29 @@ class Seeder:
 
     def add_host(self, hostname):
         canon_host = self.canon.canonicalize_host(hostname)
-        if not self.inst_name:
-            self.cur.execute("""insert into tops(hostname)
+        self.cur.execute("""insert into tops(hostname)
 values(%s)
 on conflict do nothing
-returning hostname""", (canon_host,))
-            if self.cur.fetchone() is None:
-                print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
-        else:
+returning id""", (canon_host,))
+        row = self.cur.fetchone()
+        if row is None:
+            print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
+
+        if self.inst_name:
+            if row is None:
+                self.cur.execute("""select id
+from tops
+where hostname=%s""", (canon_host,))
+                row = self.cur.fetchone()
+
+            host_id = row[0]
+
             if not self.inst_id:
                 self.do_add_instance()
 
-            self.cur.execute("""insert into tops(hostname, instance_id)
+            self.cur.execute("""insert into host_inst(host_id, instance_id)
 values(%s, %s)
-on conflict do nothing
-returning hostname""", (canon_host, self.inst_id))
-            if self.cur.fetchone() is None:
-                print("host %s already whitelisted" % (canon_host,), file=sys.stderr)
+on conflict do nothing""", (host_id, self.inst_id))
 
     def add_url(self, url):
         self.cur.execute("""insert into field(url)
@@ -75,7 +81,6 @@ on conflict do nothing
 returning id""", (self.inst_name,))
         row = self.cur.fetchone()
         self.inst_id = row[0] if row else get_instance_id(self.cur, self.inst_name)
-
 
 def main():
     top_protocols = get_option('top_protocols', 'http')
