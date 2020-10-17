@@ -270,7 +270,7 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
             m.select(1.0)
 
         for c in m.handles:
-            if c.target is not None:
+            if hasattr(c, 'target') and (c.target is not None):
                 c.target.close()
                 c.target = None
 
