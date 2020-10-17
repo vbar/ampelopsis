@@ -90,7 +90,7 @@ class Retriever(DownloadBase):
 
         self.max_num_conn = int(get_option('max_num_conn', "10"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
-        self.force_ipv6 = get_option('user_agent', None)
+        self.force_ipv6 = get_option('force_ipv6', None)
         self.user_agent = get_option('user_agent', None)
         self.extra_header = get_option('extra_header', None)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
