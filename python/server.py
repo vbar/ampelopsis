@@ -8,6 +8,7 @@ import shutil
 import sys
 from common import get_mandatory_option, get_option, schema
 from storage_bridge import StorageBridge
+from volume_bridge import VolumeBridge
 
 the_pool = pool.ThreadedConnectionPool(database='ampelopsis', host=get_option('dbhost', 'localhost'), user=get_mandatory_option('dbuser'), password=get_mandatory_option('dbpass'), minconn=0, maxconn=int(get_option('own_max_num_conn', "4")))
 
@@ -23,7 +24,7 @@ def get_connection():
 
 
 def get_path_rx():
-    id_rx_group = "([0-9]{1,10})h?"
+    id_rx_group = "([0-9]{1,10})(|h|[.]zip)"
     if schema:
         path_rx = re.compile("^/" + re.escape(schema) + "/" + id_rx_group + "$")
     else:
@@ -47,7 +48,12 @@ class StorageHandler(BaseHTTPRequestHandler):
         conn = get_connection()
         try:
             with conn.cursor() as cur:
-                self._serve(cur, int(m.group(1)), self.path.endswith('h'))
+                obj_id = int(m.group(1))
+                ext = m.group(2)
+                if ext == '.zip':
+                    self._serve_volume(cur, obj_id)
+                else:
+                    self._serve(cur, obj_id, ext)
         finally:
             the_pool.putconn(conn)
 
@@ -61,8 +67,13 @@ class StorageHandler(BaseHTTPRequestHandler):
         conn = get_connection()
         try:
             with conn.cursor() as cur:
-                # always delete both header & body
-                self._delete(cur, int(m.group(1)))
+                obj_id = int(m.group(1))
+                ext = m.group(2)
+                if ext == '.zip':
+                    self._delete_volume(cur, obj_id)
+                else:
+                    # always delete both header & body
+                    self._delete(cur, obj_id)
         finally:
             the_pool.putconn(conn)
 
@@ -126,6 +137,25 @@ instance=%s
         finally:
             bridge.close()
 
+    def _serve_volume(self, cur, volume_id):
+        bridge = VolumeBridge(cur)
+        if not bridge.has_local_volume(volume_id):
+            self.send_error(404, "Archive not found")
+            return
+
+        reader = bridge.open_volume(volume_id)
+        if not reader:
+            self.send_error(404, "Volume not found")
+            return
+
+        try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/octet-stream')
+            self.end_headers()
+            shutil.copyfileobj(reader, self.wfile)
+        finally:
+            reader.close()
+
     def _delete(self, cur, url_id):
         bridge = StorageBridge(cur)
         try:
@@ -142,6 +172,15 @@ instance=%s
             self.send_error(204, "No content")
         finally:
             bridge.close()
+
+    def _delete_volume(self, cur, volume_id):
+        bridge = VolumeBridge(cur)
+        if not bridge.has_remote_instance(volume_id):
+            self.send_error(403, "Forbidden")
+            return
+
+        bridge.delete_volume(volume_id)
+        self.send_error(204, "No content")
 
     def _write_compressed(self, reader):
         compressor = gzip.GzipFile(fileobj=self.wfile, mode='w', compresslevel=5)
