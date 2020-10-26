@@ -4,7 +4,7 @@ import io
 import pycurl
 import re
 import sys
-from common import get_loose_path, get_mandatory_option, get_option, make_connection, schema
+from common import get_loose_path, get_mandatory_option, get_option, get_volume_path, make_connection, schema
 from cursor_wrapper import CursorWrapper
 from host_check import get_instance_id
 
@@ -19,6 +19,9 @@ class TargetBase:
 
     def get_verb(self):
         return 'GET'
+
+    def has_plaintext_body(self):
+        return False
 
     def succeeded(self):
         return self.http_code and ((self.http_code // 100) == 2)
@@ -57,6 +60,9 @@ class RootTarget(TargetBase):
         TargetBase.__init__(self, owner, url)
         self.inst_rx = re.compile("instance\s*=(.+)")
 
+    def has_plaintext_body(self):
+        return True
+
     def make_target(self):
         return io.BytesIO()
 
@@ -86,6 +92,9 @@ class HeaderTarget(TargetBase):
         TargetBase.__init__(self, owner, url)
         self.url_id = url_id
 
+    def has_plaintext_body(self):
+        return True
+
     def make_target(self):
         return open(get_loose_path(self.url_id, True), 'wb')
 
@@ -102,6 +111,9 @@ class BodyTarget(TargetBase):
         TargetBase.__init__(self, owner, url)
         self.url_id = url_id
 
+    def has_plaintext_body(self):
+        return True
+
     def make_target(self):
         return open(get_loose_path(self.url_id), 'wb')
 
@@ -113,10 +125,25 @@ class BodyTarget(TargetBase):
         self.owner.finish_page(self.url_id, self.succeeded())
 
 
-class DeleteTarget(TargetBase):
-    def __init__(self, owner, url, url_id):
+class VolumeTarget(TargetBase):
+    def __init__(self, owner, url, volume_id):
         TargetBase.__init__(self, owner, url)
-        self.url_id = url_id
+        self.volume_id = volume_id
+
+    def make_target(self):
+        return open(get_volume_path(self.volume_id), 'wb')
+
+    def close(self):
+        if self.target:
+            self.target.close()
+            self.target = None
+
+        self.owner.finish_volume(self.volume_id, self.succeeded())
+
+
+class DeleteTarget(TargetBase):
+    def __init__(self, owner, url):
+        TargetBase.__init__(self, owner, url)
 
     def get_verb(self):
         return 'DELETE'
@@ -142,6 +169,7 @@ class Retriever(CursorWrapper):
 
         self.target_queue = [] # of TargetBase descendants
         self.progressing = [] # of URL IDs
+        self.volume_progressing = [] # of volume IDs
         self.total_checked = 0
         self.total_processed = 0
         self.total_error = 0
@@ -165,20 +193,7 @@ class Retriever(CursorWrapper):
             num_conn = 1
             full = True
         else:
-            if not self.remote_inst_id:
-                self.cur.execute("""select count(*)
-from field
-left join download_error on id=download_error.url_id
-left join locality on id=locality.url_id
-where checkd is not null and failed is null and instance_id is null""")
-            else:
-                self.cur.execute("""select count(*)
-from field
-left join download_error on id=download_error.url_id
-join locality on id=locality.url_id
-where checkd is not null and failed is null and instance_id=%s""", (self.remote_inst_id,))
-            row = self.cur.fetchone()
-            num_conn = 3 * row[0] + len(self.target_queue)
+            num_conn = self.get_cand_num_conn()
             if not num_conn:
                 return False
 
@@ -215,7 +230,10 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
 
                 c.setopt(pycurl.URL, target.url)
                 c.target = target
-                c.setopt(pycurl.ENCODING, b'gzip')
+
+                if target.has_plaintext_body():
+                    c.setopt(pycurl.ENCODING, b'gzip')
+
                 c.setopt(c.HEADERFUNCTION, target.handle_header)
                 c.setopt(pycurl.WRITEDATA, target)
                 m.add_handle(c)
@@ -281,6 +299,38 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
         m.close()
         return full or len(self.target_queue)
 
+    def get_cand_num_conn(self):
+        if not self.remote_inst_id:
+            # should this even be supported?
+            self.cur.execute("""select count(*)
+from directory
+left join volume_loc on id=volume_id
+where written is not null and instance_id is null""")
+        else:
+            self.cur.execute("""select count(*)
+from directory
+join volume_loc on id=volume_id
+where written is not null and instance_id=%s""", (self.remote_inst_id,))
+        row = self.cur.fetchone()
+        volume_count = row[0]
+
+        if not self.remote_inst_id:
+            self.cur.execute("""select count(*)
+from field
+left join download_error on id=download_error.url_id
+left join locality on id=locality.url_id
+where checkd is not null and failed is null and instance_id is null""")
+        else:
+            self.cur.execute("""select count(*)
+from field
+left join download_error on id=download_error.url_id
+join locality on id=locality.url_id
+where checkd is not null and failed is null and instance_id=%s""", (self.remote_inst_id,))
+        row = self.cur.fetchone()
+        loose_count = row[0]
+
+        return len(self.target_queue) + 2 * volume_count + 3 * loose_count
+
     def get_url(self, url_id, headers_flag):
         if schema:
             url = "%s/%s/%d" % (self.endpoint_root, schema, url_id)
@@ -292,9 +342,21 @@ where checkd is not null and failed is null and instance_id=%s""", (self.remote_
 
         return url
 
+    def get_volume_url(self, volume_id):
+        if schema:
+            url = "%s/%s/%d.zip" % (self.endpoint_root, schema, volume_id)
+        else:
+            url = "%s/%d.zip" % (self.endpoint_root, volume_id)
+
+        return url
+
     def pop_target(self):
         if len(self.target_queue):
             return self.target_queue.pop(0)
+
+        target = self.pop_volume_target()
+        if target:
+            return target
 
         cond_sql = ""
         if len(self.progressing):
@@ -325,6 +387,36 @@ limit 1""" % (cond_sql, self.remote_inst_id))
         url = self.get_url(url_id, True)
         self.progressing.append(url_id)
         return HeaderTarget(self, url, url_id)
+
+    def pop_volume_target(self):
+        cond_sql = ""
+        if len(self.volume_progressing):
+            neg = ", ".join([ str(vid) for vid in self.volume_progressing ])
+            cond_sql = " and id not in (%s)" % neg
+
+        if not self.remote_inst_id:
+            self.cur.execute("""select id
+from directory
+join volume_loc on id=volume_id
+where written is not null%s and instance_id is null
+order by id
+limit 1""" % (cond_sql,))
+        else:
+            self.cur.execute("""select id
+from directory
+left join volume_loc on id=volume_id
+where written is not null%s and instance_id=%s
+order by id
+limit 1""" % (cond_sql, self.remote_inst_id))
+
+        row = self.cur.fetchone()
+        if not row:
+            return None
+
+        volume_id = row[0]
+        url = self.get_volume_url(volume_id)
+        self.volume_progressing.append(volume_id)
+        return VolumeTarget(self, url, volume_id)
 
     def set_remote_instance(self, remote_inst):
         self.remote_inst_id = get_instance_id(self.cur, remote_inst) if remote_inst else ""
@@ -358,12 +450,31 @@ set instance_id=%s""", (url_id, self.inst_id, self.inst_id))
 where url_id=%s""", (url_id,))
 
             url = self.get_url(url_id, False)
-            self.target_queue.append(DeleteTarget(self, url, url_id))
+            self.target_queue.append(DeleteTarget(self, url))
         else:
             self.total_error += 1
 
         self.total_processed += 1
         self.progressing.remove(url_id)
+
+    def finish_volume(self, volume_id, succeeded):
+        if succeeded:
+            if self.inst_id:
+                self.cur.execute("""insert into volume_loc(volume_id, instance_id)
+values(%s, %s)
+on conflict(volume_id) do update
+set instance_id=%s""", (volume_id, self.inst_id, self.inst_id))
+            else:
+                self.cur.execute("""delete from volume_loc
+where volume_id=%s""", (volume_id,))
+
+            url = self.get_volume_url(volume_id)
+            self.target_queue.append(DeleteTarget(self, url))
+        else:
+            self.total_error += 1
+
+        self.total_processed += 1
+        self.volume_progressing.remove(volume_id)
 
     def healthcheck(self):
         err_perc = (100 * self.total_error) / self.total_processed
