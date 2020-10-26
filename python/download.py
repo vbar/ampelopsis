@@ -95,6 +95,10 @@ class Retriever(DownloadBase):
         self.extra_header = get_option('extra_header', None)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
+        self.http_proxy_host = get_option('http_proxy_host', None)
+        self.http_proxy_port = int(get_option('http_proxy_port', "0"))
+        if self.socks_proxy_host and self.http_proxy_host:
+            raise Exception("more than one proxy set")
 
         retry_after_default = get_option('retry_after_default', None)
         self.retry_after_default = None if retry_after_default is None else int(retry_after_default)
@@ -159,6 +163,10 @@ where host_id = any(%s)""", (sorted(avail),))
                 c.setopt(pycurl.PROXY, self.socks_proxy_host)
                 c.setopt(pycurl.PROXYPORT, self.socks_proxy_port)
                 c.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5_HOSTNAME)
+
+            if self.http_proxy_host:
+                proxy_url = "http://%s:%d/" % (self.http_proxy_host, self.http_proxy_port)
+                c.setopt(pycurl.PROXY, proxy_url)
 
             m.handles.append(c)
 
