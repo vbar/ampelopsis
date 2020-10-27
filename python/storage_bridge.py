@@ -52,6 +52,25 @@ where id=%s and checkd is not null and failed is null and instance_id is not nul
 
         return found
 
+    def get_headers_size(self, url_id, volume_id=None):
+        sz = None
+        if volume_id is None:
+            loose_path = get_loose_path(url_id, True)
+            if os.path.exists(loose_path):
+                statinfo = os.stat(loose_path)
+                sz = statinfo.st_size
+        else:
+            if volume_id != self.volume_id:
+                self.change_volume(volume_id)
+
+            try:
+                info = self.zp.getinfo(str(url_id) + 'h')
+                sz = info.file_size
+            except KeyError:
+                pass
+
+        return sz
+
     def get_content_type(self, url_id, volume_id):
         reader = self.open_headers(url_id, volume_id)
         if reader:

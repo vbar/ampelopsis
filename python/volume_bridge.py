@@ -44,6 +44,15 @@ where id=%s and written is not null""", (volume_id,))
 
         return found
 
+    def get_volume_size(self, volume_id):
+        sz = None
+        volume_path = get_volume_path(volume_id)
+        if os.path.exists(volume_path):
+            statinfo = os.stat(volume_path)
+            sz = statinfo.st_size
+
+        return sz
+
     def open_volume(self, volume_id):
         volume_path = get_volume_path(volume_id)
         return open(volume_path, "rb")
