@@ -90,6 +90,7 @@ class Retriever(DownloadBase):
 
         self.max_num_conn = int(get_option('max_num_conn', "10"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
+        self.accept_compressed = get_option('accept_compressed', True)
         self.force_ipv6 = get_option('force_ipv6', None)
         self.user_agent = get_option('user_agent', None)
         self.extra_header = get_option('extra_header', None)
@@ -149,6 +150,9 @@ where host_id = any(%s)""", (sorted(avail),))
             c.setopt(pycurl.MAXREDIRS, 5)
             c.setopt(pycurl.CONNECTTIMEOUT, 30)
             c.setopt(pycurl.TIMEOUT, 300)
+
+            if self.accept_compressed:
+                c.setopt(pycurl.ENCODING, b'compress,gzip')
 
             if self.force_ipv6:
                 c.setopt(pycurl.IPRESOLVE, pycurl.IPRESOLVE_V6)
