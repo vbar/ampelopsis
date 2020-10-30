@@ -51,8 +51,12 @@ class Target:
                 l = 3
 
             if l >= 2:
-                self.http_code = int(line_list[1])
-                self.http_phrase = line_list[2] if l == 3 else None
+                try:
+                    self.http_code = int(line_list[1])
+                    self.http_phrase = line_list[2] if l == 3 else None
+                except:
+                    self.http_code = None
+                    self.http_phrase = header_line
 
     def write(self, data):
         if self.body_target is None:
