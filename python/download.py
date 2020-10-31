@@ -51,8 +51,12 @@ class Target:
                 l = 3
 
             if l >= 2:
-                self.http_code = int(line_list[1])
-                self.http_phrase = line_list[2] if l == 3 else None
+                try:
+                    self.http_code = int(line_list[1])
+                    self.http_phrase = line_list[2] if l == 3 else None
+                except:
+                    self.http_code = None
+                    self.http_phrase = header_line
 
     def write(self, data):
         if self.body_target is None:
@@ -90,10 +94,19 @@ class Retriever(DownloadBase):
 
         self.max_num_conn = int(get_option('max_num_conn', "10"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
+        self.accept_compressed = get_option('accept_compressed', True)
+        self.force_ipv6 = get_option('force_ipv6', None)
         self.user_agent = get_option('user_agent', None)
         self.extra_header = get_option('extra_header', None)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
+        self.http_proxy_host = get_option('http_proxy_host', None)
+        self.http_proxy_port = int(get_option('http_proxy_port', "0"))
+        if self.socks_proxy_host and self.http_proxy_host:
+            raise Exception("more than one proxy set")
+
+        retry_after_default = get_option('retry_after_default', None)
+        self.retry_after_default = None if retry_after_default is None else int(retry_after_default)
 
         self.mime_whitelist = { 'text/html' }
         mime_whitelist = get_option('mime_whitelist', None)
@@ -142,6 +155,12 @@ where host_id = any(%s)""", (sorted(avail),))
             c.setopt(pycurl.CONNECTTIMEOUT, 30)
             c.setopt(pycurl.TIMEOUT, 300)
 
+            if self.accept_compressed:
+                c.setopt(pycurl.ENCODING, b'compress,gzip')
+
+            if self.force_ipv6:
+                c.setopt(pycurl.IPRESOLVE, pycurl.IPRESOLVE_V6)
+
             if self.user_agent:
                 c.setopt(pycurl.USERAGENT, self.user_agent)
 
@@ -152,6 +171,10 @@ where host_id = any(%s)""", (sorted(avail),))
                 c.setopt(pycurl.PROXY, self.socks_proxy_host)
                 c.setopt(pycurl.PROXYPORT, self.socks_proxy_port)
                 c.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5_HOSTNAME)
+
+            if self.http_proxy_host:
+                proxy_url = "http://%s:%d/" % (self.http_proxy_host, self.http_proxy_port)
+                c.setopt(pycurl.PROXY, proxy_url)
 
             m.handles.append(c)
 
@@ -212,11 +235,11 @@ where host_id = any(%s)""", (sorted(avail),))
                         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
 values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.http_phrase))
 
-                        if target.retry_after is not None:
-                            # Retry-After is specified for a couple of
-                            # HTTP error codes; if it accompanies some
-                            # other error, we can still try the same
-                            # reaction...
+                        # HTTP 429 response need not include
+                        # Retry-After (apparently it depends on the
+                        # server) while Retry-After is specified for a
+                        # couple of HTTP error codes
+                        if (target.retry_after is not None) or ((target.http_code == 429) and (self.retry_after_default is not None)):
                             if eff_hostname is None:
                                 pr = urlparse(target.url)
                                 eff_hostname = pr.hostname
@@ -224,7 +247,8 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                             if eff_hostname is None:
                                 print("cannot parse " + target.url, file=sys.stderr)
                             else:
-                                added_hold = self.add_hold(eff_hostname, target.retry_after)
+                                retry_after = self.retry_after_default if target.retry_after is None else target.retry_after
+                                added_hold = self.add_hold(eff_hostname, retry_after)
 
                         if target.http_code is None:
                             msg += " with no HTTP status"
@@ -262,7 +286,7 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
             m.select(1.0)
 
         for c in m.handles:
-            if c.target is not None:
+            if hasattr(c, 'target') and (c.target is not None):
                 c.target.close()
                 c.target = None
 
