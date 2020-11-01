@@ -51,15 +51,21 @@ from download_queue""")
             url_id = row[0]
             url = self.get_url(url_id)
             self.br.get(url)
-            print("got " + url, file=sys.stderr)
+            error_code = None
             try:
                 WebDriverWait(self.br, 10).until(
-                    EC.presence_of_element_located((By.TAG_NAME, 'a')))
+                    EC.presence_of_element_located((By.TAG_NAME, 'article')))
             except exceptions.TimeoutException:
-                print("no anchor found", file=sys.stderr)
+                error_code = 404 if self.has_not_found_error() else 500
 
             eff_id = url_id
             eff_url = self.br.current_url
+            msg = "got " + eff_url
+            if error_code:
+                msg += " with %d" % error_code
+
+            print(msg, file=sys.stderr)
+
             if url != eff_url:
                 eff_id, known = self.add_redirect(url_id, eff_url)
 
@@ -67,9 +73,24 @@ from download_queue""")
             with open(get_loose_path(url_id), 'w') as f:
                 f.write(body)
 
-            self.finish_page(url_id, eff_id, True)
+            if error_code:
+                self.cur.execute("""insert into download_error(url_id, error_code, failed)
+values(%s, %s, localtimestamp)
+on conflict(url_id) do update
+set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
+
+                if error_code != 404:
+                    self.br.close()
+                    self.br = None
+                    self.lazy_init()
+
+            self.finish_page(url_id, eff_id, not error_code)
 
             row = self.pop_work_item()
+
+    def has_not_found_error(self):
+        found = self.br.find_elements_by_xpath("//h1/span[text()='Sorry, that page doesn’t exist!']")
+        return len(found)
 
     def close(self):
         if self.br:

@@ -8,7 +8,9 @@ def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
             inner_select = """select url_id
-from download_error"""
+from download_error
+where error_code<>404""" # if a page does not exist, asking for it
+                         # again is probably a waste of time...
 
             cur.execute("""update field
 set checkd=null
@@ -19,7 +21,8 @@ where url_id in (%s)""" % inner_select)
             cur.execute("""delete from content
 where url_id in (%s)""" % inner_select)
 
-            cur.execute("delete from download_error")
+            cur.execute("""delete from download_error
+where error_code<>404""")
 
             kicker = Kicker(cur)
             kicker.run()
