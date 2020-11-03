@@ -20,6 +20,7 @@ class RefNet(PinholeBase):
         PinholeBase.__init__(self, cur, distinguish, deconstructed)
         self.tag_rx = re.compile('#([-\\w]+)')
         self.tag_line = [] # of TagOcc
+        self.vars2tags = collections.defaultdict(set) # pair of variants -> set of tag strings
 
     def load_item(self, et):
         hamlet_name = et['osobaid']
@@ -33,6 +34,12 @@ class RefNet(PinholeBase):
             return
 
         tag_line = sorted(self.tag_line, key=lambda tgo: tgo.occ_date)
+        if not len(tag_line):
+            return
+
+        self.mindate = tag_line[0].occ_date
+        self.maxdate = tag_line[-1].occ_date
+
         topics = {} # tag => set of variant
         for tgo in tag_line:
             variant = self.get_variant(tgo.hamlet_name)
@@ -50,7 +57,21 @@ class RefNet(PinholeBase):
                         weight = self.ref_map.get(edge, 0)
                         self.ref_map[edge] = weight + 1
 
+                        edge_tags = self.vars2tags[(prev_variant, variant)]
+                        edge_tags.add(tgo.tag)
+
                     top.add(variant)
+
+    def make_matrix_desc(self):
+        matrix_desc = {}
+        for variants, tags in self.vars2tags.items():
+            source_name = self.get_presentation_name(variants[0])
+            target_name = self.get_presentation_name(variants[1])
+            tag_list = [ "#" + t for t in sorted(tags) ]
+            row = matrix_desc.setdefault(source_name, {})
+            row[target_name] = ", ".join(tag_list)
+
+        return matrix_desc
 
 
 def main():

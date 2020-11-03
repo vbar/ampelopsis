@@ -32,6 +32,7 @@ d3.json("chord.json").then(function(graphData) {
     }
 
     var metadata = graphData.desc,
+	tooltips = graphData.matrixDesc,
 	res = d3.chord()
 	    .padAngle(0.02)     // padding between entities (black arc)
 	    .sortSubgroups(d3.descending)
@@ -91,7 +92,12 @@ d3.json("chord.json").then(function(graphData) {
 	      .radius(innerRadius)
 	     )
 	.style("fill", function (d) { return metadata[d.source.index].color; })
-	.style("stroke", "black");
+	.style("stroke", "black")
+	.append("title").text(function (d) {
+	    var row = tooltips[metadata[d.source.index].name],
+		cell = row ? row[metadata[d.target.index].name] : "";
+	    return cell ? cell : "";
+	});
 });
 
 </script>
