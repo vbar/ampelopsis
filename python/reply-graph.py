@@ -96,7 +96,7 @@ def main():
                 if not ca.chord:
                     ref_net.dump_standard()
                 else:
-                    ref_net.dump_custom(ca.chord)
+                    ref_net.dump_chord(ca.chord)
             finally:
                 ref_net.close()
 

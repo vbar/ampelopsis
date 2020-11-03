@@ -23,7 +23,7 @@ class PinholeBase(ShowCase, PersonPartyMixin):
         self.enrich(gd)
         print(json.dumps(gd, indent=2))
 
-    def dump_custom(self, output_path):
+    def dump_chord(self, output_path):
         self.lazy_ref_map()
 
         custom = {
