@@ -9,6 +9,12 @@
 <div id="footer"></div>
 
 <script>
+function get_samples(metadata, matrix, i, j) {
+    var row = matrix[metadata[i].name],
+	cell = row ? row[metadata[j].name] : [];
+
+    return cell;
+}
 
 var diameter = 880,
     radius = diameter / 2,
@@ -33,6 +39,8 @@ d3.json("chord.json").then(function(graphData) {
 
     var metadata = graphData.desc,
 	tooltips = graphData.matrixDesc,
+	sampleMatrix = graphData.samples,
+	ribbon2index = {},
 	res = d3.chord()
 	    .padAngle(0.02)     // padding between entities (black arc)
 	    .sortSubgroups(d3.descending)
@@ -93,10 +101,34 @@ d3.json("chord.json").then(function(graphData) {
 	     )
 	.style("fill", function (d) { return metadata[d.source.index].color; })
 	.style("stroke", "black")
+	.on("click", function (d) {
+	    if (d3.event.defaultPrevented) return;
+
+	    var samples = get_samples(metadata, sampleMatrix, d.source.index, d.target.index);
+	    if (samples.length) {
+		var key = d.source.index.toString() + '-' + d.target.index.toString(),
+		    idx = (key in ribbon2index) ? (ribbon2index[key] + 1) : 0;
+		if (idx >= samples.length) {
+		    idx = 0;
+		}
+
+		window.open(samples[idx]);
+		ribbon2index[key] = idx;
+	    }
+	})
 	.append("title").text(function (d) {
 	    var row = tooltips[metadata[d.source.index].name],
 		cell = row ? row[metadata[d.target.index].name] : "";
-	    return cell ? cell : "";
+	    if (cell) {
+		return cell;
+	    }
+
+	    var samples = get_samples(metadata, sampleMatrix, d.source.index, d.target.index);
+	    if (!samples) {
+		return "";
+	    } else {
+		return samples.length == 1 ? "příklad" : "příklady";
+	    }
 	});
 });
 

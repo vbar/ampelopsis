@@ -29,7 +29,8 @@ class PinholeBase(ShowCase, PersonPartyMixin):
         custom = {
             'matrix': self.make_matrix(),
             'desc': self.make_desc(),
-            'matrixDesc': self.make_matrix_desc()
+            'matrixDesc': self.make_matrix_desc(),
+            'samples': self.make_samples()
         }
 
         if self.mindate and self.maxdate:
@@ -126,6 +127,9 @@ class PinholeBase(ShowCase, PersonPartyMixin):
         return desc
 
     def make_matrix_desc(self):
+        return {}
+
+    def make_samples(self):
         return {}
 
     def make_date_extent(self):
