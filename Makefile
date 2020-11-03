@@ -6,16 +6,23 @@ all: fulltext main
 
 main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline vocab demanding
 
+fulltext: preliminary
+	python/text-separator.py
+	python/text-stemmer.py
+
 ifeq ($(has_statuses),1)
-demanding: reaction bubline pool rain
+preliminary: condensate redirext
+demanding: pool rain
 else
+preliminary: condensate
 demanding:
 endif
 
-fulltext:
+condensate:
 	python/condensate.py
-	python/text-separator.py
-	python/text-stemmer.py
+
+redirext:
+	python/redir-extend.py
 
 datetime:
 	python/date-graph.py > web/datetime.csv
