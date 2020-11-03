@@ -101,3 +101,6 @@ trail:
 
 vocab:
 	python/word-graph.py > web/vocab.json
+
+tagvocab:
+	python/hashtag-graph.py > web/vocab.json

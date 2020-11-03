@@ -18,9 +18,9 @@ text.legend {
 
 <script>
 
-var margin = {top: 10, right: 30, bottom: 40, left: 100},
+var margin = {top: 10, right: 30, bottom: 40 },
     legendMargin = {top: 12, right: 12, bottom: 12, left: 12},
-    totalWidth = 460,
+    totalWidth = 510,
     totalHeight = 800,
     maxRadius = 20;
 
@@ -28,9 +28,7 @@ var svg = d3.select("#the_graph")
     .append("svg")
     .attr("width", totalWidth)
     .attr("height", totalHeight)
-    .append("g")
-    .attr("transform",
-	  "translate(" + margin.left + "," + margin.top + ")");
+    .append("g");
 
 d3.json("vocab.json", function (metadata) {
     var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
@@ -39,6 +37,8 @@ d3.json("vocab.json", function (metadata) {
 	parties = metadata.parties,
 	data = metadata.data,
 	dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+	maxWordLen = d3.max(data, function (d) { return d[0].length; }),
+	marginLeft = 10 + 7 * maxWordLen,
 	footer = document.getElementById('footer'),
 	keys = Object.keys(parties)
 	.sort(function (k1, k2) {
@@ -51,8 +51,10 @@ d3.json("vocab.json", function (metadata) {
 
     var x = d3.scaleLinear()
 	.domain([0, d3.max(data, function (d) { return d[2]; })])
-	.range([0, totalWidth - margin.left - margin.right]);
-    svg.append("g")
+	.range([0, totalWidth - marginLeft - margin.right]);
+    svg.attr("transform",
+	     "translate(" + marginLeft + "," + margin.top + ")")
+	.append("g")
 	.attr("transform", "translate(0," + height + ")")
 	.call(d3.axisBottom(x))
 	.selectAll("text")
