@@ -6,7 +6,7 @@ import sys
 from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
-from host_check import allow_immediate_download, get_instance_id, HostCheck
+from host_check import get_instance_id, HostCheck
 from mem_cache import MemCache
 from funnel_parser import FunnelParser
 from param_util import get_param_set
@@ -144,7 +144,7 @@ returning url_id""" % sql_cond)
     def add_link(self, url):
         pr = urlparse(url.strip())
         if pr.hostname: # may not exist even for valid links, e.g. mailto:
-            host_id = self.get_host_id(pr.hostname)
+            host_id = self.get_synth_host_id(pr)
             if host_id:
                 clean_pr = (pr.scheme, get_netloc(pr), normalize_url_component(pr.path), pr.params, normalize_url_component(pr.query), '')
                 clean_url = urlunparse(clean_pr)
@@ -161,7 +161,7 @@ returning url_id""" % sql_cond)
                     print("skipping %s b/c %s" % (clean_url, skip_msg), file=sys.stderr)
                 elif not self.mem_cache.check(clean_url):
                     url_id = self.insert_link(clean_pr, clean_url)
-                    if (url_id is not None) and allow_immediate_download(self.extra_header, clean_url):
+                    if url_id is not None:
                         self.cur.execute("""insert into download_queue(url_id, priority, host_id)
 values(%s, %s, %s)
 on conflict do nothing""", (url_id, self.preference.prioritize(clean_url), host_id))

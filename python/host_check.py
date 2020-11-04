@@ -29,17 +29,6 @@ where instance_name=%s""", (inst_name,))
 
     return row[0]
 
-def allow_immediate_download(extra_header, url):
-    credential_flag = extra_header is not None
-
-    pr = urlparse(url)
-    if pr.hostname != 'www.hlidacstatu.cz':
-        return not credential_flag
-
-    segments = pr.path.split('/')
-    private_path_flag = segments[1] == 'api'
-    return private_path_flag == credential_flag
-
 class HostCheck(CursorWrapper):
     def __init__(self, cur, inst_name=None):
         CursorWrapper.__init__(self, cur)
@@ -63,6 +52,11 @@ order by id""", (self.inst_id,))
             host = self.canonicalizer.canonicalize_host(row[1])
             self.host_white[host] = row[0]
 
-    def get_host_id(self, host):
-        canon_host = self.canonicalizer.canonicalize_host(host)
+    def get_synth_host_id(self, pr):
+        canon_host = pr.hostname
+        if pr.hostname == 'www.hlidacstatu.cz':
+            segments = pr.path.split('/')
+            if (len(segments) > 1) and (segments[1] == 'api'):
+                canon_host = 'api.hlidacstatu.cz'
+
         return self.host_white.get(canon_host)

@@ -218,6 +218,7 @@ where host_id = any(%s)""", (sorted(avail),))
                     m.remove_handle(c)
                     eff_url = c.getinfo(pycurl.EFFECTIVE_URL)
                     eff_hostname = None
+                    pr = None
                     if target.url != eff_url:
                         pr = urlparse(eff_url)
                         eff_hostname = pr.hostname
@@ -248,7 +249,7 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                                 print("cannot parse " + target.url, file=sys.stderr)
                             else:
                                 retry_after = self.retry_after_default if target.retry_after is None else target.retry_after
-                                added_hold = self.add_hold(eff_hostname, retry_after)
+                                added_hold = self.add_hold(pr, retry_after)
 
                         if target.http_code is None:
                             msg += " with no HTTP status"

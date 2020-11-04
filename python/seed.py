@@ -5,18 +5,22 @@ import sys
 from urllib.parse import urlparse
 from act_util import act_reset
 from common import get_option, make_connection
-from host_check import allow_immediate_download, get_instance_id, make_canonicalizer
+from host_check import get_instance_id, HostCheck
 
 class Seeder:
     def __init__(self, cur):
         self.cur = cur
-        self.canon = make_canonicalizer()
+        self.host_check = HostCheck(cur) # member, because it has own
+                                         # inst_id (which must remain
+                                         # None)
+        if get_option("match_domain", False):
+            raise Exception("domain canonicalizer isn't compatible with synthetic host")
+
         self.inst_name = get_option("instance", None)
         self.inst_id = None
         self.extra_header = get_option('extra_header', None)
 
-    def add_host(self, hostname):
-        canon_host = self.canon.canonicalize_host(hostname)
+    def add_host(self, canon_host):
         self.cur.execute("""insert into tops(hostname)
 values(%s)
 on conflict do nothing
@@ -41,6 +45,25 @@ where hostname=%s""", (canon_host,))
 values(%s, %s)
 on conflict do nothing""", (host_id, self.inst_id))
 
+    def add_synth_host(self, pr):
+        if pr.hostname != 'www.hlidacstatu.cz':
+            self.add_host(pr.hostname)
+            return
+
+        synth_host = pr.hostname
+        segments = pr.path.split('/')
+        private_path_flag = (len(segments) > 1) and (segments[1] == 'api')
+        if self.extra_header is not None:
+            if private_path_flag:
+                synth_host = 'api.hlidacstatu.cz'
+            else:
+                print("will send private key to public pages", file=sys.stderr)
+        else:
+            if private_path_flag:
+                raise Exception("private API requires configured private key")
+
+        self.add_host(synth_host)
+
     def add_url(self, url):
         self.cur.execute("""insert into field(url)
 values(%s)
@@ -55,14 +78,13 @@ values(%s, 0)""", (row[0], ))
 
     def add_work(self, url, url_id):
         pr = urlparse(url)
-        hostname = self.canon.canonicalize_host(pr.hostname)
-        if allow_immediate_download(self.extra_header, url):
-            self.cur.execute("""insert into download_queue(url_id, priority, host_id)
-values(%s, %s, (select id from tops where hostname=%s))
+        host_id = self.host_check.get_synth_host_id(pr)
+        self.cur.execute("""insert into download_queue(url_id, priority, host_id)
+values(%s, %s, %s)
 on conflict do nothing
-returning url_id""", (url_id, 0, hostname))
-            if self.cur.fetchone() is None:
-                print("URL %s already in queue" % (url_id,), file=sys.stderr)
+returning url_id""", (url_id, 0, host_id))
+        if self.cur.fetchone() is None:
+            print("URL %s already in queue" % (url_id,), file=sys.stderr)
 
     def cond_add_instance(self):
         if self.inst_name and not self.inst_id:
@@ -96,7 +118,7 @@ def main():
             for a in sys.argv[1:]:
                 if a.startswith('http'):
                     pr = urlparse(a)
-                    seeder.add_host(pr.hostname)
+                    seeder.add_synth_host(pr)
                     seeder.add_url(a)
                 else:
                     seeder.add_host(a)
