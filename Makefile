@@ -8,7 +8,7 @@ main: datetime datetimes volume lang sankey chord heatmap treemap distance timel
 
 fulltext: preliminary
 	python/text-separator.py
-	python/text-stemmer.py
+	python/majka-stemmer.py
 
 ifeq ($(has_statuses),1)
 preliminary: condensate redirext
