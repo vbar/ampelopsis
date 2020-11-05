@@ -14,16 +14,17 @@ from common import get_option, make_connection
 from distance_args import ConfigArgs
 from jaccard_util import set_jaccard_score
 from pinhole_base import PinholeBase
-from stem_recon import reconstitute
+from stem_mixin import StemMixin
 from stop_util import load_stop_words
 from timeline_helper_mixin import TimelineHelperMixin
-from token_util import tokenize
 
 Occurence = collections.namedtuple('Occurence', 'time_bucket url_id')
 
-class Processor(PinholeBase, TimelineHelperMixin):
+class Processor(PinholeBase, StemMixin, TimelineHelperMixin):
     def __init__(self, cur, stop_words):
         PinholeBase.__init__(self, cur, False, '*')
+        # actually seems to work better w/o stemming...
+        StemMixin.__init__(self)
         TimelineHelperMixin.__init__(self, get_option("timeline_bin_scale", "minutes"))
         self.puff = int(get_option("event_distance_puff", "5"))
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
@@ -38,8 +39,6 @@ class Processor(PinholeBase, TimelineHelperMixin):
         self.value_series = None # opt hamlet name -> list of (frozen)set of int topic
         self.terrain = {} # source hamlet name -> target hamlet name -> count
         self.hamlet2count = {}
-        # actually seems to work better w/o stemming...
-        self.reconstitute = self.reconstitute_rect if get_option("use_stemmed", True) else self.reconstitute_simple
 
     def load_item(self, et):
         url = et['url']
@@ -55,13 +54,6 @@ class Processor(PinholeBase, TimelineHelperMixin):
         hamlet_name = et['osobaid']
         self.urlid2doc[url_id] = txt
         self.add_sample(hamlet_name, dt, url_id)
-
-    def reconstitute_rect(self, et):
-        return reconstitute(self.cur, et['url'])
-
-    def reconstitute_simple(self, et):
-        lst = tokenize(et['text'], True)
-        return " ".join(lst)
 
     def enrich(self, gd):
         PinholeBase.enrich(self, gd)

@@ -3,9 +3,9 @@
 import os
 import sys
 from common import get_option, get_parent_directory, make_connection
+from majka_tap import MajkaTap
 from opt_util import get_cache_path
 from show_case import ShowCase
-from stem_recon import reconstitute
 from token_util import retokenize, tokenize
 
 class WordList(ShowCase):
@@ -13,7 +13,11 @@ class WordList(ShowCase):
         ShowCase.__init__(self, cur)
         self.doc_count = 0
         self.word2count = {}
-        self.tokenize_item = self.tokenize_rect if get_option("use_stemmed", True) else self.tokenize_text
+        if get_option("use_stemmed", True):
+            self.tap = MajkaTap(self.cur)
+            self.tokenize_item = self.tokenize_rect
+        else:
+            self.tokenize_item = self.tokenize_text
 
     def load_item(self, et):
         self.doc_count += 1
@@ -35,7 +39,7 @@ class WordList(ShowCase):
         return tokenize(et['text'], True)
 
     def tokenize_rect(self, et):
-        rect = reconstitute(self.cur, et['url'])
+        rect = self.tap.reconstitute(et['url'])
         return retokenize(rect)
 
 

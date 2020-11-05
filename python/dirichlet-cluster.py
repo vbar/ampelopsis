@@ -13,13 +13,14 @@ from analyzer import Analyzer
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from show_case import ShowCase
-from stem_recon import reconstitute
+from stem_mixin import StemMixin
 from stop_util import load_stop_words
 from token_util import tokenize
 
-class Processor(ShowCase):
+class Processor(ShowCase, StemMixin):
     def __init__(self, cur, stop_words):
         ShowCase.__init__(self, cur)
+        StemMixin.__init__(self)
         random.seed()
         self.stop_words = stop_words
         self.cluster_count = int(get_option("cluster_count", "128"))
@@ -28,7 +29,6 @@ class Processor(ShowCase):
         self.url2doc = {}
         self.topics = []
         self.matrix = None
-        self.reconstitute = self.reconstitute_rect if get_option("use_stemmed", True) else self.reconstitute_simple
 
     def load_item(self, et):
         if self.is_redirected(et['url']):
@@ -40,13 +40,6 @@ class Processor(ShowCase):
             self.extend_date(et)
             txt = self.reconstitute(et)
             self.url2doc[et['url']] = txt
-
-    def reconstitute_rect(self, et):
-        return reconstitute(self.cur, et['url'])
-
-    def reconstitute_simple(self, et):
-        lst = tokenize(et['text'], True)
-        return " ".join(lst)
 
     def process(self):
         cv = CountVectorizer(max_df=0.95, min_df=2, analyzer=Analyzer(self.stop_words))

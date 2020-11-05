@@ -13,7 +13,7 @@ from common import get_option, make_connection
 from distance_args import ConfigArgs
 from lang_wrap import init_lang_recog
 from pinhole_base import PinholeBase
-from stem_recon import reconstitute
+from stem_mixin import StemMixin
 from stop_util import load_stop_words
 from token_util import tokenize
 
@@ -28,19 +28,15 @@ class Payload:
         self.count += 1
 
 
-class Processor(PinholeBase):
+class Processor(PinholeBase, StemMixin):
     def __init__(self, cur, stop_words):
         PinholeBase.__init__(self, cur, False, '*')
+        StemMixin.__init__(self)
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
         self.stop_words = stop_words
         self.lang_recog = init_lang_recog()
         self.variant2payload = {}
-        if get_option("use_stemmed", True):
-            self.payload_separator = "\n"
-            self.reconstitute = self.reconstitute_rect
-        else:
-            self.payload_separator = " "
-            self.reconstitute = self.reconstitute_simple
+        self.payload_separator = "\n" if get_option("use_stemmed", True) else " "
 
     def load_item(self, et):
         if self.is_redirected(et['url']):
@@ -65,13 +61,6 @@ class Processor(PinholeBase):
             payload.append(txt)
 
         return True
-
-    def reconstitute_rect(self, et):
-        return reconstitute(self.cur, et['url'])
-
-    def reconstitute_simple(self, et):
-        lst = tokenize(et['text'], True)
-        return " ".join(lst)
 
     def enrich(self, gd):
         PinholeBase.enrich(self, gd)
