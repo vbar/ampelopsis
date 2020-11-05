@@ -22,7 +22,7 @@ class Processor(CursorWrapper):
 
         stemmer_data = get_cache_path("majka.w-lt")
         if not os.path.isfile(stemmer_data):
-            raise Exception("required file %s not found" % self.stemmer_data)
+            raise Exception("required file %s not found" % stemmer_data)
 
         self.args = [ stemmer, '-f', stemmer_data, '-p' ]
 

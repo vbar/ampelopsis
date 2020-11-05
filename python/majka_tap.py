@@ -70,6 +70,8 @@ order by url""", (mask,))
     def get_fragment(self, surl):
         m = self.fragment_rx.match(surl)
         if not m:
+            # alternative stemmers use fragments that fail to match
+            # here
             return None
 
         return int(m.group(1))
