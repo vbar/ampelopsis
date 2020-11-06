@@ -36,7 +36,7 @@ class Processor(PinholeBase, StemMixin):
         self.stop_words = stop_words
         self.lang_recog = init_lang_recog()
         self.variant2payload = {}
-        self.payload_separator = "\n" if get_option("use_stemmed", True) else " "
+        self.payload_separator = "\n" if get_option("active_stemmer", "morphodita") else " "
 
     def load_item(self, et):
         if self.is_redirected(et['url']):

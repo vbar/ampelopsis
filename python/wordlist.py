@@ -4,6 +4,7 @@ import os
 import sys
 from common import get_option, get_parent_directory, make_connection
 from majka_tap import MajkaTap
+from morphodita_tap import MorphoditaTap
 from opt_util import get_cache_path
 from show_case import ShowCase
 from token_util import retokenize, tokenize
@@ -13,8 +14,15 @@ class WordList(ShowCase):
         ShowCase.__init__(self, cur)
         self.doc_count = 0
         self.word2count = {}
-        if get_option("use_stemmed", True):
-            self.tap = MajkaTap(self.cur)
+        stemmer = get_option("active_stemmer", "morphodita")
+        if stemmer:
+            if stemmer == "majka":
+                self.tap = MajkaTap(self.cur)
+            elif stemmer == "morphodita":
+                self.tap = MorphoditaTap(self.cur)
+            else:
+                raise Exception("unknown stemmer: " + stemmer)
+
             self.tokenize_item = self.tokenize_rect
         else:
             self.tokenize_item = self.tokenize_text

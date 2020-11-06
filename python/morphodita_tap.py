@@ -11,8 +11,9 @@ from common import get_loose_path, make_connection
 from cursor_wrapper import CursorWrapper
 
 class MorphoditaTap(CursorWrapper):
-    def __init__(self, cur):
+    def __init__(self, cur, content_words_only=False):
         CursorWrapper.__init__(self, cur)
+        self.content_words_only = content_words_only
 
     def reconstitute(self, url):
         surl = url + '#plain'
@@ -56,7 +57,7 @@ where url=%s""", (url,))
         tokens = sentence.xpath("./token")
         for token in tokens:
             tag = token.get('tag')
-            if tag and tag != 'Z:-------------':
+            if tag and (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V'))):
                 lemma = token.get('lemma')
                 segments = re.split('[-_]', lemma, 2)
                 if len(segments) and segments[0]:

@@ -50,4 +50,5 @@ def tokenize(raw, inclinks=True):
 
 
 def retokenize(s):
-    return s.split()
+    # MorphoDiTa filtering
+    return [w for w in s.split() if w not in ('@', '#')]
