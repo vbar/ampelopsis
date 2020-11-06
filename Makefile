@@ -6,9 +6,15 @@ all: fulltext main
 
 main: datetime datetimes volume lang sankey chord heatmap treemap distance timeline vocab demanding
 
-fulltext: preliminary
+fulltext: preliminary majka morphodita
+
+majka:
 	python/text-separator.py
 	python/majka-stemmer.py
+
+morphodita:
+	python/text-extractor.py
+	python/morphodita-stemmer.py
 
 ifeq ($(has_statuses),1)
 preliminary: condensate redirext
