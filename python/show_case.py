@@ -1,6 +1,8 @@
 from dateutil.parser import parse
+import re
 import sys
 from json_frame import JsonFrame
+from opt_util import get_quoted_list_option
 from url_heads import hamlet_url_head
 
 class ShowCase(JsonFrame):
@@ -9,6 +11,15 @@ class ShowCase(JsonFrame):
         self.silent = silent
         self.mindate = None
         self.maxdate = None
+        self.selected_tag_rx = None
+        selected_tags = get_quoted_list_option("selected_tags", None)
+        if selected_tags is not None:
+            plain_gen = (t[1:] if t[0] == '#' else t for t in selected_tags if t)
+            plain_set = set((t.lower() for t in plain_gen if t))
+            quoted_list = [ re.escape(t) for t in sorted(plain_set) ]
+            if len(quoted_list):
+                subrx = '|'.join(quoted_list)
+                self.selected_tag_rx = re.compile("#(%s)\\b" % subrx, re.I)
 
     def run(self):
         self.cur.execute("""select url, id
@@ -33,7 +44,8 @@ order by url""" % hamlet_url_head)
 
         items = doc.get('results')
         for et in items:
-            self.load_item(et)
+            if (self.selected_tag_rx is None) or self.selected_tag_rx.search(et['text']):
+                self.load_item(et)
 
     def is_redirected(self, url):
         self.cur.execute("""select count(*)
