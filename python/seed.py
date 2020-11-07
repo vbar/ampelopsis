@@ -10,9 +10,7 @@ from host_check import get_instance_id, HostCheck
 class Seeder:
     def __init__(self, cur):
         self.cur = cur
-        self.host_check = HostCheck(cur) # member, because it has own
-                                         # inst_id (which must remain
-                                         # None)
+        self.host_check = None # initialized lazily, after this class updates tops
         if get_option("match_domain", False):
             raise Exception("domain canonicalizer isn't compatible with synthetic host")
 
@@ -77,8 +75,14 @@ returning id""", (url,))
 values(%s, 0)""", (row[0], ))
 
     def add_work(self, url, url_id):
+        if not self.host_check:
+            self.host_check = HostCheck(self.cur)
+
         pr = urlparse(url)
         host_id = self.host_check.get_synth_host_id(pr)
+        if not host_id:
+            raise Exception("internal error: no host for " + url)
+
         self.cur.execute("""insert into download_queue(url_id, priority, host_id)
 values(%s, %s, %s)
 on conflict do nothing
