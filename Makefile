@@ -20,7 +20,7 @@ ifeq ($(has_statuses),1)
 preliminary: condensate redirext
 demanding: pool rain
 else
-preliminary: condensate
+preliminary: condensate redireco
 demanding:
 endif
 
@@ -29,6 +29,9 @@ condensate:
 
 redirext:
 	python/redir-extend.py
+
+redireco:
+	python/redir-record.py
 
 datetime:
 	python/date-graph.py > web/datetime.csv
