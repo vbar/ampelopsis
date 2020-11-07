@@ -84,20 +84,11 @@ rain:
 followers:
 	python/graph-distance.py --histogram web/followers-check.json > web/followers.json
 
-reply:
-	python/reply-graph.py --chord web/chord.json
-
 timeline:
 	python/timeline-graph.py > web/timeline.json
 
-reaction:
-	python/react-graph.py --segmented > web/dhist.json
-
 repeat:
 	python/repeat-graph.py > web/histogram.json
-
-bubline:
-	python/conversation-graph.py > web/bubline.json
 
 profile:
 	python/profile-graph.py > web/profile.json
