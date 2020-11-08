@@ -2,7 +2,7 @@
 
 from dateutil.parser import parse
 import sys
-from common import make_connection
+from common import get_loose_path, make_connection
 from show_case import ShowCase
 
 # unlike the Extender in redir-extend.py, this class doesn't add
@@ -13,26 +13,34 @@ class Extender(ShowCase):
         self.tangle = {} # str Twitter ID -> int field URL ID -> datetime date
 
     def load_item(self, et):
+        url_id = self.ensure_url_id(et)
+
         origid = et.get('origid')
         if not origid:
             return
 
         url = et['url']
-        url_id = self.ensure_url_id(url)
         if url.endswith("/" + origid):
             id2date = self.tangle.setdefault(origid, {})
             id2date[url_id] = parse(et['datum'])
 
-    def ensure_url_id(self, url):
+    def ensure_url_id(self, et):
+        url = et['url']
         self.cur.execute("""insert into field(url, checkd, parsed)
 values(%s, localtimestamp, localtimestamp)
 on conflict(url) do nothing
 returning id""", (url,))
         row = self.cur.fetchone()
         if row:
-            return row[0]
+            url_id = row[0]
         else:
-            return self.get_url_id(url)
+            url_id = self.get_url_id(url)
+
+        fname = get_loose_path(url_id)
+        with open(fname, 'w', encoding ='utf-8') as f:
+            f.write(et['text'])
+
+        return url_id
 
 
 class Processor(ShowCase):
