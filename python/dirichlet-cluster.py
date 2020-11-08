@@ -39,7 +39,8 @@ class Processor(ShowCase, StemMixin):
         if lng == 'cs':
             self.extend_date(et)
             txt = self.reconstitute(et)
-            self.url2doc[et['url']] = txt
+            if txt:
+                self.url2doc[et['url']] = txt
 
     def process(self):
         cv = CountVectorizer(max_df=0.95, min_df=2, analyzer=Analyzer(self.stop_words))
