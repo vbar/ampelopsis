@@ -18,7 +18,7 @@ class FunnelParser:
             raise Exception("invalid option funnel_links")
 
         schema = (
-            ( "^" + hamlet_url_head + "\\?desc=1&page=(?P<page>\\d+)&q=server%3ATwitter&sort=datum$", self.process_overview ),
+            ( "^" + hamlet_url_head + "\\?desc=1&page=(?P<page>\\d+)&q=server%3A(?P<sname>[a-zA-Z]+)&sort=datum$", self.process_overview ),
             ( "^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$", self.process_card ),
             ( "^" + alt_town_url_head + "/[-a-zA-Z0-9]+/followers", self.process_sequence )
         )
@@ -51,11 +51,12 @@ class FunnelParser:
         page_size = len(items)
         page = int(self.match.group('page'))
         if (page == 1) and (page_size > 0):
+            server_name = self.match.group('sname')
             total = int(doc.get('total'))
             n = total // page_size
             i = 2
             while i <= n:
-                url = hamlet_url_head + ("?desc=1&page=%d&q=server%%3ATwitter&sort=datum" % i)
+                url = hamlet_url_head + ("?desc=1&page=%d&q=server%%3A%s&sort=datum" % (i, server_name))
                 self.owner.add_link(url)
                 i += 1
 
