@@ -43,9 +43,13 @@ order by url""")
             print("not stemming archived %s" % (url,), file=sys.stderr)
             return
 
-        print("stemming %s..." % (url,), file=sys.stderr)
-
         src_path = get_loose_path(url_id)
+        # for empty text, extraction doesn't create the file
+        if not os.path.exists(src_path):
+            print("no file for %s" % (url,), file=sys.stderr)
+            return
+
+        print("stemming %s..." % (url,), file=sys.stderr)
         dest_path = get_loose_path(url_id, alt_repre='morphodita')
         self.args_tail.append(src_path + ':' + dest_path)
         if len(self.args_tail) >= self.batch_size:
