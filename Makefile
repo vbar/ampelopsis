@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 funnel_links=$(shell awk -F "[ \t]*=[ \t]*" '/^funnel_links/ {print $$2}' ampelopsis.ini)
-has_statuses=$(shell echo $$(( $(funnel_links) >= 1 )) )
+has_statuses=$(shell funnel_links=$(funnel_links); echo $$(( funnel_links >= 1 )) )
 
 all: fulltext main
 
