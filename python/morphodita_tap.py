@@ -2,8 +2,9 @@
 
 # requires downloaded data extended by running morphodita-stemmer.py
 
-from lxml import etree
 from io import BytesIO
+from lxml import etree
+import os
 import re
 import shutil
 import sys
@@ -19,10 +20,14 @@ class MorphoditaTap(CursorWrapper):
         surl = url + '#plain'
         surl_id = self.get_url_id(surl)
         if not surl_id:
-            print("no %s" % (surl,), file=sys.stderr)
+            print("no %s found" % (surl,), file=sys.stderr)
             return ""
 
         root = self.get_xml_document(surl_id)
+        if not root:
+            print("no %s" % (surl,), file=sys.stderr)
+            return ""
+
         sentences = root.xpath("/doc/sentence")
         rect = []
         for s in sentences:
@@ -44,13 +49,16 @@ where url=%s""", (url,))
 
     def get_xml_document(self, url_id):
         src_path = get_loose_path(url_id, alt_repre='morphodita')
-        with open(src_path, 'rb') as infile:
-            with BytesIO() as whole:
-                whole.write(b"<doc>\n")
-                shutil.copyfileobj(infile, whole)
-                whole.write(b"</doc>\n")
-                whole.seek(0)
-                return etree.parse(whole)
+        if os.path.exists(src_path):
+            with open(src_path, 'rb') as infile:
+                with BytesIO() as whole:
+                    whole.write(b"<doc>\n")
+                    shutil.copyfileobj(infile, whole)
+                    whole.write(b"</doc>\n")
+                    whole.seek(0)
+                    return etree.parse(whole)
+
+        return None
 
     def reconstitute_line(self, sentence):
         words = []
