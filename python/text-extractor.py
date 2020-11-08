@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import re
 import sys
 from urllib.parse import urlparse
@@ -7,8 +8,23 @@ from common import get_loose_path, make_connection
 from show_case import ShowCase
 from token_util import url_rx
 
+invalid_bytes_rx = re.compile(b'[^\x09\x0A\x0D\x20-\xff]')
+
+replacement_rx = re.compile('\uFFFD')
+
 def morpho_tokenize(raw):
-    seq = raw.split()
+    # lxml/libxml2 is touchier about invalid Unicode characters than
+    # core Python: remove them before producing XML from them. Code
+    # below might seem redundant, but nothing simpler worked to remove
+    # Ctrl-C...The REPLACEMENT CHARACTER is removed so that documents
+    # containing nothing but invalid characters can be (easily)
+    # recognized as empty.
+    b = raw.encode('utf-8')
+    c = invalid_bytes_rx.sub(b'', b)
+    txt = c.decode('utf-8', 'ignore')
+    stripped = replacement_rx.sub('', txt)
+
+    seq = stripped.split()
     lst = []
     for w in seq:
         if url_rx.match(w):
@@ -43,18 +59,20 @@ returning id""", (surl,))
         if row:
             url_id = row[0]
         else:
-            print(surl + " already exists", file=sys.stdout)
+            print(surl + " already exists", file=sys.stderr)
             url_id = self.get_url_id(surl)
 
+        fname = get_loose_path(url_id)
         lst = morpho_tokenize(et['text'])
         if len(lst):
-            fname = get_loose_path(url_id)
             with open(fname, 'w', encoding ='utf-8') as f:
                 lw = lst.pop()
                 for w in lst:
                     f.write(w + " ")
 
                 f.write(lw + "\n")
+        elif os.path.exists(fname):
+            os.remove(fname)
 
 
 def main():
