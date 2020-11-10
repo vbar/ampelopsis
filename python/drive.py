@@ -15,6 +15,7 @@ class Driver(DownloadBase):
     def __init__(self, single_action, conn, cur):
         DownloadBase.__init__(self, conn, cur, single_action)
         self.br = None
+        self.drive_headless = get_option('drive_headless', False)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
         self.download_dir = os.path.join(get_parent_directory(), "down")
@@ -26,7 +27,11 @@ class Driver(DownloadBase):
             return
 
         options = webdriver.ChromeOptions();
-        options.add_argument("--start-maximized");
+
+        if self.drive_headless:
+            options.add_argument("--headless");
+        else:
+            options.add_argument("--start-maximized");
 
         if self.socks_proxy_host:
             proxy_url = "socks5://%s:%d" % (self.socks_proxy_host, self.socks_proxy_port)
@@ -51,15 +56,21 @@ from download_queue""")
             url_id = row[0]
             url = self.get_url(url_id)
             self.br.get(url)
-            print("got " + url, file=sys.stderr)
+            error_code = None
             try:
                 WebDriverWait(self.br, 10).until(
                     EC.presence_of_element_located((By.TAG_NAME, 'a')))
             except exceptions.TimeoutException:
-                print("no anchor found", file=sys.stderr)
+                error_code = 500
 
             eff_id = url_id
             eff_url = self.br.current_url
+            msg = "got " + eff_url
+            if error_code:
+                msg += " with %d" % error_code
+
+            print(msg, file=sys.stderr)
+
             if url != eff_url:
                 eff_id, known = self.add_redirect(url_id, eff_url)
 
@@ -67,7 +78,17 @@ from download_queue""")
             with open(get_loose_path(url_id), 'w') as f:
                 f.write(body)
 
-            self.finish_page(url_id, eff_id, True)
+            if error_code:
+                self.cur.execute("""insert into download_error(url_id, error_code, failed)
+values(%s, %s, localtimestamp)
+on conflict(url_id) do update
+set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
+
+                self.br.close()
+                self.br = None
+                self.lazy_init()
+
+            self.finish_page(url_id, eff_id, not error_code)
 
             row = self.pop_work_item()
 
