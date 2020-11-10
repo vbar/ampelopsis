@@ -15,6 +15,7 @@ class Driver(DownloadBase):
     def __init__(self, single_action, conn, cur):
         DownloadBase.__init__(self, conn, cur, single_action)
         self.br = None
+        self.drive_headless = get_option('drive_headless', False)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
         self.download_dir = os.path.join(get_parent_directory(), "down")
@@ -26,7 +27,11 @@ class Driver(DownloadBase):
             return
 
         options = webdriver.ChromeOptions();
-        options.add_argument("--start-maximized");
+
+        if self.drive_headless:
+            options.add_argument("--headless");
+        else:
+            options.add_argument("--start-maximized");
 
         if self.socks_proxy_host:
             proxy_url = "socks5://%s:%d" % (self.socks_proxy_host, self.socks_proxy_port)
