@@ -37,6 +37,9 @@ class Analyzer:
                 else:
                     cur_frag.append(w)
 
+        if len(cur_frag):
+            tail.extend(self.compose_ngrams(cur_frag))
+
         head.extend(tail)
         return head
 
