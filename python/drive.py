@@ -15,6 +15,7 @@ class Driver(DownloadBase):
     def __init__(self, single_action, conn, cur):
         DownloadBase.__init__(self, conn, cur, single_action)
         self.br = None
+        self.notification_threshold = int(get_option('drive_notification_threshold', "500"))
         self.drive_headless = get_option('drive_headless', False)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
         self.socks_proxy_port = int(get_option('socks_proxy_port', "0"))
@@ -51,6 +52,7 @@ from download_queue""")
 
         self.lazy_init()
 
+        batch_processed = 0
         row = self.pop_work_item()
         while row:
             url_id = row[0]
@@ -90,6 +92,11 @@ set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
                     self.lazy_init()
 
             self.finish_page(url_id, eff_id, not error_code)
+
+            batch_processed += 1
+            if batch_processed >= self.notification_threshold:
+                self.cond_notify()
+                batch_processed = 0
 
             row = self.pop_work_item()
 
