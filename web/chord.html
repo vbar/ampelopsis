@@ -124,7 +124,7 @@ d3.json("chord.json").then(function(graphData) {
 	    }
 
 	    var samples = get_samples(metadata, sampleMatrix, d.source.index, d.target.index);
-	    if (!samples) {
+	    if (!samples || !samples.length) {
 		return "";
 	    } else {
 		return samples.length == 1 ? "příklad" : "příklady";
