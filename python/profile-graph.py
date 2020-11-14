@@ -7,20 +7,21 @@ import collections
 from datetime import datetime
 import json
 import locale
-import pytz
+from lxml import etree
 import re
 import sys
 from common import get_option, make_connection
 from party_mixin import PartyMixin
 from show_case import ShowCase
-from trail_mixin import TrailMixin
 from url_heads import short_town_url_head
 
 profile_pattern = '^%s/([^/?#]+)$' % short_town_url_head
 
 profile_rx = re.compile(profile_pattern)
 
-ProfileDesc = collections.namedtuple('ProfileDesc', 'since following_count follower_count checked_follower_count')
+int_filler_rx = re.compile("[^0-9]+")
+
+ProfileDesc = collections.namedtuple('ProfileDesc', 'since following_count follower_count')
 
 
 def by_follower_count(p):
@@ -30,20 +31,16 @@ def by_follower_count(p):
     return (-1 * major, -1 * minor, p[0])
 
 
-class Processor(ShowCase, PartyMixin, TrailMixin):
+class Processor(ShowCase, PartyMixin):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
         PartyMixin.__init__(self)
-        TrailMixin.__init__(self)
+
+        self.html_parser = etree.HTMLParser()
 
         self.funnel_links = int(get_option('funnel_links', "0"))
-        if (self.funnel_links < 0) or (self.funnel_links > 3):
+        if (self.funnel_links < 0) or (self.funnel_links > 2):
             raise Exception("invalid option funnel_links")
-
-        # not necessarily correct, but it's where the accounts should
-        # have been created as well as where the client downloaded
-        # from, and we have to use something...
-        self.timezone = pytz.timezone('Europe/Prague')
 
         self.town_set = set()
         self.town2profile = {} # str town name -> ProfileDesc
@@ -100,9 +97,6 @@ order by url""" % re.sub("\\(\\)", "", profile_pattern))
             if profile.follower_count is not None:
                 out['followers'] = profile.follower_count
 
-            if profile.checked_follower_count > 0:
-                out['checkedFollowers'] = profile.checked_follower_count
-
             profiles.append(out)
 
         custom = {
@@ -128,35 +122,65 @@ order by url""" % re.sub("\\(\\)", "", profile_pattern))
 
         town_name = self.get_town_name(url)
         print("walking %s..." % town_name, file=sys.stderr)
-        chc = 0 if self.funnel_links < 3 else len(self.make_followers_set(town_name))
         self.town2profile[town_name] = ProfileDesc(
             self.get_since(root),
             self.get_profile_count(root, 'following'),
-            self.get_profile_count(root, 'followers'),
-            chc)
+            self.get_profile_count(root, 'followers'))
 
     @staticmethod
     def get_town_name(url):
         m = profile_rx.match(url)
         return m.group(1)
 
-    def get_since(self, root):
-        attrs = root.xpath("//span[contains(@class, 'ProfileHeaderCard-joinDateText')]/@title")
+    @staticmethod
+    def get_since(root):
         since = None
-        for a in attrs:
-            try:
-                dt = datetime.strptime(a, "%I:%M %p - %d %b %Y")
-                if since is None:
-                    since = dt
-                elif since != dt:
-                    raise Exception("profile has multiple join dates")
-            except:
-                print("cannot parse date:", sys.exc_info()[0], file=sys.stderr)
+        subtexts = root.xpath("//span/svg/g/circle[8]/../../../text()")
+        for st in subtexts:
+            rt = str(st)
+            t = rt.strip()
+            if t.startswith("Joined "):
+                try:
+                    dt = datetime.strptime(t[7:], "%B %Y")
+                    if since is None:
+                        since = dt
+                    elif since != dt:
+                        raise Exception("profile has multiple join dates")
+                except:
+                    print("cannot parse date:", sys.exc_info()[0], file=sys.stderr)
 
-        return self.timezone.localize(since)
+        return since
+
+    @staticmethod
+    def get_profile_count(root, nav):
+        count = None
+        subtexts = root.xpath("//a[substring(@href, string-length(@href) - string-length('/%s')+1)='/%s']/@title" % (nav, nav))
+        for st in subtexts:
+            t = int_filler_rx.sub("", st)
+            try:
+                c = int(t)
+                if count is None:
+                    count = c
+                elif count != c:
+                    raise Exception("profile has multiple %s counts" % nav)
+            except:
+                print("cannot parse count:", sys.exc_info()[0], file=sys.stderr)
+
+        return count
+
+    def get_html_document(self, url_id):
+        volume_id = self.get_volume_id(url_id)
+        reader = self.open_page(url_id, volume_id)
+        if not reader:
+            return None
+
+        try:
+            return etree.parse(reader, self.html_parser)
+        finally:
+            reader.close()
 
     def make_date_extent(self):
-        return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
+        return [dt.strftime("%Y-%m-%dT%H:%M:%S") for dt in (self.mindate, self.maxdate)]
 
 
 def main():

@@ -22,7 +22,7 @@ class Condensator(JsonFrame):
         self.town_rx = re.compile("^" + town_url_head + "/(?P<tname>[^/]+)")
 
         self.funnel_links = int(get_option('funnel_links', "0"))
-        if (self.funnel_links < 0) or (self.funnel_links > 3):
+        if (self.funnel_links < 0) or (self.funnel_links > 2):
             raise Exception("invalid option funnel_links")
 
         if self.funnel_links >= 2:

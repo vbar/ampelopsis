@@ -84,9 +84,6 @@ pool:
 rain:
 	python/rain-distance.py --histogram web/rain-check.json > web/rain.json
 
-followers:
-	python/graph-distance.py --histogram web/followers-check.json > web/followers.json
-
 timeline:
 	python/timeline-graph.py > web/timeline.json
 
@@ -95,9 +92,6 @@ repeat:
 
 profile:
 	python/profile-graph.py > web/profile.json
-
-trail:
-	python/trail-graph.py --selected > web/trail.json
 
 vocab:
 	python/word-graph.py > web/vocab.json
