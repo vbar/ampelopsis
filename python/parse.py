@@ -20,6 +20,7 @@ class PolyParser(VolumeHolder, HostCheck):
 
         inst_name = get_option("instance", None)
         self.instance_id = get_instance_id(cur, inst_name) # self.inst_id already used by HostCheck
+        self.local_only = get_option("parse_local_only", False)
         self.extra_header = get_option('extra_header', None)
 
         self.mem_cache = MemCache(int(get_option('parse_cache_high_mark', "2000")), int(get_option('parse_cache_low_mark', "1000")))
@@ -75,8 +76,15 @@ order by nameval""")
     def cond_notify(self):
         live = False
         if not self.single_action:
-            self.cur.execute("""select count(*)
+            if not self.instance_id or not self.local_only:
+                self.cur.execute("""select count(*)
 from download_queue""")
+            else:
+                self.cur.execute("""select count(*)
+from download_queue
+join host_inst on download_queue.host_id=host_inst.host_id
+where instance_id=%s""", (self.instance_id,))
+
             row = self.cur.fetchone()
             live = row[0] > 0
             if live:
