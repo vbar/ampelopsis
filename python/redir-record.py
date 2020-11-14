@@ -2,7 +2,7 @@
 
 from dateutil.parser import parse
 import sys
-from common import get_loose_path, make_connection
+from common import make_connection
 from show_case import ShowCase
 
 # unlike the Extender in redir-extend.py, this class doesn't add
@@ -32,15 +32,9 @@ on conflict(url) do nothing
 returning id""", (url,))
         row = self.cur.fetchone()
         if row:
-            url_id = row[0]
+            return row[0]
         else:
-            url_id = self.get_url_id(url)
-
-        fname = get_loose_path(url_id)
-        with open(fname, 'w', encoding ='utf-8') as f:
-            f.write(et['text'])
-
-        return url_id
+            return self.get_url_id(url)
 
 
 class Processor(ShowCase):

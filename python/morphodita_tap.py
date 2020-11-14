@@ -17,6 +17,13 @@ class MorphoditaTap(CursorWrapper):
         self.content_words_only = content_words_only
 
     def reconstitute(self, url):
+        url_id = self.get_url_id(url)
+        if not url_id:
+            print("url %s not found" % (url,), file=sys.stderr)
+            return ""
+
+        links = self.get_links(url_id)
+
         surl = url + '#plain'
         surl_id = self.get_url_id(surl)
         if not surl_id:
@@ -31,7 +38,7 @@ class MorphoditaTap(CursorWrapper):
         sentences = root.xpath("/doc/sentence")
         rect = []
         for s in sentences:
-            ln = self.reconstitute_line(s)
+            ln = self.reconstitute_line(links, s)
             if ln:
                 rect.append(ln)
 
@@ -47,29 +54,50 @@ where url=%s""", (url,))
 
         return row[0]
 
+    def get_links(self, url_id):
+        src_path = get_loose_path(url_id, alt_repre='morphodita')
+        if not os.path.exists(src_path):
+            return []
+
+        with open(src_path, 'rb') as infile:
+            txt = infile.read()
+            seq = txt.split()
+            lst = []
+            for w in seq:
+                if w[0] in ('@', '#'):
+                    lst.append(w)
+
+            return lst
+
     def get_xml_document(self, url_id):
         src_path = get_loose_path(url_id, alt_repre='morphodita')
         if os.path.exists(src_path):
             with open(src_path, 'rb') as infile:
                 with BytesIO() as whole:
-                    whole.write(b"<doc>\n")
+                    whole.write(b"<doc>")
                     shutil.copyfileobj(infile, whole)
-                    whole.write(b"</doc>\n")
+                    whole.write(b"</doc>")
                     whole.seek(0)
                     return etree.parse(whole)
 
         return None
 
-    def reconstitute_line(self, sentence):
+    def reconstitute_line(self, links, sentence):
         words = []
         tokens = sentence.xpath("./token")
         for token in tokens:
             tag = token.get('tag')
-            if tag and (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V'))):
+            if tag:
                 lemma = token.get('lemma')
-                segments = re.split('[-_]', lemma, 2)
-                if len(segments) and segments[0]:
-                    words.append(segments[0])
+                if lemma in ('@', '#'):
+                    if len(links) and (links[0][0] == lemma):
+                        words.append(links.pop())
+                    else:
+                        words.append(lemma) # should anything be done with links here?
+                elif (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V'))):
+                    segments = re.split('[-_`]', lemma, 2)
+                    if len(segments) and segments[0]:
+                        words.append(segments[0])
 
         return " ".join(words)
 
