@@ -94,7 +94,7 @@ where url=%s""", (url,))
                 lemma = token.get('lemma')
                 if lemma in ('@', '#'):
                     if len(links) and (links[0][0] == lemma):
-                        words.append(links.pop())
+                        words.append(links.pop(0))
                     else:
                         words.append(lemma) # should anything be done with links here?
                 elif (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V'))):
