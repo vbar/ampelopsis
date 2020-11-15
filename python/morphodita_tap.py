@@ -10,6 +10,7 @@ import shutil
 import sys
 from common import get_loose_path, make_connection
 from cursor_wrapper import CursorWrapper
+from token_util import link_split_rx
 
 class MorphoditaTap(CursorWrapper):
     def __init__(self, cur, content_words_only=False):
@@ -57,15 +58,17 @@ where url=%s""", (url,))
     def get_links(self, url_id):
         src_path = get_loose_path(url_id, alt_repre='morphodita')
         if not os.path.exists(src_path):
+            # print("no morphodita input", file=sys.stderr)
             return []
 
-        with open(src_path, 'rb') as infile:
+        with open(src_path, 'r') as infile:
             txt = infile.read()
             seq = txt.split()
             lst = []
             for w in seq:
                 if w[0] in ('@', '#'):
-                    lst.append(w)
+                    sseq = link_split_rx.split(w)
+                    lst.append(sseq[0])
 
             return lst
 
