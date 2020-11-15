@@ -24,6 +24,7 @@ class Processor(ShowCase, StemMixin):
         random.seed()
         self.stop_words = stop_words
         self.cluster_count = int(get_option("cluster_count", "128"))
+        self.visible_clusters = int(get_option("visible_clusters", "128"))
         self.lang_recog = init_lang_recog()
         self.sample_size = int(get_option("heatmap_sample_size", "100"))
         self.url2doc = {}
@@ -43,6 +44,8 @@ class Processor(ShowCase, StemMixin):
                 self.url2doc[et['url']] = txt
 
     def process(self):
+        print("computing topics...", file=sys.stderr)
+
         cv = CountVectorizer(max_df=0.95, min_df=2, analyzer=Analyzer(self.stop_words))
         docs = [ doc for url, doc in sorted(self.url2doc.items(), key=lambda p: p[0]) ]
         if not len(docs): # seen w/ incorrect download config
@@ -60,11 +63,12 @@ class Processor(ShowCase, StemMixin):
         self.matrix = lda.transform(df)
 
     def sample(self):
-        url2doc = {}
         urls = self.get_urls()
-        matrix = []
         l = len(urls)
         if l > self.sample_size:
+            print("sampling %d of %d URLs..." % (self.sample_size, l), file=sys.stderr)
+            url2doc = {}
+            matrix = []
             curve = [np.max(self.matrix[i]) for i in range(l)]
             curve.sort(reverse=True)
             threshold = curve[self.sample_size]
@@ -75,8 +79,38 @@ class Processor(ShowCase, StemMixin):
                     url2doc[url] = self.url2doc[url]
                     matrix.append(self.matrix[i])
 
-        self.url2doc = url2doc
-        self.matrix = matrix
+            self.url2doc = url2doc
+            self.matrix = matrix
+
+        l = len(self.topics)
+        if self.visible_clusters < l:
+            print("sampling %d of %d topics..." % (self.visible_clusters, l), file=sys.stderr)
+            supplementary_threshold = float(self.visible_clusters) / float(l)
+            wide = np.array(self.matrix)
+            assert l == wide.shape[1]
+            narrow = None
+            topics = []
+            curve = [np.max(wide[:, i]) for i in range(l)]
+            curve.sort(reverse=True)
+            threshold = curve[self.visible_clusters]
+            for i in range(l):
+                col = wide[:, i:i+1]
+                mx = np.max(col)
+                if (mx > threshold) or ((mx == threshold) and (random.random() < supplementary_threshold)):
+                    if narrow is None:
+                        narrow = np.array(col, copy=True)
+                    else:
+                        narrow = np.concatenate((narrow, col), axis=1)
+
+                    topics.append(self.topics[i])
+                    if len(topics) >= self.visible_clusters:
+                        break
+
+            assert narrow.shape[1] == len(topics)
+            self.matrix = narrow.tolist()
+            self.topics = topics
+
+        print("%d documents with %d topics after sampling" % (len(self.matrix), len(self.topics)))
 
     def dump_meta(self, output_path):
         meta = {
