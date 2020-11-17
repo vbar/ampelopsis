@@ -84,6 +84,9 @@ pool:
 rain:
 	python/rain-distance.py --histogram web/rain-check.json > web/rain.json
 
+letter:
+	python/letter-distance.py --histogram web/letter-check.json > web/letter.json
+
 timeline:
 	python/timeline-graph.py > web/timeline.json
 
