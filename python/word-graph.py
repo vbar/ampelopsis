@@ -2,7 +2,8 @@
 
 # requires database filled by running condensate.py
 
-from common import get_option, make_connection
+import sys
+from common import config, make_connection
 from lang_wrap import init_lang_recog
 from opt_util import get_quoted_list_option
 from stem_mixin import StemMixin
@@ -26,7 +27,7 @@ class Payload(WordFreqPayload):
 class Processor(WordFreqBase, StemMixin):
     def __init__(self, cur, stop_words, deconstructed):
         WordFreqBase.__init__(self, cur, deconstructed)
-        StemMixin.__init__(self, get_option("content_vocab_only", True))
+        StemMixin.__init__(self)
         self.stop_set = set(stop_words)
         self.lang_recog = init_lang_recog()
 
@@ -53,6 +54,9 @@ class Processor(WordFreqBase, StemMixin):
 
 
 def main():
+    if (len(sys.argv) == 2) and (sys.argv[1] == '--content-words-only'):
+        config['root']['content_words_only'] = "1"
+
     stop_words = load_stop_words()
     with make_connection() as conn:
         with conn.cursor() as cur:

@@ -3,7 +3,6 @@
 # requires database filled by running condensate.py
 
 import json
-import sys
 from common import make_connection
 from party_mixin import PartyMixin
 from show_case import ShowCase

@@ -4,9 +4,11 @@ from morphodita_tap import MorphoditaTap
 from token_util import tokenize
 
 class StemMixin: # self.cur must be provided by another inherited class
-    def __init__(self, content_words_only=False):
+    def __init__(self):
         stemmer = get_option("active_stemmer", "morphodita")
         if stemmer:
+            content_words_only = get_option("content_words_only", False)
+
             if stemmer == "majka":
                 self.tap = MajkaTap(self.cur, content_words_only)
             elif stemmer == "morphodita":
