@@ -44,32 +44,21 @@ d3.json("heatmap.json",
 	    .range(["white", "black"])
 	    .domain([0, metadata.maxValue])
 
-	d3.csv(
-	    "heatmap.csv",
-	    function (d) {
-		Object.keys(d).forEach(function (nm) {
-		    d[nm] = +d[nm];
-		});
-
-		return d;
-	    },
-	    function (data) {
-		svg.selectAll()
-		    .data(data, function (d) { return d.doc + ':' + d.topic; })
-		    .enter()
-		    .append("rect")
-		    .attr("x", function (d) { return x(d.topic); })
-		    .attr("y", function (d) { return y(d.doc); })
-		    .attr("width", x.bandwidth() )
-		    .attr("height", y.bandwidth() )
-		    .style("fill", function (d) { return palette(d.value); } )
-		    .on("click", function (d) {
-			if (d3.event.defaultPrevented) return;
-			window.open(metadata.rowDesc[d.doc]);
-		    })
-		    .append("title").text(function (d) {
-			return metadata.colDesc[d.topic];
-		    });
+	svg.selectAll()
+	    .data(metadata.table)
+	    .enter()
+	    .append("rect")
+	    .attr("x", function (d) { return x(d[1]); })
+	    .attr("y", function (d) { return y(d[0]); })
+	    .attr("width", x.bandwidth() )
+	    .attr("height", y.bandwidth() )
+	    .style("fill", function (d) { return palette(d[2]); } )
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+		window.open(metadata.rowDesc[d[0]]);
+	    })
+	    .append("title").text(function (d) {
+		return metadata.colDesc[d[1]];
 	    });
     });
 

@@ -66,8 +66,7 @@ volume:
 	python/volume-graph.py > web/volume.json
 
 heatmap:
-	python/dirichlet-cluster.py
-	cp heatmap.csv heatmap.json web
+	python/dirichlet-cluster.py > web/heatmap.json
 
 treemap:
 	python/hierarchy-graph.py > web/treemap.json

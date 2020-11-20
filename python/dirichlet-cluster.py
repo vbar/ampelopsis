@@ -1,11 +1,8 @@
 #!/usr/bin/python3
 
-import csv
 import json
 import numpy as np
-import os
 import random
-import re
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 import sys
@@ -110,29 +107,27 @@ class Processor(ShowCase, StemMixin):
             self.matrix = narrow.tolist()
             self.topics = topics
 
-        print("%d documents with %d topics after sampling" % (len(self.matrix), len(self.topics)))
+        print("%d documents with %d topics after sampling" % (len(self.matrix), len(self.topics)), file=sys.stderr)
 
-    def dump_meta(self, output_path):
+    def dump(self):
         meta = {
             'rowDesc': self.get_urls(),
             'colDesc': self.topics,
+            'table': self.get_table(),
             'dateExtent': self.make_date_extent(),
             'maxValue': self.get_max_value()
         }
 
-        with open(output_path, 'w') as f:
-            json.dump(meta, f, indent=2, ensure_ascii=False)
+        print(json.dumps(meta, indent=2))
 
-    def dump_content(self, output_path):
-        with open(output_path, 'w') as f:
-            writer = csv.writer(f, delimiter=",")
-            headings = [ "doc", "topic", "value" ]
-            writer.writerow(headings)
+    def get_table(self):
+        table = []
+        for i in range(len(self.url2doc)):
+            for j in range(len(self.topics)):
+                row = ( i, j, self.matrix[i][j] )
+                table.append(row)
 
-            for i in range(len(self.url2doc)):
-                for j in range(len(self.topics)):
-                    row = ( i, j, self.matrix[i][j] )
-                    writer.writerow(row)
+        return table
 
     def get_urls(self):
         return sorted(self.url2doc.keys())
@@ -152,11 +147,7 @@ def main():
             processor.run()
             processor.process()
             processor.sample()
-
-            json_target = get_option("heatmap_meta_data", "heatmap.json")
-            processor.dump_meta(json_target)
-            csv_target = get_option("heatmap_data", "heatmap.csv")
-            processor.dump_content(csv_target)
+            processor.dump()
 
 if __name__ == "__main__":
     main()
