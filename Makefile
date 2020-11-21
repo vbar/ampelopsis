@@ -68,6 +68,9 @@ volume:
 heatmap:
 	python/dirichlet-cluster.py > web/heatmap.json
 
+datemap:
+	python/dirichlet-date.py > web/datemap.json
+
 treemap:
 	python/hierarchy-graph.py > web/treemap.json
 

@@ -1,0 +1,71 @@
+<!-- based on code from d3-graph-gallery.com -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Témata v čase</title>
+
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script>
+
+var margin = {top: 15, right: 15, bottom: 30, left: 15},
+    width = 1000 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
+
+var svg = d3.select("#the_graph")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("cs-CZ.json", function(locale) {
+    d3.timeFormatDefaultLocale(locale);
+
+    d3.json("datemap.json", function (metadata) {
+	var dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+	    dateFormat = d3.timeFormat(locale.date),
+	    colDesc = metadata.colDesc.map(function (dt) {
+		return dateParse(dt);
+	    }),
+	    dateExtent = [ colDesc[0], colDesc[colDesc.length - 1] ],
+	    footer = document.getElementById('footer');
+
+	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
+	var x = d3.scaleTime()
+	    .domain(dateExtent)
+	    .range([ 0, width ]);
+	svg.append("g")
+	    .attr("transform", "translate(0," + height + ")")
+	    .call(d3.axisBottom(x));
+
+	var y = d3.scaleBand()
+	    .range([ height, 0 ])
+	    .domain(d3.range(0, metadata.rowDesc.length, 1))
+	    .padding(0.02);
+
+	var palette = d3.scaleSequential()
+	    .interpolator(d3.interpolatePuRd)
+	    .domain([0, metadata.maxValue]);
+
+	svg.selectAll()
+	    .data(metadata.table)
+	    .enter()
+	    .append("rect")
+	    .attr("x", function (d) { return x(colDesc[d[0]]); })
+	    .attr("y", function (d) { return y(d[1]); })
+	    .attr("width", width / colDesc.length)
+	    .attr("height", y.bandwidth())
+	    .style("fill", function (d) { return palette(d[2]); })
+	    .append("title").text(function (d) {
+		return metadata.rowDesc[d[1]];
+	    });
+    });
+});
+
+</script>
