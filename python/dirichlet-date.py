@@ -38,6 +38,9 @@ class Processor(DirichletBase):
             for j in range(topic_count):
                 instant[j] += self.matrix[i][j]
 
+        # memory optimization
+        self.matrix = None
+
     def dump(self):
         meta = {
             'rowDesc': self.topics,
@@ -85,6 +88,7 @@ def main():
             processor = Processor(cur, stop_words)
             processor.run()
             processor.process()
+            processor.sample_topics()
             processor.postprocess()
             processor.dump()
 

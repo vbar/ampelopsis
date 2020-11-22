@@ -2,7 +2,6 @@
 
 import json
 import numpy as np
-import random
 import sys
 from common import get_option, make_connection
 from dirichlet_base import DirichletBase
@@ -11,8 +10,6 @@ from stop_util import load_stop_words
 class Processor(DirichletBase):
     def __init__(self, cur, stop_words):
         DirichletBase.__init__(self, cur, stop_words)
-        random.seed()
-        self.visible_clusters = int(get_option("visible_clusters", "128"))
         self.sample_size = int(get_option("heatmap_sample_size", "100"))
 
     def load_doc(self, et):
@@ -41,33 +38,7 @@ class Processor(DirichletBase):
             self.url2doc = url2doc
             self.matrix = matrix
 
-        l = len(self.topics)
-        if self.visible_clusters < l:
-            print("sampling %d of %d topics..." % (self.visible_clusters, l), file=sys.stderr)
-            supplementary_threshold = float(self.visible_clusters) / float(l)
-            wide = np.array(self.matrix)
-            assert l == wide.shape[1]
-            narrow = None
-            topics = []
-            curve = [np.max(wide[:, i]) for i in range(l)]
-            curve.sort(reverse=True)
-            threshold = curve[self.visible_clusters]
-            for i in range(l):
-                col = wide[:, i:i+1]
-                mx = np.max(col)
-                if (mx > threshold) or ((mx == threshold) and (random.random() < supplementary_threshold)):
-                    if narrow is None:
-                        narrow = np.array(col, copy=True)
-                    else:
-                        narrow = np.concatenate((narrow, col), axis=1)
-
-                    topics.append(self.topics[i])
-                    if len(topics) >= self.visible_clusters:
-                        break
-
-            assert narrow.shape[1] == len(topics)
-            self.matrix = narrow.tolist()
-            self.topics = topics
+        self.sample_topics()
 
         print("%d documents with %d topics after sampling" % (len(self.matrix), len(self.topics)), file=sys.stderr)
 

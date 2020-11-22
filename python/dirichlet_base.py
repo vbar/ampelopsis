@@ -1,3 +1,5 @@
+import numpy as np
+import random
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 import sys
@@ -12,8 +14,10 @@ class DirichletBase(ShowCase, StemMixin):
     def __init__(self, cur, stop_words):
         ShowCase.__init__(self, cur)
         StemMixin.__init__(self)
+        random.seed()
         self.stop_words = stop_words
         self.cluster_count = int(get_option("cluster_count", "128"))
+        self.visible_clusters = int(get_option("visible_clusters", "128"))
         self.lang_recog = init_lang_recog()
         self.url2doc = {}
         self.topics = []
@@ -46,6 +50,35 @@ class DirichletBase(ShowCase, StemMixin):
             self.topics.append(top)
 
         self.matrix = lda.transform(df)
+
+    def sample_topics(self):
+        l = len(self.topics)
+        if self.visible_clusters < l:
+            print("sampling %d of %d topics..." % (self.visible_clusters, l), file=sys.stderr)
+            supplementary_threshold = float(self.visible_clusters) / float(l)
+            wide = np.array(self.matrix)
+            assert l == wide.shape[1]
+            narrow = None
+            topics = []
+            curve = [np.max(wide[:, i]) for i in range(l)]
+            curve.sort(reverse=True)
+            threshold = curve[self.visible_clusters]
+            for i in range(l):
+                col = wide[:, i:i+1]
+                mx = np.max(col)
+                if (mx > threshold) or ((mx == threshold) and (random.random() < supplementary_threshold)):
+                    if narrow is None:
+                        narrow = np.array(col, copy=True)
+                    else:
+                        narrow = np.concatenate((narrow, col), axis=1)
+
+                    topics.append(self.topics[i])
+                    if len(topics) >= self.visible_clusters:
+                        break
+
+            assert narrow.shape[1] == len(topics)
+            self.matrix = narrow.tolist()
+            self.topics = topics
 
     def get_urls(self):
         return sorted(self.url2doc.keys())
