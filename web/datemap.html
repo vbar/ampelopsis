@@ -33,6 +33,7 @@ d3.json("cs-CZ.json", function(locale) {
 		return dateParse(dt);
 	    }),
 	    dateExtent = [ colDesc[0], colDesc[colDesc.length - 1] ],
+	    cell2index = {},
 	    footer = document.getElementById('footer');
 
 	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
@@ -62,6 +63,21 @@ d3.json("cs-CZ.json", function(locale) {
 	    .attr("width", width / colDesc.length)
 	    .attr("height", y.bandwidth())
 	    .style("fill", function (d) { return palette(d[2]); })
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+
+		var samples = metadata.samples[d[0]][d[1]],
+		    key = d[0] + ":" + d[1],
+		    idx = (key in cell2index) ? (cell2index[key] + 1) : 0;
+		if (idx >= samples.length) {
+		    idx = 0;
+		}
+
+		if (samples.length) {
+		    window.open(samples[idx]);
+		    cell2index[key] = idx;
+		}
+	    })
 	    .append("title").text(function (d) {
 		return metadata.rowDesc[d[1]];
 	    });
