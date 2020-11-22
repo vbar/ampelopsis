@@ -15,26 +15,26 @@ class RefNet(PinholeBase, TagMixin):
     def __init__(self, cur, distinguish, deconstructed):
         PinholeBase.__init__(self, cur, distinguish, deconstructed)
         TagMixin.__init__(self)
-        self.tag_rx = re.compile('#([-\\w]+)')
+        self.url_rx = re.compile('(https?://\\S+)')
         self.lazy_ref_map = self.do_ref_map
 
     def load_item(self, et):
         hamlet_name = et['osobaid']
         occ_date = parse(et['datum'])
         txt = et['text']
-        for m in self.tag_rx.finditer(txt):
+        for m in self.url_rx.finditer(txt):
             self.tag_line.append(TagOcc(tag=m.group(1), hamlet_name=hamlet_name, occ_date=occ_date))
 
-    def make_matrix_desc(self):
-        matrix_desc = {}
-        for variants, tags in self.vars2tags.items():
+    def make_samples(self):
+        sample_matrix = {}
+        for variants, samples in self.vars2tags.items():
             source_name = self.get_presentation_name(variants[0])
             target_name = self.get_presentation_name(variants[1])
-            tag_list = [ "#" + t for t in sorted(tags) ]
-            row = matrix_desc.setdefault(source_name, {})
-            row[target_name] = ", ".join(tag_list)
+            sample_list = list(samples)
+            row = sample_matrix.setdefault(source_name, {})
+            row[target_name] = sample_list
 
-        return matrix_desc
+        return sample_matrix
 
 
 def main():
