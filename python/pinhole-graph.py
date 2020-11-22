@@ -2,6 +2,7 @@
 
 # requires database filled by running condensate.py
 
+import collections
 import re
 import sys
 from common import get_option, make_connection
@@ -9,10 +10,13 @@ from opt_util import get_quoted_list_option
 from pinhole_args import ConfigArgs
 from pinhole_base import PinholeBase
 
+VertexOcc = collections.namedtuple('VertexOcc', 'vertex count')
+
 class RefNet(PinholeBase):
     def __init__(self, cur, distinguish, deconstructed):
         PinholeBase.__init__(self, cur, distinguish, deconstructed)
         self.nick_rx = re.compile('@([-\\w]+)')
+        self.link_nest = {} # source variant -> target variant -> source town name -> target town name -> list of URLs
 
     def load_item(self, et):
         self.extend_date(et)
@@ -22,6 +26,7 @@ class RefNet(PinholeBase):
             self.do_load_item(et, source_hamlet_name, source_variant)
 
     def do_load_item(self, et, source_hamlet_name, source_variant):
+        link_map = {}
         edge_set = set()
         txt = et.get('text')
         for m in self.nick_rx.finditer(txt):
@@ -30,14 +35,50 @@ class RefNet(PinholeBase):
             if target_hamlet_name and (target_hamlet_name != source_hamlet_name):
                 target_variant = self.get_variant(target_hamlet_name)
                 if target_variant:
+                    pair_set = link_map.setdefault((source_variant, target_variant), set())
+                    pair_set.add((source_hamlet_name, target_town_name))
+
                     source_node = self.introduce_node(source_variant, self.distinguish)
                     target_node = self.introduce_node(target_variant, False)
                     edge_set.add((source_node, target_node))
+
+        for var_pair, pair_set in link_map.items():
+            for name_pair in pair_set:
+                source_town_name = self.hamlet2town.get(name_pair[0])
+                if source_town_name:
+                    target_town_name = name_pair[1]
+                    outer_source = self.link_nest.setdefault(var_pair[0], {})
+                    outer_target = outer_source.setdefault(var_pair[1], {})
+                    inner_source = outer_target.setdefault(source_town_name, {})
+                    inner_target = inner_source.setdefault(target_town_name, [])
+                    inner_target.append(et['url'])
 
         for edge in edge_set:
             weight = self.ref_map.get(edge, 0)
             self.ref_map[edge] = weight + 1
 
+    def make_matrix_desc(self):
+        matrix_desc = {}
+        for source_variant, outer_source in self.link_nest.items():
+            for target_variant, outer_target in outer_source.items():
+                source_name = self.get_presentation_name(source_variant)
+                target_name = self.get_presentation_name(target_variant)
+                vertices = self.get_cell_vertices(outer_target)
+                row = matrix_desc.setdefault(source_name, {})
+                row[target_name] = "\n".join(vertices[:3])
+
+        return matrix_desc
+
+    def get_cell_vertices(self, outer_target):
+        occurences = []
+        for source_town_name, inner_source in outer_target.items():
+            for target_town_name, inner_target in inner_source.items():
+                vtx = "@%s \u2192 @%s" % (source_town_name, target_town_name)
+                cnt = len(inner_target)
+                occurences.append(VertexOcc(vertex=vtx, count=cnt))
+
+        occurences.sort(key=lambda vo: (-1 * vo.count, vo.vertex))
+        return [ vo.vertex for vo in occurences ]
 
 def main():
     ca = ConfigArgs()
