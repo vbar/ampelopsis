@@ -26,7 +26,7 @@ var margin = {top: 10, right: 30, bottom: 30, left: 60},
     height = 600 - margin.top - margin.bottom,
     x0 = d3.scale.ordinal().rangeRoundBands([0, width], .1),
     x1 = d3.scale.ordinal(),
-    y = d3.scale.linear().range([height, 0]);
+    y = d3.scale.log().range([height, 0]);
 
 var xAxis = d3.svg.axis()
     .scale(x0)
@@ -34,7 +34,8 @@ var xAxis = d3.svg.axis()
     .orient("bottom"),
     yAxis = d3.svg.axis()
     .scale(y)
-    .orient("left");
+    .orient("left")
+    .tickFormat(function (d) { return y.tickFormat(4, d3.format("d"))(d); });
 
 var svg = d3.select("#the_graph").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -82,7 +83,7 @@ d3.json("cs-CZ.json", function (err, locale) {
 
 	x0.domain(catNames);
 	x1.domain(indivNames).rangeRoundBands([0, x0.rangeBand()]);
-	y.domain([0, ymax]);
+	y.domain([1, ymax]);
 
 	svg.append("g")
 	    .attr("class", "x axis")
@@ -105,8 +106,8 @@ d3.json("cs-CZ.json", function (err, locale) {
 	    .attr("width", x1.rangeBand())
 	    .attr("x", function (d) { return x1(d.indname); })
 	    .style("fill", function (d) { return d.color; })
-	    .attr("y", function (d) { return y(0); })
-	    .attr("height", function (d) { return height - y(0); })
+	    .attr("y", function (d) { return y(1); })
+	    .attr("height", function (d) { return height - y(1); })
 	    .on("click", function (d) {
 		if (d3.event.defaultPrevented) return;
 		if ('ext_url' in d) {
@@ -118,8 +119,8 @@ d3.json("cs-CZ.json", function (err, locale) {
 	    });
 
 	slice.selectAll("rect")
-	    .attr("y", function (d) { return y(d.value); })
-	    .attr("height", function (d) { return height - y(d.value); });
+	    .attr("y", function (d) { return y(1 + d.value); })
+	    .attr("height", function (d) { return height - y(1 + d.value); });
     });
 });
 
