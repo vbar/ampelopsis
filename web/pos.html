@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Gramatické kategorie slovní zásoby</title>
+    <style>
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+
+  </head>
+  <body>
+    <div id="the_graph"></div>
+    <div id="footer"></div>
+    <script>
+
+var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 900 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom,
+    x0 = d3.scale.ordinal().rangeRoundBands([0, width], .1),
+    x1 = d3.scale.ordinal(),
+    y = d3.scale.linear().range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x0)
+    .tickSize(0)
+    .orient("bottom"),
+    yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("cs-CZ.json", function (err, locale) {
+    var dateParse = d3.time.format("%Y-%m-%d").parse,
+	dateFormat = d3.time.format(locale.date);
+
+    d3.json("pos.json", function (error, metadata) {
+	var dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+	    footer = document.getElementById('footer'),
+	    catNames = metadata.pos,
+	    indivNames = metadata.data.map(function (it) { return it.name; }),
+	    ymax = d3.max(metadata.data, function (d) {
+		return d3.max(Object.values(d.freq));
+	    }),
+	    data = [];
+
+	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
+	for (var i = 0; i < catNames.length; ++i) {
+	    var values = metadata.data.map(function (it) {
+		var desc = {
+		    'indname': it.name,
+		    'color': it.color,
+		    'value': it.freq[catNames[i]] || 0
+		};
+
+		if ('ext_url' in it) {
+		    desc.ext_url = it.ext_url;
+		}
+
+		return desc;
+	    });
+
+	    data.push({
+		'catname': catNames[i],
+		'values': values
+	    });
+	}
+
+	x0.domain(catNames);
+	x1.domain(indivNames).rangeRoundBands([0, x0.rangeBand()]);
+	y.domain([0, ymax]);
+
+	svg.append("g")
+	    .attr("class", "x axis")
+	    .attr("transform", "translate(0," + height + ")")
+	    .call(xAxis);
+
+	svg.append("g")
+	    .attr("class", "y axis")
+	    .call(yAxis);
+
+	var slice = svg.selectAll(".slice")
+	    .data(data)
+	    .enter().append("g")
+	    .attr("class", "g")
+	    .attr("transform", function (d) { return "translate(" + x0(d.catname) + ",0)"; });
+
+	slice.selectAll("rect")
+	    .data(function (d) { return d.values; })
+	    .enter().append("rect")
+	    .attr("width", x1.rangeBand())
+	    .attr("x", function (d) { return x1(d.indname); })
+	    .style("fill", function (d) { return d.color; })
+	    .attr("y", function (d) { return y(0); })
+	    .attr("height", function (d) { return height - y(0); })
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+		if ('ext_url' in d) {
+		    window.open(d.ext_url);
+		}
+	    })
+	    .append("title").text(function (d) {
+		return d.indname;
+	    });
+
+	slice.selectAll("rect")
+	    .attr("y", function (d) { return y(d.value); })
+	    .attr("height", function (d) { return height - y(d.value); });
+    });
+});
+
+    </script>
+  </body>
+</html>

@@ -45,6 +45,21 @@ class MorphoditaTap(CursorWrapper):
 
         return "\n".join(rect)
 
+    def get_tags(self, url):
+        surl = url + '#plain'
+        surl_id = self.get_url_id(surl)
+        if not surl_id:
+            print("get_tags: no %s found" % (surl,), file=sys.stderr)
+            return []
+
+        root = self.get_xml_document(surl_id)
+        if not root:
+            print("get_tags: no %s" % (surl,), file=sys.stderr)
+            return []
+
+        nodes = root.xpath("//token/@tag")
+        return [ str(n) for n in nodes ]
+
     def get_url_id(self, url):
         self.cur.execute("""select id
 from field

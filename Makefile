@@ -109,3 +109,6 @@ vocab:
 
 tagvocab:
 	python/hashtag-graph.py > web/vocab.json
+
+pos:
+	python/pos-graph.py > web/pos.json
