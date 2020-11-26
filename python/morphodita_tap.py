@@ -2,6 +2,7 @@
 
 # requires downloaded data extended by running morphodita-stemmer.py
 
+import collections
 from io import BytesIO
 from lxml import etree
 import os
@@ -11,6 +12,10 @@ import sys
 from common import get_loose_path, make_connection
 from cursor_wrapper import CursorWrapper
 from token_util import link_split_rx
+
+SentenceModel = collections.namedtuple('SentenceModel', 'text stems tags')
+
+stem_sep_rx = re.compile('[-_`]')
 
 class MorphoditaTap(CursorWrapper):
     def __init__(self, cur, content_words_only=False):
@@ -45,20 +50,24 @@ class MorphoditaTap(CursorWrapper):
 
         return "\n".join(rect)
 
-    def get_tags(self, url):
+    def remodel(self, url):
         surl = url + '#plain'
         surl_id = self.get_url_id(surl)
         if not surl_id:
-            print("get_tags: no %s found" % (surl,), file=sys.stderr)
+            print("remodel: no %s found" % (surl,), file=sys.stderr)
             return []
 
         root = self.get_xml_document(surl_id)
         if not root:
-            print("get_tags: no %s" % (surl,), file=sys.stderr)
+            print("remodel: no %s" % (surl,), file=sys.stderr)
             return []
 
-        nodes = root.xpath("//token/@tag")
-        return [ str(n) for n in nodes ]
+        sentence_models = []
+        sentences = root.xpath("/doc/sentence")
+        for s in sentences:
+            sentence_models.append(self.remodel_sentence(s))
+
+        return sentence_models
 
     def get_url_id(self, url):
         self.cur.execute("""select id
@@ -100,6 +109,9 @@ where url=%s""", (url,))
 
         return None
 
+    def is_valid(self, tag):
+        return (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V')))
+
     def reconstitute_line(self, links, sentence):
         words = []
         tokens = sentence.xpath("./token")
@@ -112,12 +124,32 @@ where url=%s""", (url,))
                         words.append(links.pop(0))
                     else:
                         words.append(lemma) # should anything be done with links here?
-                elif (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V'))):
-                    segments = re.split('[-_`]', lemma, 2)
+                elif self.is_valid(tag):
+                    segments = stem_sep_rx.split(lemma, 2)
                     if len(segments) and segments[0]:
                         words.append(segments[0])
 
         return " ".join(words)
+
+    def remodel_sentence(self, sentence):
+        t = ""
+        for w in sentence.itertext():
+            t += w
+
+        tags = []
+        words = []
+        tokens = sentence.xpath("./token")
+        for token in tokens:
+            tag = token.get('tag')
+            if self.is_valid(tag):
+                lemma = token.get('lemma')
+                if lemma:
+                    segments = stem_sep_rx.split(lemma, 2)
+                    if len(segments) and segments[0]:
+                        tags.append(tag)
+                        words.append(segments[0])
+
+        return SentenceModel(text=t, stems=words, tags=tags)
 
 
 def main():

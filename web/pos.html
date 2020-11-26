@@ -7,19 +7,53 @@
 
 .axis path,
 .axis line {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+#dialog em {
+    font-style: normal;
+    color: red;
+}
+
+.sentence-view {
+    display: none;
+}
+
+#dialog .sentence-view {
+    display: block;
 }
 
     </style>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-2.0.3.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
-
   </head>
   <body>
     <div id="the_graph"></div>
     <div id="footer"></div>
+    <div id="dialog"></div>
+    <div class="sentence-view">
+      <p>
+	<a class="sentence" target="_blank"></a>
+	<br>
+	<span class="stemmed"></span>
+	<br>
+	<em><span class="tag"></span></em>
+      </p>
+    </div>
     <script>
+
+// from https://stackoverflow.com/questions/24816/escaping-html-strings-with-jquery
+function escapeHtml(text) {
+    return text.replace(/[\"&<>]/g, function (a) {
+	return { '"': '&quot;', '&': '&amp;', '<': '&lt;', '>': '&gt;' }[a];
+    });
+}
+
+$('#dialog').dialog({ autoOpen: false, width: 500 });
 
 var margin = {top: 10, right: 30, bottom: 30, left: 60},
     width = 900 - margin.left - margin.right,
@@ -50,7 +84,6 @@ d3.json("cs-CZ.json", function (err, locale) {
 
     d3.json("pos.json", function (error, metadata) {
 	var dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
-	    footer = document.getElementById('footer'),
 	    catNames = metadata.pos,
 	    indivNames = metadata.data.map(function (it) { return it.name; }),
 	    ymax = d3.max(metadata.data, function (d) {
@@ -58,14 +91,17 @@ d3.json("cs-CZ.json", function (err, locale) {
 	    }),
 	    data = [];
 
-	footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+	$('#footer').text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
 
 	for (var i = 0; i < catNames.length; ++i) {
-	    var values = metadata.data.map(function (it) {
+	    var catname = catNames[i],
+		values = metadata.data.map(function (it) {
 		var desc = {
 		    'indname': it.name,
+		    'catname': catname,
 		    'color': it.color,
-		    'value': it.freq[catNames[i]] || 0
+		    'value': it.freq[catname] || 0,
+		    'samples': it.samples[catname]
 		};
 
 		if ('ext_url' in it) {
@@ -76,7 +112,7 @@ d3.json("cs-CZ.json", function (err, locale) {
 	    });
 
 	    data.push({
-		'catname': catNames[i],
+		'catname': catname,
 		'values': values
 	    });
 	}
@@ -106,21 +142,55 @@ d3.json("cs-CZ.json", function (err, locale) {
 	    .attr("width", x1.rangeBand())
 	    .attr("x", function (d) { return x1(d.indname); })
 	    .style("fill", function (d) { return d.color; })
-	    .attr("y", function (d) { return y(1); })
-	    .attr("height", function (d) { return height - y(1); })
+	    .attr("y", function (d) { return y(1 + d.value); })
+	    .attr("height", function (d) { return height - y(1 + d.value); })
 	    .on("click", function (d) {
 		if (d3.event.defaultPrevented) return;
-		if ('ext_url' in d) {
-		    window.open(d.ext_url);
+
+		$("#dialog").empty();
+		var tmpl = $(".sentence-view").clone();
+		if (d.samples) {
+		    for (var i = 0; i < d.samples.length; ++i) {
+			var triple = d.samples[i],
+			    sentobj = metadata.sentences[triple[0]],
+			    stemmed = "";
+
+			for (var j = 0; j < sentobj.stems.length; ++j) {
+			    if (j) {
+				stemmed += " ";
+			    }
+
+			    if (j == triple[1]) {
+				stemmed += "<em>";
+			    }
+
+			    stemmed += escapeHtml(sentobj.stems[j]);
+
+			    if (j == triple[1]) {
+				stemmed += "</em>";
+			    }
+			}
+
+			tmpl.find("a.sentence")
+			    .attr("href", sentobj.url)
+			    .text(sentobj.text);
+			tmpl.find(".stemmed")
+			    .html(stemmed);
+			tmpl.find(".tag")
+			    .text(triple[2]);
+			$("#dialog").append(tmpl.html());
+		    }
 		}
+
+		$("#dialog").dialog('option', {
+		    'title': d.indname + ": " + d.catname,
+		    'position': {'my': 'right top', 'of': d3.event}
+		});
+		$('#dialog').dialog('open');
 	    })
 	    .append("title").text(function (d) {
 		return d.indname;
 	    });
-
-	slice.selectAll("rect")
-	    .attr("y", function (d) { return y(1 + d.value); })
-	    .attr("height", function (d) { return height - y(1 + d.value); });
     });
 });
 
