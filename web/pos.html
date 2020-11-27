@@ -41,7 +41,7 @@
 	<br>
 	<span class="stemmed"></span>
 	<br>
-	<em><span class="tag"></span></em>
+	<em><span class="tag-sel"></span></em>
       </p>
     </div>
     <script>
@@ -153,20 +153,23 @@ d3.json("cs-CZ.json", function (err, locale) {
 		    for (var i = 0; i < d.samples.length; ++i) {
 			var triple = d.samples[i],
 			    sentobj = metadata.sentences[triple[0]],
-			    stemmed = "";
+			    stemmed = "",
+			    tagged = triple[2].join(" "),
+			    highlight;
 
 			for (var j = 0; j < sentobj.stems.length; ++j) {
 			    if (j) {
 				stemmed += " ";
 			    }
 
-			    if (j == triple[1]) {
+			    highlight = triple[1].indexOf(j) >= 0;
+			    if (highlight) {
 				stemmed += "<em>";
 			    }
 
 			    stemmed += escapeHtml(sentobj.stems[j]);
 
-			    if (j == triple[1]) {
+			    if (highlight) {
 				stemmed += "</em>";
 			    }
 			}
@@ -176,8 +179,8 @@ d3.json("cs-CZ.json", function (err, locale) {
 			    .text(sentobj.text);
 			tmpl.find(".stemmed")
 			    .html(stemmed);
-			tmpl.find(".tag")
-			    .text(triple[2]);
+			tmpl.find(".tag-sel")
+			    .text(tagged);
 			$("#dialog").append(tmpl.html());
 		    }
 		}

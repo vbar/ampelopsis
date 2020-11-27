@@ -15,16 +15,23 @@ from show_case import ShowCase
 from token_util import tokenize
 from url_heads import town_url_head
 
-SentenceExample = collections.namedtuple('SentenceExample', 'text stem_idx tag')
+SentenceExample = collections.namedtuple('SentenceExample', 'text tag_head')
 
-SentenceCacheItem = collections.namedtuple('SentenceCacheItem', 'url_set stem_set')
+SentenceCacheItem = collections.namedtuple('SentenceCacheItem', 'url_set stem_set tag_set')
 
-SentenceSample = collections.namedtuple('SentenceSample', 'text stem_idx tag url stems')
+SentenceSample = collections.namedtuple('SentenceSample', 'text url stems tags indices')
 
 def make_sentence_sample(example, regular_item):
     for url in regular_item.url_set:
         for stems in regular_item.stem_set:
-            return SentenceSample(text=example.text, stem_idx=example.stem_idx, tag=example.tag, url=url, stems=stems)
+            for tags in regular_item.tag_set:
+                assert len(stems) == len(tags)
+                indices = []
+                for i in range(len(tags)):
+                    if tags[i].startswith(example.tag_head):
+                        indices.append(i)
+
+                return SentenceSample(text=example.text, url=url, stems=stems, tags=tags, indices=indices)
 
 
 class Payload:
@@ -75,16 +82,23 @@ class Processor(ShowCase, PartyMixin):
                     if sci:
                         if len(sci.url_set) == 1:
                             if len(sci.stem_set) == 1:
-                                samples.append(make_sentence_sample(example, sci))
+                                if len(sci.tag_set) == 1:
+                                    samples.append(make_sentence_sample(example, sci))
+                                else:
+                                    print("tags vary", file=sys.stderr)
                             else:
                                 print("stemming inconsistent", file=sys.stderr)
                     else:
                         raise Exception("text not cached")
 
-                if len(samples):
-                    random.shuffle(samples)
-                    out_samples = []
-                    for sample in samples[:self.pos_sample_max]:
+                random.shuffle(samples)
+                out_samples = []
+                sample_idx = 0
+                selected = set()
+                while (sample_idx < len(samples)) and (len(out_samples) < self.pos_sample_max):
+                    sample = samples[sample_idx]
+                    if sample.text not in selected:
+                        selected.add(sample.text)
                         txt_idx = text2id.get(sample.text)
                         if txt_idx is None:
                             txt_idx = len(sentences)
@@ -96,9 +110,16 @@ class Processor(ShowCase, PartyMixin):
 
                             text2id[sample.text] = txt_idx
 
-                        triple = (txt_idx, sample.stem_idx, sample.tag)
+                        tags = []
+                        for i in sample.indices:
+                            tags.append(sample.tags[i])
+
+                        triple = (txt_idx, sample.indices, tags)
                         out_samples.append(triple)
 
+                    sample_idx += 1
+
+                if len(out_samples):
                     pos2samples[pos] = out_samples
 
             item = {
@@ -140,27 +161,25 @@ class Processor(ShowCase, PartyMixin):
         self.extend_date(et)
         pos2payload = self.characteristics.setdefault(hamlet_name, {})
         for sentence in self.tap.remodel(url):
-            i = 0
             for tag in sentence.tags:
                 if len(tag) >= self.pos_head_length:
                     sci = self.sentence_cache.get(sentence.text)
                     stems_tuple = tuple(sentence.stems)
+                    tags_tuple = tuple(sentence.tags)
                     if sci is None:
-                        self.sentence_cache[sentence.text] = SentenceCacheItem(url_set=set((url,)), stem_set=set((stems_tuple,)))
+                        self.sentence_cache[sentence.text] = SentenceCacheItem(url_set=set((url,)), stem_set=set((stems_tuple,)), tag_set=set((tags_tuple,)))
                     else:
                         sci.url_set.add(url)
                         sci.stem_set.add(stems_tuple)
-
-                    example = SentenceExample(text=sentence.text, stem_idx=i, tag=tag)
+                        sci.tag_set.add(tags_tuple)
 
                     head = tag[:self.pos_head_length]
+                    example = SentenceExample(text=sentence.text, tag_head=head)
                     payload = pos2payload.get(head)
                     if payload is None:
                         pos2payload[head] = Payload(example)
                     else:
                         payload.append(example)
-
-                i += 1
 
     def make_date_extent(self):
         # old D3 in frontend doesn't parse ISO format...
