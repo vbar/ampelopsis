@@ -4,7 +4,7 @@ has_statuses=$(shell funnel_links=$(funnel_links); echo $$(( funnel_links >= 1 )
 
 all: fulltext main
 
-main: datetime datetimes volume lang sankey chord heatmap datemap treemap distance timeline timecycle vocab demanding
+main: datetime datetimes volume lang sankey chord heatmap datemap treemap distance timeline timecycle vocab pos demanding
 
 fulltext: preliminary majka morphodita
 
