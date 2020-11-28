@@ -122,8 +122,8 @@ d3.json("cs-CZ.json", function (err, locale) {
 	    .attr("width", x1.rangeBand())
 	    .attr("x", function (d) { return x1(d.indname); })
 	    .style("fill", function (d) { return d.color; })
-	    .attr("y", function (d) { return y(0); })
-	    .attr("height", function (d) { return height - y(0); })
+	    .attr("y", function (d) { return y(d.value); })
+	    .attr("height", function (d) { return height - y(d.value); })
 	    .on("click", function (d) {
 		if (d3.event.defaultPrevented) return;
 		if ('ext_url' in d) {
@@ -135,10 +135,6 @@ d3.json("cs-CZ.json", function (err, locale) {
 		if (cyclePresent) t += "\nv " + d.idx + ". " + cyclePresent;
 		return t;
 	    });
-
-	slice.selectAll("rect")
-	    .attr("y", function (d) { return y(d.value); })
-	    .attr("height", function (d) { return height - y(d.value); });
     });
 });
 
