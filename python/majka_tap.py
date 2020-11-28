@@ -9,16 +9,50 @@ from common import get_loose_path, make_connection
 from cursor_wrapper import CursorWrapper
 from token_util import url_rx
 
+pos_filter_spec = {
+    'noun': 1,
+    'adjective': 2,
+    'pronoun': 3,
+    'numeral': 4,
+    'verb': 5,
+    'adverb': 6,
+    'preposition': 7,
+    'conjunction': 8,
+    'particle': 9
+    # 2-digit interjection is special
+}
+
 class StemException(Exception):
     pass
 
 
 class MajkaTap(CursorWrapper):
-    def __init__(self, cur, content_words_only=False):
+    def __init__(self, cur, pos_filter=None):
         CursorWrapper.__init__(self, cur)
         self.fragment_rx = re.compile("^[^#]+#([0-9]+)$")
-        if content_words_only:
-            self.content_pos_rx = re.compile("^k[15]")
+        if pos_filter:
+            singles = []
+            for pos in pos_filter:
+                d = pos_filter_spec.get(pos)
+                if d:
+                    singles.append(d)
+
+            singles.sort()
+            pos_class_contents = "".join((str(s) for s in singles))
+            pos_class = "[" + pos_class_contents + "]"
+
+            if 'noun' in pos_filter:
+                if 'interjection' in pos_filter:
+                    pattern_body = pos_class
+                else:
+                    pattern_body = pos_class + "(?!0)"
+            else:
+                if 'interjection' in pos_filter:
+                    pattern_body = "(?:" + pos_class + "|10)"
+                else:
+                    pattern_body = pos_class
+
+            self.content_pos_rx = re.compile("^k" + pattern_body)
         else:
             self.content_pos_rx = None
 

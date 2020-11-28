@@ -54,8 +54,12 @@ class Processor(WordFreqBase, StemMixin):
 
 
 def main():
-    if (len(sys.argv) == 2) and (sys.argv[1] == '--content-words-only'):
-        config['root']['content_words_only'] = "1"
+    lsa = len(sys.argv)
+    if (lsa >= 2) and (sys.argv[1] == '--stem-pos-filter'):
+        if lsa == 3:
+            config['root']['stem_pos_filter'] = sys.argv[2]
+        else:
+            raise Exception("--stem-pos-filter must have single value")
 
     stop_words = load_stop_words()
     with make_connection() as conn:

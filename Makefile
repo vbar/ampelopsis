@@ -105,7 +105,7 @@ profile:
 	python/profile-graph.py > web/profile.json
 
 vocab:
-	python/word-graph.py --content-words-only > web/vocab.json
+	python/word-graph.py --stem-pos-filter "noun verb" > web/vocab.json
 
 tagvocab:
 	python/hashtag-graph.py > web/vocab.json

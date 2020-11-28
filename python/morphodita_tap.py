@@ -17,10 +17,35 @@ SentenceModel = collections.namedtuple('SentenceModel', 'text stems tags')
 
 stem_sep_rx = re.compile('[-_`]')
 
+pos_filter_spec = {
+    'noun': 'N',
+    'adjective': 'A',
+    'pronoun': 'P',
+    'numeral': 'C',
+    'verb': 'V',
+    'adverb': 'D',
+    'preposition': 'R',
+    'conjunction': 'J',
+    'particle': 'T',
+    'interjection': 'I'
+}
+
 class MorphoditaTap(CursorWrapper):
-    def __init__(self, cur, content_words_only=False):
+    def __init__(self, cur, pos_filter=None):
         CursorWrapper.__init__(self, cur)
-        self.content_words_only = content_words_only
+        if not pos_filter:
+            self.tag_filter_rx = None
+        elif isinstance(pos_filter, str):
+            self.tag_filter_rx = re.compile(pos_filter)
+        else:
+            singles = []
+            for pos in pos_filter:
+                singles.append(pos_filter_spec[pos])
+
+            singles.sort()
+            pos_class_contents = "".join((s for s in singles))
+            pos_class = "[" + pos_class_contents + "]"
+            self.tag_filter_rx = re.compile(pos_class) # using match, not search
 
     def reconstitute(self, url):
         url_id = self.get_url_id(url)
@@ -110,7 +135,7 @@ where url=%s""", (url,))
         return None
 
     def is_valid(self, tag):
-        return (tag != 'Z:-------------') and ((not self.content_words_only) or (tag[0] in ('N', 'V')))
+        return (tag != 'Z:-------------') and ((not self.tag_filter_rx) or self.tag_filter_rx.match(tag))
 
     def reconstitute_line(self, links, sentence):
         words = []
