@@ -41,15 +41,12 @@ class StemMixin: # self.cur must be provided by another inherited class
     def __init__(self):
         stemmer = get_option("active_stemmer", "morphodita")
         if stemmer:
-            if stemmer == "majka":
-                stem_pos_filter = get_option("stem_pos_filter", None)
-                self.tap = MajkaTap(self.cur, parse_pos_option(stem_pos_filter))
-            elif stemmer == "morphodita":
-                tap_pos_filter = get_option("morphodita_pos_filter", None)
-                if not tap_pos_filter:
-                    stem_pos_filter = get_option("stem_pos_filter", None)
-                    tap_pos_filter = parse_pos_option(stem_pos_filter)
+            stem_pos_filter = get_option("stem_pos_filter", None)
+            tap_pos_filter = parse_pos_option(stem_pos_filter)
 
+            if stemmer == "majka":
+                self.tap = MajkaTap(self.cur, tap_pos_filter)
+            elif stemmer == "morphodita":
                 self.tap = MorphoditaTap(self.cur, tap_pos_filter)
             else:
                 raise Exception("unknown stemmer: " + stemmer)

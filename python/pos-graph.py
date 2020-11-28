@@ -6,6 +6,7 @@
 import collections
 import json
 import random
+import re
 import sys
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
@@ -15,23 +16,43 @@ from show_case import ShowCase
 from token_util import tokenize
 from url_heads import town_url_head
 
-SentenceExample = collections.namedtuple('SentenceExample', 'text tag_head')
+SentenceExample = collections.namedtuple('SentenceExample', 'text tag_group')
 
 SentenceCacheItem = collections.namedtuple('SentenceCacheItem', 'url_set stem_set tag_set')
 
 SentenceSample = collections.namedtuple('SentenceSample', 'text url stems tags indices')
 
-def make_sentence_sample(example, regular_item):
-    for url in regular_item.url_set:
-        for stems in regular_item.stem_set:
-            for tags in regular_item.tag_set:
-                assert len(stems) == len(tags)
-                indices = []
-                for i in range(len(tags)):
-                    if tags[i].startswith(example.tag_head):
-                        indices.append(i)
+def make_tag_filter(tag_head, raw_positions):
+    lth = len(tag_head)
+    position_set = set((int(p) - 1 for p in raw_positions.split()))
+    if not len(position_set):
+        raise Exception("no varying tag positions defined")
 
-                return SentenceSample(text=example.text, url=url, stems=stems, tags=tags, indices=indices)
+    positions = list(position_set)
+    positions.sort(reverse=True)
+    if positions[0] > 14:
+        raise Exception("tag position %d too high" % positions[0])
+
+    pos = positions.pop()
+    if pos < lth:
+        raise Exception("starting tag position %d too low" % pos)
+
+    pattern = tag_head
+    counter = lth
+    gaps = []
+    while pos is not None:
+        if pos > counter:
+            pattern += '.' * (pos - counter)
+            counter = pos
+            gaps.append(True)
+        else:
+            gaps.append(False)
+
+        pattern += '(.)'
+        counter += 1
+        pos = positions.pop() if len(positions) else None
+
+    return (pattern, gaps)
 
 
 class Payload:
@@ -50,11 +71,19 @@ class Processor(ShowCase, PartyMixin):
         PartyMixin.__init__(self)
         self.restrict_persons()
         random.seed()
-        self.pos_head_length = int(get_option("pos_head_length", "1"))
         self.pos_sample_max = int(get_option("pos_sample_max", "3"))
         self.lang_recog = init_lang_recog()
+
+        self.tag_head = get_option("morphodita_tag_head", "")
+        tag_positions = get_option("morphodita_tag_positions", "1") # 1-based positions
+        pattern, gaps = make_tag_filter(self.tag_head, tag_positions)
+        self.tag_filter_rx = re.compile(pattern)
+        self.tag_group_separators = tuple([ " " if g else "" for g in gaps ])
+
+        # tap is always unfiltered (we want whole stem sequences)
         self.tap = MorphoditaTap(cur)
-        self.characteristics = {} # str hamlet name -> str MorphoDiTa tag head -> Payload
+
+        self.characteristics = {} # str hamlet name -> str MorphoDiTa tag match group -> Payload
         self.sentence_cache = {} # str sentence text -> SentenceCacheItem
 
     def dump(self):
@@ -83,7 +112,7 @@ class Processor(ShowCase, PartyMixin):
                         if len(sci.url_set) == 1:
                             if len(sci.stem_set) == 1:
                                 if len(sci.tag_set) == 1:
-                                    samples.append(make_sentence_sample(example, sci))
+                                    samples.append(self.make_sentence_sample(example, sci))
                                 else:
                                     print("tags vary", file=sys.stderr)
                             else:
@@ -162,7 +191,8 @@ class Processor(ShowCase, PartyMixin):
         pos2payload = self.characteristics.setdefault(hamlet_name, {})
         for sentence in self.tap.remodel(url):
             for tag in sentence.tags:
-                if len(tag) >= self.pos_head_length:
+                m = self.is_matching(tag)
+                if m:
                     sci = self.sentence_cache.get(sentence.text)
                     stems_tuple = tuple(sentence.stems)
                     tags_tuple = tuple(sentence.tags)
@@ -173,13 +203,46 @@ class Processor(ShowCase, PartyMixin):
                         sci.stem_set.add(stems_tuple)
                         sci.tag_set.add(tags_tuple)
 
-                    head = tag[:self.pos_head_length]
-                    example = SentenceExample(text=sentence.text, tag_head=head)
-                    payload = pos2payload.get(head)
+                    group = self.concat_groups(m)
+                    example = SentenceExample(text=sentence.text, tag_group=group)
+                    payload = pos2payload.get(group)
                     if payload is None:
-                        pos2payload[head] = Payload(example)
+                        pos2payload[group] = Payload(example)
                     else:
                         payload.append(example)
+
+    def is_matching(self, tag, grp=None):
+        m = self.tag_filter_rx.match(tag)
+        if not m:
+            return False
+
+        if not grp:
+            return m
+
+        sg = self.concat_groups(m)
+        return sg == grp
+
+    def concat_groups(self, m):
+        group = self.tag_head
+        i = 0
+        for g in m.groups():
+            group += self.tag_group_separators[i]
+            i += 1
+            group += g
+
+        return group
+
+    def make_sentence_sample(self, example, regular_item):
+        for url in regular_item.url_set:
+            for stems in regular_item.stem_set:
+                for tags in regular_item.tag_set:
+                    assert len(stems) == len(tags)
+                    indices = []
+                    for i in range(len(tags)):
+                        if self.is_matching(tags[i], example.tag_group):
+                            indices.append(i)
+
+                    return SentenceSample(text=example.text, url=url, stems=stems, tags=tags, indices=indices)
 
     def make_date_extent(self):
         # old D3 in frontend doesn't parse ISO format...

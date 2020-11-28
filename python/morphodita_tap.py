@@ -35,8 +35,6 @@ class MorphoditaTap(CursorWrapper):
         CursorWrapper.__init__(self, cur)
         if not pos_filter:
             self.tag_filter_rx = None
-        elif isinstance(pos_filter, str):
-            self.tag_filter_rx = re.compile(pos_filter)
         else:
             singles = []
             for pos in pos_filter:
