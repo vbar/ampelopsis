@@ -11,6 +11,7 @@ import sys
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from morphodita_tap import MorphoditaTap
+from opt_util import get_quoted_list_option
 from person_party_mixin import PersonPartyMixin
 from show_case import ShowCase
 from token_util import tokenize
@@ -21,7 +22,7 @@ SentenceCacheItem = collections.namedtuple('SentenceCacheItem', 'url_set stem_se
 
 SentenceSample = collections.namedtuple('SentenceSample', 'text url stems tags indices')
 
-def make_tag_filter(tag_head, raw_positions):
+def make_tag_filter(tag_head, raw_positions, opt_match_values):
     lth = len(tag_head)
     position_set = set((int(p) - 1 for p in raw_positions.split()))
     if not len(position_set):
@@ -47,7 +48,9 @@ def make_tag_filter(tag_head, raw_positions):
         else:
             gaps.append(False)
 
-        pattern += '(.)'
+
+        mv = opt_match_values.pop(0) if len(opt_match_values) else "."
+        pattern += '(%s)' % mv # must match 1 character - can that be checked?
         counter += 1
         pos = positions.pop() if len(positions) else None
 
@@ -74,7 +77,8 @@ class PosBase(ShowCase, PersonPartyMixin):
 
         self.tag_head = get_option("morphodita_tag_head", "")
         tag_positions = get_option("morphodita_tag_positions", "1") # 1-based positions
-        pattern, gaps = make_tag_filter(self.tag_head, tag_positions)
+        opt_match_values = get_quoted_list_option("morphodita_tag_match_values", [])
+        pattern, gaps = make_tag_filter(self.tag_head, tag_positions, opt_match_values)
         self.tag_filter_rx = re.compile(pattern)
         self.tag_group_separators = tuple([ " " if g else "" for g in gaps ])
 
@@ -245,7 +249,7 @@ class PosBase(ShowCase, PersonPartyMixin):
 
 def main():
     if len(sys.argv) == 3:
-        pattern, gaps = make_tag_filter(sys.argv[1], sys.argv[2])
+        pattern, gaps = make_tag_filter(sys.argv[1], sys.argv[2], [])
         print(pattern)
 
 
