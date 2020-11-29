@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Gramatické kategorie slovní zásoby</title>
+    <style>
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+#dialog em {
+    font-style: normal;
+    color: red;
+}
+
+.sentence-view {
+    display: none;
+}
+
+#dialog .sentence-view {
+    display: block;
+}
+
+    </style>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-2.0.3.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+  </head>
+  <body>
+    <div id="the_graph"></div>
+    <div id="footer"></div>
+    <div id="dialog"></div>
+    <div class="sentence-view">
+      <p>
+	<a class="sentence" target="_blank"></a>
+	<br>
+	<span class="stemmed"></span>
+	<br>
+	<em><span class="tag-sel"></span></em>
+      </p>
+    </div>
+    <script>
+
+// from https://stackoverflow.com/questions/24816/escaping-html-strings-with-jquery
+function escapeHtml(text) {
+    return text.replace(/[\"&<>]/g, function (a) {
+	return { '"': '&quot;', '&': '&amp;', '<': '&lt;', '>': '&gt;' }[a];
+    });
+}
+
+$('#dialog').dialog({ autoOpen: false, width: 500 });
+
+var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 900 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom,
+    x0 = d3.scale.ordinal().rangeRoundBands([0, width], .1),
+    x1 = d3.scale.ordinal(),
+    y = d3.scale.linear().range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x0)
+    .tickSize(0)
+    .orient("bottom"),
+    yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+	  "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("cs-CZ.json", function (err, locale) {
+    var dateParse = d3.time.format("%Y-%m-%d").parse,
+	dateFormat = d3.time.format(locale.date);
+
+    d3.json("relpos.json", function (error, metadata) {
+	var dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+	    catNames = metadata.pos,
+	    indivNames = metadata.data.map(function (it) { return it.name; }),
+	    ymax = d3.max(metadata.data, function (d) {
+		return d3.max(Object.values(d.valmap));
+	    }),
+	    data = [];
+
+	$('#footer').text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
+
+	for (var i = 0; i < catNames.length; ++i) {
+	    var catname = catNames[i],
+		values = metadata.data.map(function (it) {
+		var desc = {
+		    'indname': it.name,
+		    'catname': catname,
+		    'color': it.color,
+		    'value': it.valmap[catname] || 0,
+		    'samples': it.samples[catname]
+		};
+
+		return desc;
+	    });
+
+	    data.push({
+		'catname': catname,
+		'values': values
+	    });
+	}
+
+	x0.domain(catNames);
+	x1.domain(indivNames).rangeRoundBands([0, x0.rangeBand()]);
+	y.domain([0, ymax]);
+
+	svg.append("g")
+	    .attr("class", "x axis")
+	    .attr("transform", "translate(0," + height + ")")
+	    .call(xAxis);
+
+	svg.append("g")
+	    .attr("class", "y axis")
+	    .call(yAxis);
+
+	var slice = svg.selectAll(".slice")
+	    .data(data)
+	    .enter().append("g")
+	    .attr("class", "g")
+	    .attr("transform", function (d) { return "translate(" + x0(d.catname) + ",0)"; });
+
+	slice.selectAll("rect")
+	    .data(function (d) { return d.values; })
+	    .enter().append("rect")
+	    .attr("width", x1.rangeBand())
+	    .attr("x", function (d) { return x1(d.indname); })
+	    .style("fill", function (d) { return d.color; })
+	    .attr("y", function (d) { return y(d.value); })
+	    .attr("height", function (d) { return height - y(d.value); })
+	    .on("click", function (d) {
+		if (d3.event.defaultPrevented) return;
+
+		$("#dialog").empty();
+		var tmpl = $(".sentence-view").clone();
+		if (d.samples) {
+		    for (var i = 0; i < d.samples.length; ++i) {
+			var triple = d.samples[i],
+			    sentobj = metadata.sentences[triple[0]],
+			    stemmed = "",
+			    tagged = triple[2].join(" "),
+			    highlight;
+
+			for (var j = 0; j < sentobj.stems.length; ++j) {
+			    if (j) {
+				stemmed += " ";
+			    }
+
+			    highlight = triple[1].indexOf(j) >= 0;
+			    if (highlight) {
+				stemmed += "<em>";
+			    }
+
+			    stemmed += escapeHtml(sentobj.stems[j]);
+
+			    if (highlight) {
+				stemmed += "</em>";
+			    }
+			}
+
+			tmpl.find("a.sentence")
+			    .attr("href", sentobj.url)
+			    .text(sentobj.text);
+			tmpl.find(".stemmed")
+			    .html(stemmed);
+			tmpl.find(".tag-sel")
+			    .text(tagged);
+			$("#dialog").append(tmpl.html());
+		    }
+		}
+
+		$("#dialog")
+		    .dialog('option', {
+			'title': d.indname + ": " + d.catname,
+			'position': {'my': 'right top', 'of': d3.event}
+		    })
+		    .dialog('open');
+	    })
+	    .append("title").text(function (d) {
+		return d.indname;
+	    });
+    });
+});
+
+    </script>
+  </body>
+</html>

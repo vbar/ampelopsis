@@ -11,10 +11,9 @@ import sys
 from common import get_option, make_connection
 from lang_wrap import init_lang_recog
 from morphodita_tap import MorphoditaTap
-from party_mixin import PartyMixin
+from person_party_mixin import PersonPartyMixin
 from show_case import ShowCase
 from token_util import tokenize
-from url_heads import town_url_head
 
 SentenceExample = collections.namedtuple('SentenceExample', 'text tag_group')
 
@@ -31,11 +30,11 @@ def make_tag_filter(tag_head, raw_positions):
     positions = list(position_set)
     positions.sort(reverse=True)
     if positions[0] > 14:
-        raise Exception("tag position %d too high" % positions[0])
+        raise Exception("tag position %d too high" % (positions[0] + 1))
 
     pos = positions.pop()
     if pos < lth:
-        raise Exception("starting tag position %d too low" % pos)
+        raise Exception("starting tag position %d too low" % (pos + 1))
 
     pattern = tag_head
     counter = lth
@@ -65,11 +64,10 @@ class Payload:
         self.examples.append(sentence)
 
 
-class Processor(ShowCase, PartyMixin):
-    def __init__(self, cur):
+class PosBase(ShowCase, PersonPartyMixin):
+    def __init__(self, cur, deconstructed):
         ShowCase.__init__(self, cur)
-        PartyMixin.__init__(self)
-        self.restrict_persons()
+        PersonPartyMixin.__init__(self, deconstructed)
         random.seed()
         self.pos_sample_max = int(get_option("pos_sample_max", "3"))
         self.lang_recog = init_lang_recog()
@@ -83,28 +81,24 @@ class Processor(ShowCase, PartyMixin):
         # tap is always unfiltered (we want whole stem sequences)
         self.tap = MorphoditaTap(cur)
 
-        self.characteristics = {} # str hamlet name -> str MorphoDiTa tag match group -> Payload
+        self.characteristics = {} # variant -> str MorphoDiTa tag match group -> Payload
         self.sentence_cache = {} # str sentence text -> SentenceCacheItem
 
     def dump(self):
         bulk = {}
-        for hamlet_name, pos2payload in self.characteristics.items():
-            bulk[hamlet_name] = sum((p.freq for p in pos2payload.values()))
+        for variant, pos2payload in self.characteristics.items():
+            bulk[variant] = sum((p.freq for p in pos2payload.values()))
 
         pos_set = set()
         data = []
         sentences = []
         text2id = {}
-        for hamlet_name, pos2payload in sorted(self.characteristics.items(), key=lambda p: (-1 * bulk[p[0]], p[0])):
+        for variant, pos2payload in sorted(self.characteristics.items(), key=lambda p: (-1 * bulk[p[0]], p[0])):
             pos_set.update(pos2payload.keys())
-            present_name = self.person_map[hamlet_name]
-            party_id = self.hamlet2party.get(hamlet_name, 0)
+            present_name = self.get_presentation_name(variant)
 
-            pos2freq = {}
             pos2samples = {}
             for pos, payload in pos2payload.items():
-                pos2freq[pos] = payload.freq
-
                 samples = []
                 for example in payload.examples:
                     sci = self.sentence_cache.get(example.text)
@@ -153,14 +147,10 @@ class Processor(ShowCase, PartyMixin):
 
             item = {
                 'name': present_name,
-                'color': self.convert_color(party_id),
-                'freq': pos2freq,
+                'color': self.introduce_color(variant),
+                'valmap': self.aggregate_values(variant, pos2payload),
                 'samples': pos2samples
             }
-
-            town_name = self.hamlet2town.get(hamlet_name)
-            if town_name:
-                item['ext_url'] = "%s/%s" % (town_url_head, town_name)
 
             data.append(item)
 
@@ -182,13 +172,17 @@ class Processor(ShowCase, PartyMixin):
         if hamlet_name not in self.person_map:
             return
 
+        variant = self.get_variant(hamlet_name)
+        if not variant:
+            return
+
         lst = tokenize(et['text'], False)
         lng = self.lang_recog.check(lst)
         if lng != 'cs':
             return
 
         self.extend_date(et)
-        pos2payload = self.characteristics.setdefault(hamlet_name, {})
+        pos2payload = self.characteristics.setdefault(variant, {})
         for sentence in self.tap.remodel(url):
             for tag in sentence.tags:
                 m = self.is_matching(tag)
@@ -250,14 +244,9 @@ class Processor(ShowCase, PartyMixin):
 
 
 def main():
-    with make_connection() as conn:
-        with conn.cursor() as cur:
-            processor = Processor(cur)
-            try:
-                processor.run()
-                processor.dump()
-            finally:
-                processor.close()
+    if len(sys.argv) == 3:
+        pattern, gaps = make_tag_filter(sys.argv[1], sys.argv[2])
+        print(pattern)
 
 
 if __name__ == "__main__":

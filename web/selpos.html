@@ -82,12 +82,12 @@ d3.json("cs-CZ.json", function (err, locale) {
     var dateParse = d3.time.format("%Y-%m-%d").parse,
 	dateFormat = d3.time.format(locale.date);
 
-    d3.json("pos.json", function (error, metadata) {
+    d3.json("selpos.json", function (error, metadata) {
 	var dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
 	    catNames = metadata.pos,
 	    indivNames = metadata.data.map(function (it) { return it.name; }),
 	    ymax = d3.max(metadata.data, function (d) {
-		return d3.max(Object.values(d.freq));
+		return d3.max(Object.values(d.valmap));
 	    }),
 	    data = [];
 
@@ -100,13 +100,9 @@ d3.json("cs-CZ.json", function (err, locale) {
 		    'indname': it.name,
 		    'catname': catname,
 		    'color': it.color,
-		    'value': it.freq[catname] || 0,
+		    'value': it.valmap[catname] || 0,
 		    'samples': it.samples[catname]
 		};
-
-		if ('ext_url' in it) {
-		    desc.ext_url = it.ext_url;
-		}
 
 		return desc;
 	    });
@@ -185,11 +181,12 @@ d3.json("cs-CZ.json", function (err, locale) {
 		    }
 		}
 
-		$("#dialog").dialog('option', {
-		    'title': d.indname + ": " + d.catname,
-		    'position': {'my': 'right top', 'of': d3.event}
-		});
-		$('#dialog').dialog('open');
+		$("#dialog")
+		    .dialog('option', {
+			'title': d.indname + ": " + d.catname,
+			'position': {'my': 'right top', 'of': d3.event}
+		    })
+		    .dialog('open');
 	    })
 	    .append("title").text(function (d) {
 		return d.indname;
