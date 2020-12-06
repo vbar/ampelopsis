@@ -113,6 +113,9 @@ vocab:
 tagvocab:
 	python/hashtag-graph.py > web/vocab.json
 
+emovocab:
+	python/emofreq-graph.py > web/vocab.json
+
 selpos:
 	python/selpos-graph.py > web/selpos.json
 

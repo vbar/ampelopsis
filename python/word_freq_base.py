@@ -26,6 +26,11 @@ class WordFreqPayload:
     def get_freq(self, w):
         return self.word2freq[w]
 
+    def add_list(self, lst):
+        for w in lst:
+            cnt = self.word2freq.get(w, 0)
+            self.word2freq[w] = cnt + 1
+
 
 class WordFreqBase(PinholeBase):
     def __init__(self, cur, deconstructed):

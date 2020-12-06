@@ -2,7 +2,8 @@
 
 # requires database filled by running condensate.py
 
-import re
+import emoji
+import regex
 from common import make_connection
 from opt_util import get_quoted_list_option
 from word_freq_base import WordFreqBase, WordFreqPayload
@@ -10,17 +11,20 @@ from word_freq_base import WordFreqBase, WordFreqPayload
 class Processor(WordFreqBase):
     def __init__(self, cur, deconstructed):
         WordFreqBase.__init__(self, cur, deconstructed)
-        self.tag_rx = re.compile('(#[-\\w]+)')
 
     def load_item(self, et):
         if self.load_text_party(et):
             self.extend_date(et)
 
-    def find_tags(self, et):
+    def find_emojis(self, et):
         lst = []
         txt = et['text']
-        for m in self.tag_rx.finditer(txt):
-            lst.append(m.group(1))
+
+        # https://stackoverflow.com/questions/43146528/how-to-extract-all-the-emojis-from-text/43146653
+        data = regex.findall(r'\X', txt)
+        for word in data:
+            if any(char in emoji.UNICODE_EMOJI for char in word):
+                lst.append(word)
 
         return lst
 
@@ -29,7 +33,7 @@ class Processor(WordFreqBase):
         if variant is None:
             return False
 
-        lst = self.find_tags(et)
+        lst = self.find_emojis(et)
         payload = self.variant2payload.get(variant)
         if not payload:
             payload = WordFreqPayload(self.top_word_count)
