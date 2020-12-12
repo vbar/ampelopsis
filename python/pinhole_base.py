@@ -1,5 +1,6 @@
 import json
 import networkx as nx
+import numpy as np
 from person_party_mixin import PersonPartyMixin
 from show_case import ShowCase
 from url_heads import town_url_head
@@ -49,7 +50,26 @@ class PinholeBase(ShowCase, PersonPartyMixin):
         self.enrich(gd)
         print(json.dumps(gd, indent=2))
 
+    def get_distance_gap(self):
+        same, other = self.get_distance_validation()
+        i = np.mean(same)
+        x = np.mean(other)
+        return (1 / i - 1 / x) * (i + x)
+
     def dump_distance_histogram(self, output_path):
+        same, other = self.get_distance_validation()
+        custom = {
+            'same': same,
+            'other': other
+        }
+
+        if self.mindate and self.maxdate:
+            custom['dateExtent'] = self.make_date_extent()
+
+        with open(output_path, 'w') as f:
+            json.dump(custom, f, indent=2, ensure_ascii=False)
+
+    def get_distance_validation(self):
         self.lazy_ref_map()
 
         same = []
@@ -65,16 +85,7 @@ class PinholeBase(ShowCase, PersonPartyMixin):
             else:
                 other.append(weight)
 
-        custom = {
-            'same': same,
-            'other': other
-        }
-
-        if self.mindate and self.maxdate:
-            custom['dateExtent'] = self.make_date_extent()
-
-        with open(output_path, 'w') as f:
-            json.dump(custom, f, indent=2, ensure_ascii=False)
+        return (same, other)
 
     def lazy_ref_map(self):
         pass

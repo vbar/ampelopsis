@@ -92,6 +92,9 @@ pool:
 rain:
 	python/rain-distance.py --histogram web/rain-check.json > web/rain.json
 
+rain-hyper:
+	python/rain-hyper.py > web/rain-hyper.json
+
 letter:
 	python/letter-distance.py --histogram web/letter-check.json > web/letter.json
 

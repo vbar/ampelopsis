@@ -1,0 +1,57 @@
+#!/usr/bin/python3
+
+# requires download with funnel_links set (to at least 1) and database
+# filled by running condensate.py
+
+import json
+import sys
+from common import get_option, make_connection
+from rain_processor import RainProcessor
+from stop_util import load_stop_words
+
+def run(cur):
+    stop_words = load_stop_words()
+
+    hyper_repeat = int(get_option("hyper_repeat", "1"))
+    cluster_count_bottom = int(get_option("cluster_count_bottom", "8"))
+    cluster_count_top = int(get_option("cluster_count_top", "2048"))
+    cluster_count_stride = int(get_option("cluster_count_stride", "10"))
+
+    processor = RainProcessor(cur, stop_words)
+    try:
+        processor.run()
+
+        data = []
+        for idx in range(hyper_repeat):
+            result = []
+            for cluster_count in range(cluster_count_bottom, cluster_count_top + 1, cluster_count_stride):
+                processor.cluster_count = cluster_count
+                processor.value_series = None
+                processor.process()
+                gap = processor.get_distance_gap()
+                print("round %d of %d: %d -> %f" % (idx + 1, hyper_repeat, cluster_count, gap), file=sys.stderr)
+
+                result.append([cluster_count, gap])
+
+            data.append(result)
+
+        custom = {
+            'data': data
+        }
+
+        if processor.mindate and processor.maxdate:
+            custom['dateExtent'] = processor.make_date_extent()
+
+        print(json.dumps(custom, indent=2))
+    finally:
+        processor.close()
+
+
+def main():
+    with make_connection() as conn:
+        with conn.cursor() as cur:
+            run(cur)
+
+
+if __name__ == "__main__":
+    main()
