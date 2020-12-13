@@ -11,9 +11,9 @@
 <script>
 function get_samples(metadata, matrix, i, j) {
     var row = matrix[metadata[i].name],
-	cell = row ? row[metadata[j].name] : [];
+	cell = row ? row[metadata[j].name] : null;
 
-    return cell;
+    return cell ? cell : [];
 }
 
 var diameter = 880,

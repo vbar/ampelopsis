@@ -3,6 +3,7 @@
 # requires database filled by running condensate.py
 
 import collections
+import random
 import re
 import sys
 from common import get_option, make_connection
@@ -15,6 +16,8 @@ VertexOcc = collections.namedtuple('VertexOcc', 'vertex count')
 class RefNet(PinholeBase):
     def __init__(self, cur, distinguish, deconstructed):
         PinholeBase.__init__(self, cur, distinguish, deconstructed)
+        random.seed()
+        self.sample_max = int(get_option("chord_sample_max", "3"))
         self.nick_rx = re.compile('@([-\\w]+)')
         self.link_nest = {} # source variant -> target variant -> source town name -> target town name -> list of URLs
 
@@ -60,14 +63,29 @@ class RefNet(PinholeBase):
     def make_matrix_desc(self):
         matrix_desc = {}
         for source_variant, outer_source in self.link_nest.items():
+            source_name = self.get_presentation_name(source_variant)
             for target_variant, outer_target in outer_source.items():
-                source_name = self.get_presentation_name(source_variant)
                 target_name = self.get_presentation_name(target_variant)
                 vertices = self.get_cell_vertices(outer_target)
                 row = matrix_desc.setdefault(source_name, {})
                 row[target_name] = "\n".join(vertices[:3])
 
         return matrix_desc
+
+    def make_samples(self):
+        sample_matrix = {}
+        for source_variant, outer_source in self.link_nest.items():
+            source_name = self.get_presentation_name(source_variant)
+            for target_variant, outer_target in outer_source.items():
+                target_name = self.get_presentation_name(target_variant)
+                sample_list = self.get_cell_urls(outer_target)
+                if len(sample_list) > self.sample_max:
+                    random.shuffle(sample_list)
+
+                row = sample_matrix.setdefault(source_name, {})
+                row[target_name] = sample_list[0:self.sample_max]
+
+        return sample_matrix
 
     def get_cell_vertices(self, outer_target):
         occurences = []
@@ -79,6 +97,15 @@ class RefNet(PinholeBase):
 
         occurences.sort(key=lambda vo: (-1 * vo.count, vo.vertex))
         return [ vo.vertex for vo in occurences ]
+
+    def get_cell_urls(self, outer_target):
+        url_set = set()
+        for source_town_name, inner_source in outer_target.items():
+            for target_town_name, inner_target in inner_source.items():
+                url_set.update(inner_target)
+
+        return list(url_set)
+
 
 def main():
     ca = ConfigArgs()
