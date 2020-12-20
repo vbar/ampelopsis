@@ -11,7 +11,13 @@ def get_quoted_list_option(name, default_value):
         raw_value = config.get("root", name)
 
     l = len(raw_value)
-    if not l or (raw_value[0] != '"'):
+    if not l:
+        raise Exception("option %s is empty" % name)
+
+    if (l == 1) and (raw_value[0] == '*'):
+        return '*'
+
+    if raw_value[0] != '"':
         raise Exception("option %s has invalid value %s" % (name, raw_value))
 
     lst = []
