@@ -38,6 +38,9 @@ class WordFreqBase(PinholeBase):
         self.variant2payload = {} # str variant -> instance of class derived from WordFreqPayload
         self.top_word_count = int(get_option("top_word_count", "3"))
 
+    def enrich_freq(self, gf):
+        pass
+
     def dump_vocab(self):
         name2desc = {}
         data = []
@@ -73,5 +76,7 @@ class WordFreqBase(PinholeBase):
             'data': sorted(data, key=lambda t: -1 * t[2]),
             'dateExtent': self.make_date_extent()
         }
+
+        self.enrich_freq(custom)
 
         print(json.dumps(custom, indent=2))

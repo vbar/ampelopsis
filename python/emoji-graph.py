@@ -2,12 +2,10 @@
 
 # requires database filled by running condensate.py
 
-import emoji
 import json
 import random
-import re
-import regex
 from common import get_option, make_connection
+from emoji_util import get_emojis, get_emoji_hex
 from opt_util import get_quoted_list_option
 from pinhole_base import PinholeBase
 
@@ -40,7 +38,7 @@ class Processor(PinholeBase):
             samples = []
             for emo, payload in sorted(emomap.items(), key=lambda p: (-1 * p[1].count, str(p[0]))):
                 row = [ emo ]
-                row.extend(("U+" + re.sub("^0x", "", hex(ord(e))) for e in emo))
+                row.extend(get_emoji_hex(emo))
                 emojis.append(row)
 
                 sample_list = list(payload.samples)
@@ -80,15 +78,13 @@ class Processor(PinholeBase):
         url = et['url']
         emomap = self.vocabulary.setdefault(variant, {})
 
-        # https://stackoverflow.com/questions/43146528/how-to-extract-all-the-emojis-from-text/43146653
-        data = regex.findall(r'\X', et['text'])
-        for word in data:
-            if any(char in emoji.UNICODE_EMOJI for char in word):
-                payload = emomap.get(word)
-                if payload is None:
-                    emomap[word] = Payload(url)
-                else:
-                    payload.append(url)
+        emoji_list = get_emojis(et['text'])
+        for word in emoji_list:
+            payload = emomap.get(word)
+            if payload is None:
+                emomap[word] = Payload(url)
+            else:
+                payload.append(url)
 
     def make_date_extent(self):
         return [dt.strftime("%Y-%m-%d") for dt in (self.mindate, self.maxdate)]
