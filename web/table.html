@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Hashtagy</title>
+    <style>
+
+table {
+    margin-bottom: 10px;
+}
+
+span {
+    cursor: pointer;
+}
+
+    </style>
+    <script src="https://code.jquery.com/jquery-2.0.3.js"></script>
+  </head>
+  <body>
+    <table id="the_table">
+      <tbody>
+	<tr><td class="person"></td><td class="term"></td></tr>
+      </tbody>
+    </table>
+    <div id="footer"></div>
+    <script>
+
+function dateFormat(dt) {
+    return dt.getDay() + "." + (1 + dt.getMonth()) + "." + dt.getFullYear();
+}
+
+// from https://stackoverflow.com/questions/24816/escaping-html-strings-with-jquery
+function escapeHtml(text) {
+    return text.replace(/[\"&<>]/g, function (a) {
+	return { '"': '&quot;', '&': '&amp;', '<': '&lt;', '>': '&gt;' }[a];
+    });
+}
+
+$.getJSON("table.json", function (metadata) {
+    var path2samples = {},
+	dateExtent = [ new Date(metadata.dateExtent[0]), new Date(metadata.dateExtent[1]) ];
+
+    $('#footer').text(dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]));
+
+    $('#the_table').on('click', 'tr td span', function () {
+	var leaf = $(this),
+	    major = leaf.parents('tr').find('.person').text(),
+	    minor = leaf.text(),
+	    minor2samples = path2samples[major],
+	    samplobj = minor2samples[minor];
+
+	window.open(samplobj.samples[samplobj.idx]);
+
+	samplobj.idx += 1;
+	if (samplobj.idx >= samplobj.samples.length) {
+	    samplobj.idx = 0;
+	}
+    });
+
+    for (var i = 0; i < metadata.data.length; ++i)
+    {
+	var item = metadata.data[i],
+	    minor2samples,
+	    terms = "",
+	    target = $('#the_table tr:last-child');
+
+	path2samples[item.name] = {};
+	minor2samples = path2samples[item.name];
+
+	for (var j = 0; j < item.terms.length; ++j) {
+	    var term = item.terms[j][0],
+		freq = item.terms[j][1],
+		tail = (freq == 1) ? "výskyt" : (((freq > 1) && (freq < 5)) ? "výskyty" : "výskytů");
+
+	    if (terms) {
+		terms += " ";
+	    }
+
+	    minor2samples[term] = {
+		samples: item.samples[j],
+		idx: 0
+	    };
+
+	    terms += "<span title='" + escapeHtml(freq + " " + tail) + "'>";
+	    terms += escapeHtml(term);
+	    terms += "</span>";
+	}
+
+	if (i + 1 < metadata.data.length) {
+	    $('#the_table tbody').append(target.clone());
+	}
+
+	target.find('.person')
+	    .css('color', item.color)
+	    .text(item.name);
+	target.find('.term').html(terms);
+    }
+});
+
+    </script>
+  </body>
+</html>
