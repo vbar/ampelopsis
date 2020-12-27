@@ -8,7 +8,7 @@ from term_freq_base import TermFreqBase
 
 class Processor(TermFreqBase):
     def __init__(self, cur, deconstructed):
-        TermFreqBase.__init__(self, cur, '(#[-\\w]+)', deconstructed)
+        TermFreqBase.__init__(self, cur, '(@[-\\w]+)', deconstructed)
 
 
 def main():

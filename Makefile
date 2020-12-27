@@ -49,6 +49,9 @@ emoji:
 tags:
 	python/tags-graph.py > web/table.json
 
+mentions:
+	python/mentions-graph.py > web/table.json
+
 pinhole:
 	python/pinhole-graph.py > web/sankey.json
 
