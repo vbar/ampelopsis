@@ -3,6 +3,7 @@
 # requires database filled by running condensate.py
 
 import json
+import numpy as np
 import sys
 from common import make_connection
 from party_mixin import PartyMixin
@@ -16,10 +17,10 @@ class Processor(ShowCase, PartyMixin, TimecycleMixin):
         TimecycleMixin.__init__(self)
 
     def dump(self):
-        results = sorted(self.hamlet2per.items(), key=lambda p: (-1 * self.get_variance(p[1]), p[0]))
+        results = sorted(self.hamlet2per.items(), key=lambda p: (-1 * np.var(p[1]), p[0]))
         for hamlet_name, perfreq in results[:10]:
             present_name = self.person_map[hamlet_name]
-            print("%s\t%.3f" % (present_name, self.get_variance(perfreq)), file=sys.stderr)
+            print("%s\t%.3f" % (present_name, np.var(perfreq)), file=sys.stderr)
 
     def load_item(self, et):
         hamlet_name = et['osobaid']
@@ -30,11 +31,6 @@ class Processor(ShowCase, PartyMixin, TimecycleMixin):
 
         dt = self.extend_date(et)
         perfreq[self.part_extractor(dt)] += 1
-
-    def get_variance(self, perfreq):
-        n = len(perfreq)
-        avg = sum(perfreq) / n
-        return sum(( (x - avg) * (x - avg) for x in perfreq )) / n
 
 
 def main():
