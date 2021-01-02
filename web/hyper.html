@@ -2,7 +2,15 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Metrika podle parametru</title>
+<style>
+
+line {
+  stroke-width: 2px;
+}
+
+</style>
 <div id="the_graph"></div>
+<div id="the_summary"></div>
 <div id="footer"></div>
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
@@ -67,6 +75,66 @@ d3.json(model).then(function (metadata) {
 	    .attr("cy", function (d) { return y(d[1]); } )
 	    .attr("r", 1.5)
 	    .style("fill", d3.schemeCategory10[i % 10]);
+    }
+
+    if ('variance' in metadata) {
+	svg = d3.select("#the_summary")
+	    .append("svg")
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", (height / 2) + margin.top + margin.bottom)
+	    .append("g")
+	    .attr("transform",
+		  "translate(" + margin.left + "," + margin.top + ")");
+
+	x = d3.scaleLinear()
+	    .domain([0, metadata.variance.length])
+	    .range([0, width]);
+	svg.append("g")
+	    .attr("transform", "translate(0," + (height / 2) + ")")
+	    .call(d3.axisBottom(x).ticks(metadata.variance.length));
+
+	y = d3.scaleLinear()
+	    .domain([0, d3.max(metadata.variance)])
+	    .range([height / 2, 0]);
+	svg.append("g")
+	    .call(d3.axisLeft(y));
+
+	var xplus = function (d, i) {
+		return x(i) + 4;
+	    },
+	    xminus = function (d, i) {
+		return x(i) - 4;
+	    },
+	    yplus = function (d) {
+		return y(d) + 4;
+	    },
+	    yminus = function (d) {
+		return y(d) - 4;
+	    },
+	    color = function (d, i) {
+		return d3.schemeCategory10[i % 10];
+	    };
+
+	svg.append('g')
+	    .selectAll("up")
+	    .data(metadata.variance)
+	    .enter()
+	    .append('line')
+	    .attr('x1', xminus)
+	    .attr('y1', yplus)
+	    .attr('x2', xplus)
+	    .attr('y2', yminus)
+	    .attr("stroke", color);
+	svg.append('g')
+	    .selectAll("down")
+	    .data(metadata.variance)
+	    .enter()
+	    .append('line')
+	    .attr('x1', xminus)
+	    .attr('y1', yminus)
+	    .attr('x2', xplus)
+	    .attr('y2', yplus)
+	    .attr("stroke", color);
     }
 
     if ('dateExtent' in metadata) {
