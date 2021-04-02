@@ -4,7 +4,7 @@ from urlize import whitespace_rx
 
 Personage = collections.namedtuple('Personage', 'presentation_name query_name birth_year')
 
-title_rx = re.compile("^([^\\(\\)]+)\\(\\*([0-9]{4})\\)")
+title_rx = re.compile("^([^\\(\\)]+)\\(\\*([0-9]{4})(?:\\)| - )")
 
 # we could include single quote, but there probably aren't any Czech
 # politicians named O'Something...
