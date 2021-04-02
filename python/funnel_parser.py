@@ -79,10 +79,9 @@ class FunnelParser:
                             self.owner.add_link(profile_url)
 
     def process_card(self, fp):
-        context = etree.iterparse(fp, events=('end',), tag=('title'), html=True, recover=True)
+        context = etree.iterparse(fp, events=('end',), tag=('h3'), html=True, recover=True)
         person = None
         for action, elem in context:
-            assert elem.tag == 'title'
             person = parse_personage(elem.text)
             if person and person.query_name:
                 wikidata_urls = make_personage_query_urls(person)
