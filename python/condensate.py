@@ -91,30 +91,37 @@ set party_id=null""")
 
         # no need to handle relative URLs - we're only interested in
         # the absolute one to Twitter
-        context = etree.iterparse(fp, events=('end',), tag=('a', 'title'), html=True, recover=True)
+        # birth year no longer in title, but still on page
+        context = etree.iterparse(fp, events=('end',), tag=('a', 'h3'), html=True, recover=True)
         record_id = None
+        town_names = []
         for action, elem in context:
-            if elem.tag == 'title':
-                person = parse_personage(elem.text)
-                if person:
-                    record_id = self.condensate_record(person, hamlet_name, card_url_id)
-                    if person.query_name:
-                        self.condensate_party(record_id, person)
+            if elem.tag == 'h3':
+                if record_id is None:
+                    person = parse_personage(elem.text)
+                    if person:
+                        record_id = self.condensate_record(person, hamlet_name, card_url_id)
+                        if person.query_name:
+                            self.condensate_party(record_id, person)
             elif elem.tag == 'a':
                 href = elem.get('href')
                 if href:
                     m = self.town_rx.match(href)
                     if m:
                         town_name = m.group('tname')
-                        # social media links are in body, so person
-                        # from title should be initialized by now
-                        print("%s <=> %s" % (hamlet_name, town_name), file=sys.stderr)
-                        self.insert_identity(record_id, town_name)
+                        town_names.append(town_name)
 
             # cleanup
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
+
+        if record_id is None:
+            raise Exception("no name on " + card_url)
+
+        for town_name in town_names:
+            print("%s <=> %s" % (hamlet_name, town_name), file=sys.stderr)
+            self.insert_identity(record_id, town_name)
 
     def identify_profile(self, town_url, url_id, fp):
         # can't use self.town_rx - it has a different host...
