@@ -63,7 +63,7 @@ from download_queue""")
                 WebDriverWait(self.br, 10).until(
                     EC.presence_of_element_located((By.TAG_NAME, 'article')))
             except exceptions.TimeoutException:
-                error_code = 404 if self.has_not_found_error() else 500
+                error_code = self.classify_error()
 
             eff_id = url_id
             eff_url = self.br.current_url
@@ -86,7 +86,7 @@ values(%s, %s, localtimestamp)
 on conflict(url_id) do update
 set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
 
-                if error_code != 404:
+                if error_code == 500:
                     self.br.close()
                     self.br = None
                     self.lazy_init()
@@ -100,9 +100,19 @@ set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
 
             row = self.pop_work_item()
 
-    def has_not_found_error(self):
-        found = self.br.find_elements_by_xpath("//h1/span[text()='Sorry, that page doesn’t exist!']")
-        return len(found)
+    def classify_error(self):
+        messages = {
+            'Sorry, that page doesn’t exist!': 404,
+            'Account suspended': 410
+        }
+
+        for msg, code in messages.items():
+            xp = "//h1/span[text()='%s']" % msg
+            found = self.br.find_elements_by_xpath(xp)
+            if len(found):
+                return code
+
+        return 500
 
     def close(self):
         if self.br:
