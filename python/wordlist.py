@@ -27,6 +27,8 @@ class WordList(ShowCase):
         else:
             self.tokenize_item = self.tokenize_text
 
+        self.cond_case = self.lower_case if get_option("lowercase", "1") else self.preserve_case
+
     def load_item(self, et):
         self.doc_count += 1
         lst = self.tokenize_item(et)
@@ -44,11 +46,17 @@ class WordList(ShowCase):
                     print(w, "\t", c / self.doc_count, file=f)
 
     def tokenize_text(self, et):
-        return tokenize(et['text'], True)
+        return tokenize(self.cond_case(et['text']), True)
 
     def tokenize_rect(self, et):
         rect = self.tap.reconstitute(et['url'])
-        return retokenize(rect)
+        return retokenize(self.cond_case(rect))
+
+    def preserve_case(self, txt):
+        return txt
+
+    def lower_case(self, txt):
+        return txt.lower()
 
 
 def main():
