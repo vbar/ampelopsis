@@ -7,10 +7,11 @@ from seed import Seeder
 def main():
     with make_connection() as conn:
         with conn.cursor() as cur:
+            # if a page does not exist/is forbidden, asking for it
+            # again is probably a waste of time...
             inner_select = """select url_id
 from download_error
-where error_code<>404""" # if a page does not exist, asking for it
-                         # again is probably a waste of time...
+where not(error_code in (403, 404, 410))"""
 
             cur.execute("""update field
 set checkd=null
@@ -22,7 +23,7 @@ where url_id in (%s)""" % inner_select)
 where url_id in (%s)""" % inner_select)
 
             cur.execute("""delete from download_error
-where error_code<>404""")
+where not(error_code in (403, 404, 410))""")
 
             kicker = Kicker(cur)
             kicker.run()

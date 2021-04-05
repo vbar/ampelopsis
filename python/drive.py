@@ -103,7 +103,8 @@ set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
     def classify_error(self):
         messages = {
             'Sorry, that page doesn’t exist!': 404,
-            'Account suspended': 410
+            'Account suspended': 410,
+            'This is not available to you': 403
         }
 
         for msg, code in messages.items():
