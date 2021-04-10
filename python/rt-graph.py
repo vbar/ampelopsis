@@ -5,21 +5,10 @@
 import json
 import re
 from urllib.parse import urlparse, urlunparse
-from common import make_connection
+from common import get_option, make_connection
 from show_case import ShowCase
 
 status_rx = re.compile("/([-\\w]+)/status/")
-
-def get_profile(url):
-    pr = urlparse(url)
-    m = status_rx.match(pr.path)
-    if not m:
-        return None
-
-    town_name = m.group(1)
-    profile_pr = (pr.scheme, pr.netloc, town_name, '', '', '')
-    return urlunparse(profile_pr)
-
 
 class Payload:
     def __init__(self, url):
@@ -40,11 +29,25 @@ class Processor(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
         self.panel_set = set()
-        self.profile2payload = {}
+        self.key2payload = {}
+        self.get_url_key = self.get_profile_key if get_option("profile_url_key", "1") else self.get_identity_key
+
+    def get_profile_key(self, url):
+        pr = urlparse(url)
+        m = status_rx.match(pr.path)
+        if not m:
+            return None
+
+        town_name = m.group(1)
+        profile_pr = (pr.scheme, pr.netloc, town_name, '', '', '')
+        return urlunparse(profile_pr)
+
+    def get_identity_key(self, url):
+        return url
 
     def dump(self):
         profiles = []
-        for url, payload in sorted(self.profile2payload.items(), key=lambda p: (-1 * p[1].count, p[0])):
+        for url, payload in sorted(self.key2payload.items(), key=lambda p: (-1 * p[1].count, p[0])):
             profiles.append([url, payload.count, len(payload.url_set)])
 
         custom = {
@@ -59,9 +62,9 @@ class Processor(ShowCase):
         self.extend_date(et)
         panel_url = et.get('url')
         if panel_url:
-            panel_profile = get_profile(panel_url)
-            if panel_profile:
-                self.panel_set.add(panel_profile)
+            panel_key = self.get_url_key(panel_url)
+            if panel_key:
+                self.panel_set.add(panel_key)
 
             self.cur.execute("""select f2.url
 from field f1
@@ -70,16 +73,16 @@ join field f2 on to_id=f2.id
 where f1.url=%s""", (panel_url,))
             rows = self.cur.fetchall()
             for row in rows:
-                self.add_redirect(panel_profile, row[0])
+                self.add_redirect(panel_key, row[0])
 
-    def add_redirect(self, panel_profile, orig_url):
-        orig_profile = get_profile(orig_url)
-        if orig_profile:
-            payload = self.profile2payload.get(orig_profile)
+    def add_redirect(self, panel_key, orig_url):
+        orig_key = self.get_url_key(orig_url)
+        if orig_key:
+            payload = self.key2payload.get(orig_key)
             if payload is None:
-                self.profile2payload[orig_profile] = Payload(panel_profile)
+                self.key2payload[orig_key] = Payload(panel_key)
             else:
-                payload.add(panel_profile)
+                payload.add(panel_key)
 
     def make_date_extent(self):
         return [dt.strftime("%Y-%m-%dT%H:%M:%S") for dt in (self.mindate, self.maxdate)]
