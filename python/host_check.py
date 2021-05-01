@@ -1,5 +1,9 @@
+import re
+from urllib.parse import urlparse
 from common import get_option
 from cursor_wrapper import CursorWrapper
+
+detail_rx = re.compile("^/verejnost/api/funkcionari/[0-9a-fA-F-]+$")
 
 class DefaultCanonicalizer:
     def canonicalize_host(self, raw_host):
@@ -51,6 +55,9 @@ order by id""", (self.inst_id,))
             host = self.canonicalizer.canonicalize_host(row[1])
             self.host_white[host] = row[0]
 
-    def get_host_id(self, host):
-        canon_host = self.canonicalizer.canonicalize_host(host)
+    def get_synth_host_id(self, pr):
+        canon_host = pr.hostname
+        if (pr.hostname == 'cro.justice.cz') and detail_rx.match(pr.path):
+            canon_host = 'xauth.justice.cz'
+
         return self.host_white.get(canon_host)

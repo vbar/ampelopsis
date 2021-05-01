@@ -5,17 +5,20 @@ import sys
 from urllib.parse import urlparse
 from act_util import act_reset
 from common import get_option, make_connection
-from host_check import get_instance_id, make_canonicalizer
+from host_check import get_instance_id, HostCheck
 
 class Seeder:
     def __init__(self, cur):
         self.cur = cur
-        self.canon = make_canonicalizer()
+        self.host_check = None # initialized lazily, after this class updates tops
+        if get_option("match_domain", False):
+            raise Exception("domain canonicalizer isn't compatible with synthetic host")
+
         self.inst_name = get_option("instance", None)
         self.inst_id = None
+        self.credential_flag = get_option('oauth_password', None) and get_option('oauth_user', None)
 
-    def add_host(self, hostname):
-        canon_host = self.canon.canonicalize_host(hostname)
+    def add_host(self, canon_host):
         self.cur.execute("""insert into tops(hostname)
 values(%s)
 on conflict do nothing
@@ -40,6 +43,10 @@ where hostname=%s""", (canon_host,))
 values(%s, %s)
 on conflict do nothing""", (host_id, self.inst_id))
 
+    def cond_add_synth_host(self):
+        if self.credential_flag:
+            self.add_host('xauth.justice.cz')
+
     def add_url(self, url):
         self.cur.execute("""insert into field(url)
 values(%s)
@@ -53,12 +60,18 @@ returning id""", (url,))
 values(%s, 0)""", (row[0], ))
 
     def add_work(self, url, url_id):
+        if not self.host_check:
+            self.host_check = HostCheck(self.cur)
+
         pr = urlparse(url)
-        hostname = self.canon.canonicalize_host(pr.hostname)
+        host_id = self.host_check.get_synth_host_id(pr)
+        if not host_id:
+            raise Exception("internal error: no host for " + url)
+
         self.cur.execute("""insert into download_queue(url_id, priority, host_id)
-values(%s, %s, (select id from tops where hostname=%s))
+values(%s, %s, %s)
 on conflict do nothing
-returning url_id""", (url_id, 0, hostname))
+returning url_id""", (url_id, 0, host_id))
         if self.cur.fetchone() is None:
             print("URL %s already in queue" % (url_id,), file=sys.stderr)
 
@@ -101,6 +114,7 @@ def main():
                     for protocol in protocols:
                         seeder.add_url("%s://%s" % (protocol, a))
 
+            seeder.cond_add_synth_host()
             seeder.cond_add_instance() # for seeding w/o arguments
             seeder.seed_queue()
 

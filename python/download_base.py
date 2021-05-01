@@ -45,7 +45,7 @@ class DownloadBase(HostCheck):
         return len(self.holds) > 0
 
     def add_hold(self, hostname, retry_after):
-        host_id = self.get_host_id(hostname)
+        host_id = self.get_synth_host_id(hostname)
         if host_id:
             relative = None
             if isinstance(retry_after, int):

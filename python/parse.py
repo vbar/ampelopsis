@@ -180,7 +180,7 @@ returning url_id""" % sql_cond)
     def add_link(self, url):
         pr = urlparse(url.strip())
         if pr.hostname: # may not exist even for valid links, e.g. mailto:
-            host_id = self.get_host_id(pr.hostname)
+            host_id = self.get_synth_host_id(pr)
             if host_id:
                 clean_pr = (pr.scheme, get_netloc(pr), normalize_url_component(pr.path), pr.params, normalize_url_component(pr.query), '')
                 clean_url = urlunparse(clean_pr)
