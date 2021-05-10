@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 from act_util import act_inc, act_dec
 from common import get_loose_path, get_mandatory_option, get_option, make_connection
 from download_base import DownloadBase
+from leaf_load import LeafLoader
 
 person_url_rx = re.compile("^https://cro.justice.cz/verejnost/api/funkcionari/(?P<id>[0-9a-fA-F-]{36})$")
 
@@ -18,7 +19,9 @@ id_rx = re.compile("^[0-9a-fA-F-]{36}$")
 class Acquirer(DownloadBase):
     def __init__(self, single_action, conn, cur):
         DownloadBase.__init__(self, conn, cur, single_action)
+        self.leaf_loader = LeafLoader(cur)
         self.server_url = get_option('oauth_server_url', "https://cro.justice.cz/verejnost/api/auth/basic")
+        self.request_timeout = int(get_option('request_timeout', "60"))
 
         user = get_mandatory_option('oauth_user')
         password = get_mandatory_option('oauth_password')
@@ -42,9 +45,6 @@ from download_queue""")
             row = self.pop_work_item()
 
     def acquire(self, person_url_id):
-        if self.token is None:
-            self.authenticate()
-
         person_url = self.get_url(person_url_id)
         m = person_url_rx.match(person_url)
         if not m:
@@ -52,19 +52,25 @@ from download_queue""")
 
         person_id = m.group('id')
 
-        parsed_urls = { person_url_id }
+        parsed_urls = set()
+        parsed_person = False
 
-        person_body = self.retrieve(person_url, person_url_id, person_url_id)
-        if person_body:
-            doc = self.safe_parse(person_body, person_url_id)
-            if doc:
-                statements = doc.get('statements')
-                if isinstance(statements, list):
-                    first = True
-                    for statement in statements:
-                        statement_id = statement.get('id')
-                        if statement_id and id_rx.match(statement_id):
-                            if len(parsed_urls) == 1:
+        doc = self.leaf_loader.get_old_doc(person_url_id)
+        if not doc:
+            person_body = self.retrieve(person_url, person_url_id, person_url_id)
+            if person_body:
+                parsed_person = True # even if parsing fails, it has been tried
+                doc = self.safe_parse(person_body, person_url_id)
+
+        if doc:
+            statements = doc.get('statements')
+            if isinstance(statements, list):
+                first = True
+                for statement in statements:
+                    statement_id = statement.get('id')
+                    if statement_id and id_rx.match(statement_id):
+                        if not self.leaf_loader.load_statement(person_id, statement_id):
+                            if not len(parsed_urls):
                                 gate_url_id = self.retrieve_gate(person_id, person_url_id)
                                 if not gate_url_id:
                                     break
@@ -79,16 +85,20 @@ from download_queue""")
 
         # until parser uses jumper, it doesn't have anything to do
         # with these URLs...
-        parsed = ", ".join(( str(uid) for uid in sorted(parsed_urls) ))
-        sql = """update field
+        if parsed_person:
+            parsed_urls.add(person_url_id)
+
+        if len(parsed_urls):
+            parsed = ", ".join(( str(uid) for uid in sorted(parsed_urls) ))
+            sql = """update field
 set parsed=localtimestamp
 where id in (%s)""" % parsed
-        self.cur.execute(sql)
+            self.cur.execute(sql)
 
     def authenticate(self):
         request = Request(self.server_url)
         request.add_header("Authorization", "Basic %s" % self.basic_auth)
-        response = urlopen(request)
+        response = urlopen(request, timeout=self.request_timeout)
         if response.status != 200:
             raise Exception("%s got %s" % (self.server_url, response.status))
 
@@ -98,7 +108,7 @@ where id in (%s)""" % parsed
             raise Exception("no bearer token")
 
     def retrieve_gate(self, person_id, person_url_id):
-        url = "https://cro.justice.cz/verejnost/api/funkcionari/schvaleno/" + person_id
+        url = self.leaf_loader.make_gate_url(person_id)
         url_id = self.ensure_url_id(url)
         body = self.retrieve(url, url_id, person_url_id)
         if body is None:
@@ -112,20 +122,23 @@ where id in (%s)""" % parsed
         return url_id if self.token else None
 
     def retrieve_statement(self, person_id, statement_id, person_url_id):
-        url = "https://cro.justice.cz/verejnost/api/funkcionari/%s/oznameni/%s" % (person_id, statement_id)
+        url = self.leaf_loader.make_statement_url(person_id, statement_id)
         url_id = self.ensure_url_id(url)
         self.retrieve(url, url_id, person_url_id)
         return url_id if self.token else None
 
     def retrieve(self, url, url_id, person_url_id):
-        assert self.token
-
         request = Request(url)
+
+        if not self.token:
+            self.authenticate()
+
         request.add_header("Authorization", "Bearer %s" % self.token)
+
         body = None
         msg = "got " + url
         try:
-            response = urlopen(request)
+            response = urlopen(request, timeout=self.request_timeout)
             if response.status != 200:
                 msg += " with %d" % response.status
                 self.report_error(person_url_id, response.status, "can't do")
@@ -135,6 +148,10 @@ where id in (%s)""" % parsed
         except HTTPError as exc:
             msg += " with %d" % exc.code
             self.report_error(person_url_id, exc.code, exc.reason)
+        except OSError as exc:
+            errno = exc.errno or 0
+            msg += " with %d" % errno
+            self.report_error(person_url_id, errno, exc.strerror)
 
         target_path = get_loose_path(url_id)
         if body:
@@ -145,7 +162,7 @@ where id in (%s)""" % parsed
                 os.remove(target_path)
 
         self.cur.execute("""update field
-set checkd=localtimestamp
+set checkd=localtimestamp, parsed=null
 where id=%s""", (url_id,))
 
         print(msg, file=sys.stderr)
@@ -160,10 +177,13 @@ where id=%s""", (url_id,))
 values(%s, %s, localtimestamp)
 on conflict(url_id) do update
 set error_message=%s, failed=localtimestamp""", (url_id, msg, msg))
+
             return None
 
     def ensure_url_id(self, url):
-        self.cur.execute("""insert into field(url) values(%s)
+        # gate & statement URLs are always considered downloaded, so
+        # that nobody tries to download them but this script
+        self.cur.execute("""insert into field(url, checkd) values(%s, localtimestamp)
 on conflict(url) do nothing
 returning id""", (url,))
         row = self.cur.fetchone()
