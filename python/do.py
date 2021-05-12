@@ -3,7 +3,6 @@
 from base64 import b64encode
 import json
 import os
-import re
 import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -11,10 +10,6 @@ from act_util import act_inc, act_dec
 from common import get_loose_path, get_mandatory_option, get_option, make_connection
 from download_base import DownloadBase
 from leaf_load import LeafLoader
-
-person_url_rx = re.compile("^https://cro.justice.cz/verejnost/api/funkcionari/(?P<id>[0-9a-fA-F-]{36})$")
-
-id_rx = re.compile("^[0-9a-fA-F-]{36}$")
 
 class Acquirer(DownloadBase):
     def __init__(self, single_action, conn, cur):
@@ -46,7 +41,7 @@ from download_queue""")
 
     def acquire(self, person_url_id):
         person_url = self.get_url(person_url_id)
-        m = person_url_rx.match(person_url)
+        m = self.leaf_loader.person_url_rx.match(person_url)
         if not m:
             raise Exception("unexpected URL " + person_url)
 
@@ -68,7 +63,7 @@ from download_queue""")
                 first = True
                 for statement in statements:
                     statement_id = statement.get('id')
-                    if statement_id and id_rx.match(statement_id):
+                    if statement_id and self.leaf_loader.id_rx.match(statement_id):
                         if not self.leaf_loader.load_statement(person_id, statement_id):
                             if not len(parsed_urls):
                                 gate_url_id = self.retrieve_gate(person_id, person_url_id)

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from common import get_loose_path
 from cursor_wrapper import CursorWrapper
 from volume_holder import VolumeHolder
@@ -8,6 +9,8 @@ class LeafLoader(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
+        self.person_url_rx = re.compile("^https://cro.justice.cz/verejnost/api/funkcionari/(?P<id>[0-9a-fA-F-]{36})$")
+        self.id_rx = re.compile("^[0-9a-fA-F-]{36}$")
 
     def load_statement(self, person_id, statement_id):
         url = self.make_statement_url(person_id, statement_id)
