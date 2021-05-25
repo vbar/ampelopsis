@@ -240,15 +240,15 @@ values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.
                         # server) while Retry-After is specified for a
                         # couple of HTTP error codes
                         if (target.retry_after is not None) or ((target.http_code == 429) and (self.retry_after_default is not None)):
+                            pr = urlparse(target.url)
                             if eff_hostname is None:
-                                pr = urlparse(target.url)
                                 eff_hostname = pr.hostname
 
                             if eff_hostname is None:
                                 print("cannot parse " + target.url, file=sys.stderr)
                             else:
                                 retry_after = self.retry_after_default if target.retry_after is None else target.retry_after
-                                added_hold = self.add_hold(eff_hostname, retry_after)
+                                added_hold = self.add_hold(pr, retry_after)
 
                         if target.http_code is None:
                             msg += " with no HTTP status"

@@ -3,12 +3,15 @@ import re
 import sys
 from common import get_option
 from jumper import Jumper, make_meta_query_url
+from leaf_merge import LeafMerger
+from urlize import query_url_head
 
 class JsonParser:
     core_url_head = "https://cro.justice.cz/verejnost/api/funkcionari"
 
     def __init__(self, owner, url):
         self.owner = owner
+        self.leaf_merger = LeafMerger(owner.cur)
         self.entity_rx = re.compile('/(Q[0-9]+)$')
         self.jumper = None
         self.jump_links = int(get_option('jump_links', "1"))
@@ -17,8 +20,9 @@ class JsonParser:
 
         schema = (
             ( "^" + re.escape(make_meta_query_url()) + '$', self.process_meta_query ),
+            ( "^" + re.escape(query_url_head), self.drop_url ),
             ( "^" + self.core_url_head + "\\?order=DESC&page=(?P<page>\\d+)&pageSize=(?P<page_size>\\d+)&sort=created$", self.process_overview ),
-            ( "^" + self.core_url_head + "/[0-9a-fA-F-]+$", self.process_detail )
+            ( "^" + self.core_url_head + "/(?P<id>[0-9a-fA-F-]{36})$", self.process_detail )
         )
 
         self.match = None
@@ -30,18 +34,20 @@ class JsonParser:
                 break
 
     def parse_links(self, fp):
+        if not self.match:
+            print("ignoring unknown URL", file=sys.stderr)
+            return
+
         buf = b''
         for ln in fp:
             buf += ln
 
         doc = json.loads(buf.decode('utf-8'))
 
-        # not earlier because we want to record JSON parse error even
-        # from leafs
-        if not self.match:
-            return
-
         self.process(doc)
+
+    def drop_url(self, doc):
+        pass
 
     def process_meta_query(self, doc):
         if self.jumper:
@@ -86,6 +92,9 @@ class JsonParser:
     def process_detail(self, doc):
         if not self.jump_links:
             return
+
+        person_id = self.match.group('id')
+        self.leaf_merger.merge(person_id, doc)
 
         # enrich from Wikidata
         if not self.jumper:

@@ -44,8 +44,8 @@ class DownloadBase(HostCheck):
     def has_holds(self):
         return len(self.holds) > 0
 
-    def add_hold(self, hostname, retry_after):
-        host_id = self.get_synth_host_id(hostname)
+    def add_hold(self, pr, retry_after):
+        host_id = self.get_synth_host_id(pr)
         if host_id:
             relative = None
             if isinstance(retry_after, int):
@@ -65,7 +65,7 @@ class DownloadBase(HostCheck):
             else:
                 print("do not understand Retry-After: " + retry_after, file=sys.stderr)
         else:
-            print("no hold on blacklisted " + hostname, file=sys.stderr)
+            print("no hold on blacklisted " + pr.hostname, file=sys.stderr)
 
         return False
 
@@ -190,8 +190,14 @@ where id=%s""", (url_id,))
     def cond_notify(self):
         live = False
         if not self.single_action:
-            self.cur.execute("""select count(*)
-from parse_queue""")
+            sql = """select count(*)
+from parse_queue"""
+            if self.inst_id:
+                sql += """
+join locality on parse_queue.url_id=locality.url_id
+where instance_id=%d""" % self.inst_id
+
+            self.cur.execute(sql)
             row = self.cur.fetchone()
             live = row[0] > 0
             if live:

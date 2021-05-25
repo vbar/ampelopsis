@@ -17,6 +17,7 @@ class Acquirer(DownloadBase):
         self.leaf_loader = LeafLoader(cur)
         self.server_url = get_option('oauth_server_url', "https://cro.justice.cz/verejnost/api/auth/basic")
         self.request_timeout = int(get_option('request_timeout', "60"))
+        self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
 
         user = get_mandatory_option('oauth_user')
         password = get_mandatory_option('oauth_password')
@@ -34,9 +35,16 @@ from download_queue""")
         if not num_conn:
             return
 
+        num_processed = 0
         row = self.pop_work_item()
         while row:
             self.acquire(row[0])
+
+            num_processed += 1
+            if num_processed >= self.notification_threshold:
+                self.cond_notify()
+                num_processed = 0
+
             row = self.pop_work_item()
 
     def acquire(self, person_url_id):
@@ -48,13 +56,11 @@ from download_queue""")
         person_id = m.group('id')
 
         parsed_urls = set()
-        parsed_person = False
 
         doc = self.leaf_loader.get_old_doc(person_url_id)
         if not doc:
             person_body = self.retrieve(person_url, person_url_id, person_url_id)
             if person_body:
-                parsed_person = True # even if parsing fails, it has been tried
                 doc = self.safe_parse(person_body, person_url_id)
 
         if doc:
@@ -78,17 +84,17 @@ from download_queue""")
 
                             parsed_urls.add(statement_url_id)
 
-        # until parser uses jumper, it doesn't have anything to do
-        # with these URLs...
-        if parsed_person:
-            parsed_urls.add(person_url_id)
-
+        # parsing accesses statement URLs from person doc, and gate
+        # URLs not at all - no need to queue them...
         if len(parsed_urls):
             parsed = ", ".join(( str(uid) for uid in sorted(parsed_urls) ))
             sql = """update field
 set parsed=localtimestamp
 where id in (%s)""" % parsed
             self.cur.execute(sql)
+
+        if doc:
+            self.finish_page(person_url_id, person_url_id, True)
 
     def authenticate(self):
         request = Request(self.server_url)
@@ -187,7 +193,16 @@ returning id""", (url,))
 where url=%s""", (url,))
             row = self.cur.fetchone()
 
-        return row[0]
+        url_id = row[0]
+        if self.inst_id:
+            # this isn't atomic (w/ insert) - nobody should depend on
+            # leaf URLs having (or not having) locality
+            self.cur.execute("""insert into locality(url_id, instance_id)
+values(%s, %s)
+on conflict(url_id) do update
+set instance_id=%s""", (url_id, self.inst_id, self.inst_id))
+
+        return url_id
 
     def report_error(self, url_id, errno, errmsg):
         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
