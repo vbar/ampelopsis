@@ -193,16 +193,13 @@ returning id""", (url,))
 where url=%s""", (url,))
             row = self.cur.fetchone()
 
-        url_id = row[0]
-        if self.inst_id:
-            # this isn't atomic (w/ insert) - nobody should depend on
-            # leaf URLs having (or not having) locality
-            self.cur.execute("""insert into locality(url_id, instance_id)
-values(%s, %s)
-on conflict(url_id) do update
-set instance_id=%s""", (url_id, self.inst_id, self.inst_id))
-
-        return url_id
+        # leaf URLs do not maintain locality - nobody needs it (except
+        # health check, but if health check gets a too-pessimistic
+        # view of download progress it makes no difference), the
+        # simplest implementation (here) wouldn't be atomic WRT the
+        # insert above and just enable them to leak into the download
+        # queue...
+        return row[0]
 
     def report_error(self, url_id, errno, errmsg):
         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
