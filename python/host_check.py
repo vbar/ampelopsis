@@ -3,7 +3,8 @@ from urllib.parse import urlparse
 from common import get_option
 from cursor_wrapper import CursorWrapper
 
-detail_rx = re.compile("^/verejnost/api/funkcionari/[0-9a-fA-F-]+$")
+# includes leaf URLs
+detail_rx = re.compile("^/verejnost/api/funkcionari/[0-9a-fA-F-]{9}")
 
 class DefaultCanonicalizer:
     def canonicalize_host(self, raw_host):
