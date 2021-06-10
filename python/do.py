@@ -51,7 +51,8 @@ from download_queue""")
         person_url = self.get_url(person_url_id)
         m = self.leaf_loader.person_url_rx.match(person_url)
         if not m:
-            raise Exception("unexpected URL " + person_url)
+            print("unexpected URL " + person_url, file=sys.stderr)
+            return
 
         person_id = m.group('id')
 
