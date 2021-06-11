@@ -5,6 +5,7 @@ import re
 import sys
 from cursor_wrapper import CursorWrapper
 from jumper import Jumper
+from leaf_merge import LeafMerger
 from pellet import Pellet
 from volume_holder import VolumeHolder
 
@@ -33,6 +34,7 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
         Jumper.__init__(self)
+        self.leaf_merger = LeafMerger(cur)
         self.load(cur)
 
     def get_entities(self, detail):
@@ -146,7 +148,14 @@ class JsonLookup(VolumeHolder, CursorWrapper, Jumper):
         finally:
             reader.close()
 
-        return json.loads(buf.decode('utf-8'))
+        doc = json.loads(buf.decode('utf-8'))
+
+        m = self.leaf_merger.person_url_rx.match(url)
+        if m:
+            person_id = m.group('id')
+            self.leaf_merger.merge(person_id, doc)
+
+        return doc
 
     def get_url_id(self, url):
         self.cur.execute("""select id, checkd

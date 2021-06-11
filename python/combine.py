@@ -53,7 +53,13 @@ order by url""")
         finally:
             reader.close()
 
+        m = self.leaf_merger.person_url_rx.match(url)
+        if not m:
+            raise Exception("URL %s doesn't match person" % url)
+
+        person_id = m.group('id')
         doc = json.loads(buf.decode('utf-8'))
+        self.leaf_merger.merge(person_id, doc)
 
         if prep:
             persons = self.get_persons(doc)
