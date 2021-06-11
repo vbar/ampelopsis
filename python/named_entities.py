@@ -75,7 +75,7 @@ deputy_minister_position_entities = (
 
 # mayors are special because there's so many the name match may
 # produce false positives - so for mayors we also match the city
-mayor_position_entities = ( 'Q30185', 'Q147733' )
+mayor_position_entities = ( 'Q30185', 'Q147733', 'Q99356295' )
 
 # handled like a councillor, except it has its own working position
 # name in rulebook
