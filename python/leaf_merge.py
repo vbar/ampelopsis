@@ -1,16 +1,15 @@
-import json
 import sys
+from json_compare import stringify
 from leaf_load import LeafLoader
-
-def stringify(obj):
-    return json.dumps(obj, sort_keys=True)
-
 
 class LeafMerger(LeafLoader):
     def __init__(self, cur):
         LeafLoader.__init__(self, cur)
 
     def merge(self, person_id, person_doc):
+        if not self.merge_leaves:
+            return
+
         statements = person_doc.get('statements')
         if isinstance(statements, list):
             for i, statement in enumerate(statements):

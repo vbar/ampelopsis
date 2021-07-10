@@ -64,7 +64,7 @@ from download_queue""")
             if person_body:
                 doc = self.safe_parse(person_body, person_url_id)
 
-        if doc:
+        if self.leaf_loader.merge_leaves and doc:
             statements = doc.get('statements')
             if isinstance(statements, list):
                 first = True

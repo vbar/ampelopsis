@@ -105,8 +105,7 @@ class Comparer:
                 return
 
         if not compare_object(old_doc, new_doc):
-            # too common to print
-            # print("other change for " + doc_name, file=sys.stderr)
+            print("other change for " + doc_name, file=sys.stderr)
             self.other_change += 1
 
 

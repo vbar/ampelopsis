@@ -1,3 +1,8 @@
+import json
+
+def stringify(obj):
+    return json.dumps(obj, sort_keys=True)
+
 # https://www.quora.com/How-do-I-compare-two-JSON-files-in-Python
 
 def compare_object(a, b):
@@ -28,8 +33,10 @@ def compare_list(a, b):
     if la != len(b):
         return False
     else:
+        sa = sorted(a, key=stringify)
+        sb = sorted(b, key=stringify)
         for i in range(la):
-            if not compare_object(a[i], b[i]):
+            if not compare_object(sa[i], sb[i]):
                 return False
 
         return True
