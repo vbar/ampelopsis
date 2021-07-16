@@ -21,7 +21,7 @@ class JsonParser:
         schema = (
             ( "^" + re.escape(make_meta_query_url()) + '$', self.process_meta_query ),
             ( "^" + re.escape(query_url_head), self.drop_url ),
-            ( "^" + self.core_url_head + "\\?order=DESC&page=(?P<page>\\d+)&pageSize=(?P<page_size>\\d+)&sort=created$", self.process_overview ),
+            ( "^" + self.core_url_head + "\\?order=(?P<order>[A-Z]+)&page=(?P<page>\\d+)&pageSize=(?P<page_size>\\d+)&sort=created$", self.process_overview ),
             ( "^" + self.core_url_head + "/(?P<id>[0-9a-fA-F-]{36})$", self.process_detail )
         )
 
@@ -72,6 +72,7 @@ class JsonParser:
         self.owner.set_jumper(self.jumper)
 
     def process_overview(self, doc):
+        order = self.match.group('order')
         page = int(self.match.group('page'))
         page_size = int(self.match.group('page_size'))
         if page == 0:
@@ -79,7 +80,7 @@ class JsonParser:
             n = count // page_size
             i = 1
             while i <= n:
-                url = self.core_url_head + ("?order=DESC&page=%d&pageSize=%d&sort=created" % (i, page_size))
+                url = self.core_url_head + ("?order=%s&page=%d&pageSize=%d&sort=created" % (order, i, page_size))
                 self.owner.add_link(url)
                 i += 1
 

@@ -22,7 +22,7 @@ class Recycler(JsonLookup):
         print("searching for recycleable URLs in %s..." % self.old_schema, file=sys.stderr)
 
         if self.primary:
-            self.run_cycle("^https://cro.justice.cz/verejnost/api/funkcionari\\?order=DESC&page=[0-9]+&pageSize=[0-9]+&sort=created$")
+            self.run_cycle("^https://cro.justice.cz/verejnost/api/funkcionari\\?order=[A-Z]+&page=[0-9]+&pageSize=[0-9]+&sort=created$")
 
         self.run_cycle("^https://cro.justice.cz/verejnost/api/funkcionari/[a-f0-9-]+$")
 
