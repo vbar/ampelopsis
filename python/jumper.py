@@ -152,7 +152,7 @@ class Jumper:
         self.rulebook = Rulebook()
 
         today = datetime.now()
-        self.recent_year = today.year - 2
+        self.recent_year = today.year - 3
         self.year_precision = 9
 
         self.name_check = NameCheck()
