@@ -47,7 +47,7 @@ organization2occupation = {
     'khs ': Entity.hygienist,
     'úřad vlády': Entity.head_of_office_of_government,
     # 'kancelář prezidenta republiky' should have something as well...
-    'národní sportovní agentura': Entity.chairperson,
+    'národní sportovní agentura': Entity.chairperson, # also vice-chairs, but they don't have the position in wikidata (if they're in wikidata at all)
     'ředitelství silnic a dálnic čr': ('Q63486417', Entity.director),
     'psychiatrická nemocnice bohnice': Entity.psychiatrist,
     'archeologické centrum olomouc p.o.': Entity.archaeologist

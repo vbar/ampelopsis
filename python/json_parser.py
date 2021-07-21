@@ -25,6 +25,11 @@ class JsonParser:
             ( "^" + self.core_url_head + "/(?P<id>[0-9a-fA-F-]{36})$", self.process_detail )
         )
 
+        # cro.justice.cz doesn't serve pages with items above 50000,
+        # so by default we go in both directions and stop in the
+        # middle (which is a bit over 25000)
+        self.bidir = not get_option('unidirectional_acquisition', None)
+
         self.match = None
         for url_rx, proc_meth in schema:
             m = re.match(url_rx, url)
@@ -78,6 +83,9 @@ class JsonParser:
         if page == 0:
             count = int(doc.get('count'))
             n = count // page_size
+            if self.bidir:
+                n = n // 2
+
             i = 1
             while i <= n:
                 url = self.core_url_head + ("?order=%s&page=%d&pageSize=%d&sort=created" % (order, i, page_size))
