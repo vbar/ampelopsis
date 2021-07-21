@@ -63,6 +63,7 @@ class Entity:
     politician = 'Q82955'
 
     # not particularly special but do repeat
+    chairperson = 'Q140686'
     director = 'Q1162163'
     rector_of_charles_university = 'Q12049166'
 
