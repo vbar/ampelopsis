@@ -4,6 +4,7 @@ from base64 import b64encode
 import json
 import os
 import sys
+from time import sleep
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from act_util import act_inc, act_dec
@@ -17,6 +18,7 @@ class Acquirer(DownloadBase):
         self.leaf_loader = LeafLoader(cur)
         self.server_url = get_option('oauth_server_url', "https://cro.justice.cz/verejnost/api/auth/basic")
         self.request_timeout = int(get_option('request_timeout', "60"))
+        self.request_backoff = int(get_option('request_backoff', "300"))
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
 
         user = get_mandatory_option('oauth_user')
@@ -100,14 +102,29 @@ where id in (%s)""" % parsed
     def authenticate(self):
         request = Request(self.server_url)
         request.add_header("Authorization", "Basic %s" % self.basic_auth)
-        response = urlopen(request, timeout=self.request_timeout)
-        if response.status != 200:
-            raise Exception("%s got %s" % (self.server_url, response.status))
+        try:
+            response = urlopen(request, timeout=self.request_timeout)
+            if response.status != 200:
+                msg = "%s got %s" % (self.server_url, response.status)
+                self.report_auth_error(msg)
+                return
 
-        print("got " + self.server_url, file=sys.stderr)
-        self.token = response.getheader('Bearer')
-        if not self.token:
-            raise Exception("no bearer token")
+            print("got " + self.server_url, file=sys.stderr)
+            self.token = response.getheader('Bearer')
+            if not self.token:
+                raise Exception("no bearer token")
+        except HTTPError as exc:
+            msg = "%s failed with %d" % (self.server_url, exc.code)
+            self.report_auth_error(msg)
+        except OSError as exc:
+            errno = exc.errno or 0
+            msg += "%s failed: %d" %  (self.server_url, errno)
+            self.report_auth_error(msg)
+
+    def report_auth_error(self, msg):
+        msg += " - will try again in %d seconds" % self.request_backoff
+        print(msg, file=sys.stderr)
+        sleep(self.request_backoff)
 
     def retrieve_gate(self, person_id, person_url_id):
         url = self.leaf_loader.make_gate_url(person_id)
@@ -132,7 +149,7 @@ where id in (%s)""" % parsed
     def retrieve(self, url, url_id, person_url_id):
         request = Request(url)
 
-        if not self.token:
+        while not self.token:
             self.authenticate()
 
         request.add_header("Authorization", "Bearer %s" % self.token)
