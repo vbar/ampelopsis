@@ -118,7 +118,7 @@ where id in (%s)""" % parsed
             self.report_auth_error(msg)
         except OSError as exc:
             errno = exc.errno or 0
-            msg += "%s failed: %d" %  (self.server_url, errno)
+            msg = "%s failed: %d" %  (self.server_url, errno)
             self.report_auth_error(msg)
 
     def report_auth_error(self, msg):
