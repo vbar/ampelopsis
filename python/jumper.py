@@ -423,10 +423,11 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             judge_position = Entity.judge
             court_set = self.make_court_set(detail)
 
-        prosecutor_position = None
-        if Entity.prosecutor in position_set:
-            position_set.remove(Entity.prosecutor)
-            prosecutor_position = Entity.prosecutor
+        prosecutor_flag = False
+        for pos in (Entity.prosecutor, Entity.state_attorney):
+            if pos in position_set:
+                position_set.remove(pos)
+                prosecutor_flag = True
 
         mayor_position_set = set()
         for pos in mayor_position_entities:
@@ -448,8 +449,9 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
 
         occupation_list = []
         # judge is not included because it's required when present in input
-        if prosecutor_position:
-            occupation_list.append(prosecutor_position)
+        if prosecutor_flag:
+            occupation_list.append(Entity.prosecutor)
+            occupation_list.append(Entity.state_attorney)
 
         hygienist_flag = False
         if Entity.hygienist in position_set:
@@ -625,7 +627,7 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             else:
                 if not l:
                     assert not office_of_government_flag
-                    if not prosecutor_position:
+                    if not prosecutor_flag:
                         political_constraint = 'wdt:P106 ?o;'
                         mainline_block = 'optional { ?w wdt:P39 ?p. }'
                     else:
@@ -657,7 +659,7 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             # prosecutor already is in occupation_list (and therefore
             # in pos_clauses), but the occupation almost never matches
             # - so we also try to match description...
-            if prosecutor_position:
+            if prosecutor_flag:
                 pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
 
         # engineers (unlike doctors, whose titles are a more prominent

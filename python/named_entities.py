@@ -53,6 +53,9 @@ class Entity:
     # We try to (also) match it from description.
     prosecutor = 'Q600751'
 
+    # State's attorney is treated as a synonym of prosecutor.
+    state_attorney = 'Q10726370'
+
     # like researcher, but also applies to lower-level/private schools
     pedagogue = 'Q1231865'
     teacher = 'Q37226'
