@@ -162,10 +162,9 @@ class Jumper:
         self.tree_check.add('titleBefore', 'mvdr', Entity.veterinarian)
         # MDDr. is also possible but rare, and wikidata doesn't have
         # the politically active dentists at all. Neither does
-        # arch. match any new architects. PaedDr. causes false
-        # positives - pedagogues require a school match, or some other
-        # restriction...
-        self.tree_check.add('titleBefore', 'ing', Entity.engineer)
+        # arch. match any new architects. Ing. causes false positives,
+        # and so does PaedDr. - pedagogues require a school match, or
+        # some other restriction...
         self.tree_check.add('titleAfter', 'mba', Entity.manager)
 
         self.city2mayor = {}
@@ -471,14 +470,6 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
                 occupation_list.append(Entity.politician)
                 physician_flag = True
 
-        engineer_flag = False
-        if Entity.engineer in position_set:
-            position_set.remove(Entity.engineer)
-            # Not added to occupation_list. For judges, we don't care
-            # whether they're Ing.
-            if not judge_position:
-                engineer_flag = True
-
         for occupation in (Entity.diplomat, Entity.police_officer, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
@@ -661,16 +652,6 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
             # - so we also try to match description...
             if prosecutor_flag:
                 pos_clauses.append('filter(contains(lcase(?g), "státní zástup"))') # zástupce, zástupkyně
-
-        # engineers (unlike doctors, whose titles are a more prominent
-        # part of their identity) get a separate query
-        if engineer_flag:
-            np = 'wd:' + Entity.engineer
-            np2 = 'wd:' + Entity.politician
-            occ_tail = ', ?o' if loc_occ else ''
-            eng_occ = """?w wdt:P106 %s%s.
-        values ?o { %s }""" % (np, occ_tail, np2)
-            pos_clauses.append(eng_occ)
 
         if len(school_names):
             occ_clause = '?w wdt:P106 ?o.' if loc_occ else ''

@@ -37,7 +37,7 @@ class Entity:
     archaeologist = 'Q3621491'
     academic = 'Q3400985'
     researcher = 'Q1650915'
-    engineer = 'Q81096'
+    # engineer = 'Q81096' not clear how to make stricter w/o causing false positives
     manager = 'Q2462658'
 
     # A specific civil servant; the entity isn't just a position, but
@@ -85,6 +85,8 @@ mayor_position_entities = ( 'Q30185', 'Q147733', 'Q99356295' )
 # name in rulebook
 deputy_mayor_position_entities = (
     'Q581817',
+
+    # 'Q21664651' "mayor's adjunct" is used, but only once (for an already matched person)
 
     # "Wali" doesn't sound very applicable (and probably isn't very specific), but it is used...
     'Q13424814'
