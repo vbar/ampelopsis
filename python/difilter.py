@@ -224,16 +224,16 @@ def main():
 
     modes = []
     for a in args:
-        if (a == '-u') or (a == '--under'):
+        if a in ('-u', '--under'):
             modes.append(UNDERSPECIFIED)
-        elif (a == '-o') or (a == '--over'):
+        elif a in ('-o', '--over'):
             modes.append(OVERSPECIFIED)
         elif a == '--var': # -v is already taken
             if len(modes):
                 raise Exception("--var is incompatible with --over/--under/--all")
 
             modes.append(VARIABLE)
-        elif (a == '-a') or (a == '--all'):
+        elif a in ('-a', '--all'):
             if len(modes):
                 raise Exception("--all is incompatible with --over/--under/--var")
 
