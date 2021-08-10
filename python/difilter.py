@@ -16,6 +16,8 @@ OVERSPECIFIED = 2
 
 VARIABLE = 4
 
+MATCH = 8
+
 class DiFilter(JsonLookup):
     def __init__(self, cur, mode, verbose, req_org_name=None, req_pos_name=None):
         JsonLookup.__init__(self, cur)
@@ -77,6 +79,12 @@ order by url""")
             if l:
                 persons = self.get_entities(detail)
                 if len(persons) > 1:
+                    found = True
+        elif self.mode == MATCH:
+            if l and ((self.white is None) or len(self.white & position_set)):
+                specific_urls = self.make_query_urls(detail, position_set)
+                suha, focused = self.has_specific_answer_focus(specific_urls)
+                if focused and suha:
                     found = True
         elif not self.mode:
             if l:
@@ -228,14 +236,19 @@ def main():
             modes.append(UNDERSPECIFIED)
         elif a in ('-o', '--over'):
             modes.append(OVERSPECIFIED)
+        elif a in ('-m', '--match'):
+            if len(modes):
+                raise Exception("--match is incompatible with --over/--under/--var/--all")
+
+            modes.append(MATCH)
         elif a == '--var': # -v is already taken
             if len(modes):
-                raise Exception("--var is incompatible with --over/--under/--all")
+                raise Exception("--var is incompatible with --over/--under/--match/--all")
 
             modes.append(VARIABLE)
         elif a in ('-a', '--all'):
             if len(modes):
-                raise Exception("--all is incompatible with --over/--under/--var")
+                raise Exception("--all is incompatible with --over/--under/--match/--var")
 
             modes.append(0)
         else:
