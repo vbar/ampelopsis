@@ -2,7 +2,6 @@ import re
 
 from levels import CouncilLevel, DirectorLevel, JudgeLevel, MuniLevel, ParliamentLevel, PoliceLevel, RegionCouncilLevel, UniversityLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, deputy_minister_position_entities, mayor_position_entities, region_councillor_entities
-from rulebook_util import get_org_name
 
 # Specific regional representative entities match better than the
 # generic region_councillor_entities (which are also added inside
