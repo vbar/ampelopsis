@@ -5,7 +5,7 @@ import re
 from corrector import Corrector
 from name_check import name_char_rx, normalize_name, NameCheck
 from tree_check import TreeCheck
-from levels import JudgeLevel, MuniLevel, ParliamentLevel
+from levels import JudgeLevel, MuniLevel, ParliamentLevel, UniversityLevel
 from named_entities import Entity, councillor_position_entities, deputy_mayor_position_entities, mayor_position_entities
 from rulebook import Rulebook
 from rulebook_util import convert_answer_to_iterable, get_org_name, reduce_substrings_to_shortest, school_name_rx
@@ -216,6 +216,15 @@ class Jumper:
 
         self.neg_court_cond = format_neg_court_set(set(self.court2stem.values()))
 
+        # obviously the map could be exteded (wikidata has many
+        # schools, and other institutions as well), but it isn't very
+        # clear how to do it systematically...
+        self.name2institution = {
+            'české vysoké učení technické': 'Q1329478',
+            'české vysoké učení technické v praze': 'Q1329478',
+            'západočeská univerzita v plzni': 'Q1973888',
+        }
+
         self.city_office_corrector = Corrector(4, self.name2city.keys())
         self.top_prosecutors_office_corrector = Corrector(2, ('nejvyšší státní zastupitelství',))
         self.court_corrector = Corrector(3, self.court2stem.keys())
@@ -369,6 +378,22 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
 
         return sought
 
+    def make_institution_set(self, detail, representative):
+        sought = set()
+        lst = detail['workingPositions']
+        for it in lst:
+            wp = it['workingPosition']
+            answer = self.rulebook.get(wp['name'])
+            if answer is not None and isinstance(answer, UniversityLevel):
+                answer = convert_answer_to_iterable(answer, it)
+                if representative in answer:
+                    norm_inst = get_org_name(it)
+                    entity = self.name2institution.get(norm_inst)
+                    if entity:
+                        sought.add(entity)
+
+        return sought
+
     def fold_min_start(self, detail, representative):
         year = None
         lst = detail['workingPositions']
@@ -470,7 +495,14 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
                 occupation_list.append(Entity.politician)
                 physician_flag = True
 
-        for occupation in (Entity.diplomat, Entity.police_officer, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.university_teacher, Entity.manager):
+        institution_set = set()
+        if Entity.university_teacher in position_set:
+            position_set.remove(Entity.university_teacher)
+            institution_set = self.make_institution_set(detail, Entity.university_teacher)
+            if len(institution_set):
+                occupation_list.append(Entity.university_teacher)
+
+        for occupation in (Entity.diplomat, Entity.police_officer, Entity.psychiatrist, Entity.veterinarian, Entity.archaeologist, Entity.academic, Entity.researcher, Entity.manager):
             if occupation in position_set:
                 position_set.remove(occupation)
                 occupation_list.append(occupation)
@@ -637,6 +669,11 @@ set wd_entity=%s""", (self.last_legislature, self.last_legislature))
                     occ_branch.append('?w wdt:P106 %s, ?o.' % np)
                 else:
                     occ_branch.append('?w wdt:P106 ?o.')
+
+            if len(institution_set):
+                vl = format_position_iterable(institution_set)
+                occ_branch.append("""?w p:P108/ps:P108 ?i.
+        values ?i { %s }""" % vl)
 
             vl = format_position_iterable(occupation_list)
             occ_branch.append('values ?o { %s }' % vl)
