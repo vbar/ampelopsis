@@ -26,7 +26,7 @@ region2councillor = {
     'olomoucký kraj': region_councillor_entities,
     'pardubický kraj': region_councillor_entities,
     'plzeňský kraj': region_councillor_entities,
-    'středočeský kraj': region_councillor_entities,
+    'středočeský kraj': RegionCouncilLevel('Q104559039'),
     'ústecký kraj': RegionCouncilLevel('Q83275550'),
     'zlínský kraj': RegionCouncilLevel('Q9613465')
 }
@@ -93,6 +93,7 @@ class Rulebook:
             'místostarosta / zástupce starosty': MuniLevel(deputy_mayor_position_entities),
             'hejtman': council_level,
             'člen zastupitelstva': council_level,
+            'uvolněný člen zastupitelstva': council_level,
             'člen rady': council_level,
 
             # not clear whether input distinguishes member from governor, so
