@@ -3,7 +3,7 @@ import select
 import sys
 import time
 from common import get_option
-from host_check import HostCheck
+from host_check import get_parse_notification_name, HostCheck
 
 class DownloadBase(HostCheck):
     def __init__(self, conn, cur, single_action):
@@ -200,7 +200,7 @@ from parse_queue""")
         return live
 
     def do_notify(self):
-        self.cur.execute("""notify parse_ready""")
+        self.cur.execute("""notify %s""" % get_parse_notification_name(self.inst_id))
 
     def wait(self):
         timeout = self.get_interval()
