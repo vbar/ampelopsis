@@ -28,6 +28,9 @@ where instance_name=%s""", (inst_name,))
 
     return row[0]
 
+def get_parse_notification_name(inst_id):
+    return "parse_ready" if inst_id is None else "parse_ready_%d" % inst_id
+
 class HostCheck(CursorWrapper):
     def __init__(self, cur, inst_name=None):
         CursorWrapper.__init__(self, cur)

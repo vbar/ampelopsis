@@ -6,7 +6,7 @@ import sys
 from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
 from common import get_loose_path, get_netloc, get_option, make_connection, normalize_url_component
-from host_check import get_instance_id, HostCheck
+from host_check import get_instance_id, get_parse_notification_name, HostCheck
 from mem_cache import MemCache
 from page_parser import PageParser
 from param_util import get_param_set
@@ -87,7 +87,7 @@ from download_queue""")
         self.cur.execute("""notify download_ready""")
 
     def wait(self):
-        self.cur.execute("""listen parse_ready""")
+        self.cur.execute("""listen %s""" % get_parse_notification_name(self.instance_id))
         print("waiting for notification...", file=sys.stderr)
         select.select([self.conn], [], [])
         self.conn.poll()
