@@ -18,6 +18,7 @@ PartySpec = collections.namedtuple('PartySpec', 'id_url long_name short_name col
 class Condensator(JsonFrame):
     def __init__(self, cur):
         JsonFrame.__init__(self, cur)
+        self.html_parser = etree.HTMLParser()
         self.green_rx = re.compile("^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$")
         self.town_rx = re.compile("^" + town_url_head + "/(?P<tname>[^/]+)")
 
@@ -92,29 +93,28 @@ set party_id=null""")
         # no need to handle relative URLs - we're only interested in
         # the absolute one to Twitter
         # birth year no longer in title, but still on page
-        context = etree.iterparse(fp, events=('end',), tag=('a', 'h3'), html=True, recover=True)
+        # iterative parser no longer works (doesn't get header text)
+        doc = etree.parse(fp, self.html_parser)
         record_id = None
         town_names = []
-        for action, elem in context:
-            if elem.tag == 'h3':
-                if record_id is None:
-                    person = parse_personage(elem.text)
-                    if person:
-                        record_id = self.condensate_record(person, hamlet_name, card_url_id)
-                        if person.query_name:
-                            self.condensate_party(record_id, person)
-            elif elem.tag == 'a':
-                href = elem.get('href')
-                if href:
-                    m = self.town_rx.match(href)
-                    if m:
-                        town_name = m.group('tname')
-                        town_names.append(town_name)
+        headers = doc.xpath("//h3")
+        for header in headers:
+            whole_text = "".join(header.xpath("text()"))
+            if record_id is None:
+                person = parse_personage(whole_text)
+                if person:
+                    record_id = self.condensate_record(person, hamlet_name, card_url_id)
+                    if person.query_name:
+                        self.condensate_party(record_id, person)
 
-            # cleanup
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
+        anchors = doc.xpath("//a")
+        for anchor in anchors:
+            href = anchor.get('href')
+            if href:
+                m = self.town_rx.match(href)
+                if m:
+                    town_name = m.group('tname')
+                    town_names.append(town_name)
 
         if record_id is None:
             raise Exception("no name on " + card_url)

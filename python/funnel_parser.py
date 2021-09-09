@@ -13,6 +13,7 @@ status_rx = re.compile("/([-\\w]+)/status/")
 class FunnelParser:
     def __init__(self, owner, url):
         self.owner = owner
+        self.html_parser = etree.HTMLParser()
         self.funnel_links = int(get_option('funnel_links', "0"))
         if (self.funnel_links < 0) or (self.funnel_links > 2):
             raise Exception("invalid option funnel_links")
@@ -79,16 +80,14 @@ class FunnelParser:
                             self.owner.add_link(profile_url)
 
     def process_card(self, fp):
-        context = etree.iterparse(fp, events=('end',), tag=('h3'), html=True, recover=True)
+        # iterative parser no longer works (doesn't get header text)
+        doc = etree.parse(fp, self.html_parser)
         person = None
-        for action, elem in context:
-            person = parse_personage(elem.text)
+        headers = doc.xpath("//h3")
+        for header in headers:
+            whole_text = "".join(header.xpath("text()"))
+            person = parse_personage(whole_text)
             if person and person.query_name:
                 wikidata_urls = make_personage_query_urls(person)
                 for wikidata_url in wikidata_urls:
                     self.owner.add_link(wikidata_url)
-
-            # cleanup
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
