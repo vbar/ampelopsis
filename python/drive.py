@@ -57,13 +57,18 @@ from download_queue""")
         while row:
             url_id = row[0]
             url = self.get_url(url_id)
-            self.br.get(url)
+
             error_code = None
+            error_message = None
             try:
+                self.br.get(url)
                 WebDriverWait(self.br, 10).until(
                     EC.presence_of_element_located((By.TAG_NAME, 'article')))
-            except exceptions.TimeoutException:
-                error_code = self.classify_error()
+            except exceptions.TimeoutException as exc:
+                error_code, error_message = self.classify_error()
+            except exceptions.WebDriverException as exc: # e.g. net::ERR_NAME_NOT_RESOLVED
+                error_code = 500
+                error_message = exc.msg
 
             eff_id = url_id
             eff_url = self.br.current_url
@@ -81,10 +86,10 @@ from download_queue""")
                 f.write(body)
 
             if error_code:
-                self.cur.execute("""insert into download_error(url_id, error_code, failed)
-values(%s, %s, localtimestamp)
+                self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
+values(%s, %s, %s, localtimestamp)
 on conflict(url_id) do update
-set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
+set error_code=%s, error_message=%s, failed=localtimestamp""", (url_id, error_code, error_message, error_code, error_message))
 
                 if error_code == 500:
                     self.br.close()
@@ -103,17 +108,19 @@ set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
     def classify_error(self):
         messages = {
             'Sorry, that page doesn’t exist!': 404,
+            'This account doesn’t exist': 404,
+            'Hmm...this page doesn’t exist. Try searching for something else.': 404,
             'Account suspended': 410,
             'This is not available to you': 403
         }
 
         for msg, code in messages.items():
-            xp = "//h1/span[text()='%s']" % msg
+            xp = "//span[text()='%s']" % msg
             found = self.br.find_elements_by_xpath(xp)
             if len(found):
-                return code
+                return (code, msg)
 
-        return 500
+        return (500, None)
 
     def close(self):
         if self.br:
