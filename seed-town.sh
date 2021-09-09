@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 alt_town_top=""
 funnel_links=$(awk -F "[ \t]*=[ \t]*" '/^funnel_links/ {print $2}' ampelopsis.ini)
