@@ -2,7 +2,7 @@ import json
 from lxml import etree
 import re
 import sys
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 from baker import make_personage_query_urls
 from common import get_option
 from personage import parse_personage
