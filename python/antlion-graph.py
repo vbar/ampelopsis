@@ -94,11 +94,13 @@ class Position:
         else:
             self.stand += 1
 
+    @property
     def total(self):
         return self.stand + self.fall
 
+    @property
     def survival(self):
-        return self.stand / self.total()
+        return self.stand / self.total
 
 
 class PitChecker(ShowCase):
@@ -110,8 +112,8 @@ class PitChecker(ShowCase):
     def dump(self, writer):
         writer.writerow(['url', 'total', 'spam'])
 
-        for url, pos in sorted(self.account2mix.items(), key=lambda p: (-1 * p[1].total(), p[1].survival(), p[0])):
-            row = [ url, pos.total(), pos.fall ]
+        for url, pos in sorted(self.account2mix.items(), key=lambda p: (-1 * p[1].total, p[1].survival, p[0])):
+            row = [ url, pos.total, pos.fall ]
             writer.writerow(row)
 
     def load_item(self, et):
