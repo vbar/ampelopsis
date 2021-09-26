@@ -7,6 +7,7 @@ from urllib.parse import urlparse, urlunparse
 from common import get_option, make_connection
 from cursor_wrapper import CursorWrapper
 from show_case import ShowCase
+from url_heads import short_town_url_head
 
 status_rx = re.compile("^/([-\\w]+)/status/")
 
@@ -108,12 +109,26 @@ class PitChecker(ShowCase):
         ShowCase.__init__(self, cur)
         self.maw = maw
         self.account2mix = {} # profile URL -> Position
+        self.pit2err = {} # profile URL -> error message
+
+        self.cur.execute("""select url, error_code, error_message
+from field
+join download_error on id=url_id
+where url like '""" + short_town_url_head + "%'")
+        rows = self.cur.fetchall()
+        for row in rows:
+            pit_url, error_code, dwnl_msg = row
+            if not dwnl_msg:
+                dwnl_msg = "code %d" % error_code
+
+            self.pit2err[pit_url] = dwnl_msg
 
     def dump(self, writer):
-        writer.writerow(['url', 'total', 'spam'])
+        writer.writerow(['url', 'total', 'spam', 'error message'])
 
         for url, pos in sorted(self.account2mix.items(), key=lambda p: (-1 * p[1].total, p[1].survival, p[0])):
-            row = [ url, pos.total, pos.fall ]
+            dwnl_msg = self.pit2err.get(url, "")
+            row = [ url, pos.total, pos.fall, dwnl_msg ]
             writer.writerow(row)
 
     def load_item(self, et):
