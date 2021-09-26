@@ -111,7 +111,8 @@ set error_code=%s, error_message=%s, failed=localtimestamp""", (url_id, error_co
             'This account doesn’t exist': 404,
             'Hmm...this page doesn’t exist. Try searching for something else.': 404,
             'Account suspended': 410,
-            'This is not available to you': 403
+            'This is not available to you': 403,
+            'These Tweets are protected': 403
         }
 
         for msg, code in messages.items():
