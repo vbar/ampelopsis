@@ -74,7 +74,7 @@ class Processor(PinholeBase):
 
     def load_item(self, et):
         self.extend_date(et)
-        url = et['url']
+        url = self.get_circuit_url(et)
         hamlet_name = et['osobaid']
         variant = self.get_variant(hamlet_name)
         if not variant:

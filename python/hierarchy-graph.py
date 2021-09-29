@@ -29,7 +29,7 @@ class Hierarchy(ShowCase, PartyMixin):
     def load_item(self, et):
         self.extend_date(et)
         hamlet_name = et['osobaid']
-        url = et['url']
+        url = self.get_circuit_url(et)
         urls = self.person2urls.get(hamlet_name)
         if not urls:
             urls = set((url,))
