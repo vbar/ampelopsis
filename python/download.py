@@ -96,6 +96,7 @@ class Retriever(DownloadBase):
         self.notification_threshold = int(get_option('download_notification_threshold', "1000"))
         self.accept_compressed = get_option('accept_compressed', True)
         self.force_ipv6 = get_option('force_ipv6', None)
+        self.unverified_https = get_option('unverified_https', None)
         self.user_agent = get_option('user_agent', None)
         self.extra_header = get_option('extra_header', None)
         self.socks_proxy_host = get_option('socks_proxy_host', None)
@@ -163,6 +164,10 @@ where host_id = any(%s)""", (sorted(avail),))
 
             if self.user_agent:
                 c.setopt(pycurl.USERAGENT, self.user_agent)
+
+            if self.unverified_https:
+                c.setopt(pycurl.SSL_VERIFYPEER, 0)
+                c.setopt(pycurl.SSL_VERIFYHOST, 0)
 
             if self.extra_header:
                 c.setopt(pycurl.HTTPHEADER, [self.extra_header])
