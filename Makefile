@@ -16,6 +16,9 @@ morphodita:
 	python/text-extractor.py
 	python/morphodita-stemmer.py
 
+circuit:
+	python/text-model.py
+
 ifeq ($(has_statuses),1)
 preliminary: condensate redirext
 demanding: pool rain
