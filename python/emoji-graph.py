@@ -75,7 +75,7 @@ class Processor(PinholeBase):
             return
 
         self.extend_date(et)
-        url = et['url']
+        url = self.get_circuit_url(et)
         emomap = self.vocabulary.setdefault(variant, {})
 
         emoji_list = get_emojis(et['text'])

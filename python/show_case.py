@@ -1,6 +1,7 @@
 from dateutil.parser import parse
 import re
 import sys
+from common import get_option
 from json_frame import JsonFrame
 from opt_util import get_quoted_list_option
 from url_heads import hamlet_url_head
@@ -11,6 +12,7 @@ class ShowCase(JsonFrame):
         self.silent = silent
         self.mindate = None
         self.maxdate = None
+        self.short_circuit_template = get_option("short_circuit_template", None)
         self.selected_tag_rx = None
         selected_tags = get_quoted_list_option("selected_tags", None)
         if selected_tags is not None:
@@ -64,3 +66,14 @@ where url=%s""", (url,))
             self.maxdate = dt
 
         return dt
+
+    def get_circuit_url(self, et):
+        url = et['url']
+        if not self.short_circuit_template:
+            return url
+        else:
+            url_id = self.get_url_id(url)
+            if url_id is None:
+                return url
+            else:
+                return self.short_circuit_template.format(url_id)
