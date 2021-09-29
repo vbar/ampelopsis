@@ -13,8 +13,14 @@ class StorageBridge(VolumeHolder, CursorWrapper):
         CursorWrapper.__init__(self, cur)
         inst_name = get_option("instance", None)
         self.inst_id = get_instance_id(cur, inst_name)
+        self.alt_repre = get_option("storage_alternative", None)
+        self.mime_type = get_option("server_mime_type", None)
+        self.check_locality = get_option("server_check_locality", True)
 
     def has_local_data(self, url_id):
+        if not self.check_locality:
+            return True
+
         if self.inst_id is None:
             self.cur.execute("""select count(*)
 from field
@@ -72,6 +78,9 @@ where id=%s and checkd is not null and failed is null and instance_id is not nul
         return sz
 
     def get_content_type(self, url_id, volume_id):
+        if self.mime_type:
+            return self.mime_type
+
         reader = self.open_headers(url_id, volume_id)
         if reader:
             try:
@@ -85,7 +94,34 @@ where id=%s and checkd is not null and failed is null and instance_id is not nul
 
         return "text/plain"
 
+    def get_body_size_ex(self, url_id, volume_id):
+        if not self.alt_repre:
+            return self.get_body_size(url_id, volume_id)
+
+        sz = None
+        loose_path = get_loose_path(url_id, alt_repre=self.alt_repre)
+        if os.path.exists(loose_path):
+            statinfo = os.stat(loose_path)
+            sz = statinfo.st_size
+
+        return sz
+
+    def open_page_ex(self, url_id, volume_id):
+        if not self.alt_repre:
+            return self.open_page(url_id, volume_id)
+
+        f = None
+        loose_path = get_loose_path(url_id, alt_repre=self.alt_repre)
+        if os.path.exists(loose_path):
+            f = open(loose_path, "rb")
+
+        return f
+
     def delete_storage(self, url_id):
+        # for deletion, checking locality is required
+        if not self.check_locality:
+            return
+
         for hdr in (True, False):
             loose_path = get_loose_path(url_id, hdr)
             if os.path.exists(loose_path):
