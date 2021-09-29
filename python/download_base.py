@@ -190,8 +190,14 @@ where id=%s""", (url_id,))
     def cond_notify(self):
         live = False
         if not self.single_action:
-            self.cur.execute("""select count(*)
-from parse_queue""")
+            sql = """select count(*)
+from parse_queue"""
+            if self.inst_id:
+                sql += """
+join locality on parse_queue.url_id=locality.url_id
+where instance_id=%d""" % self.inst_id
+
+            self.cur.execute(sql)
             row = self.cur.fetchone()
             live = row[0] > 0
             if live:
