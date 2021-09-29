@@ -109,7 +109,7 @@ instance=%s
             sz = bridge.get_headers_size(url_id, volume_id)
             ct = "text/plain"
         else:
-            sz = bridge.get_body_size(url_id, volume_id)
+            sz = bridge.get_body_size_ex(url_id, volume_id)
             ct = bridge.get_content_type(url_id, volume_id)
 
         compress_threshold = int(get_option("compress_threshold", "100"))
@@ -124,7 +124,7 @@ instance=%s
             if headers_flag:
                 reader = bridge.open_headers(url_id, volume_id)
             else:
-                reader = bridge.open_page(url_id, volume_id)
+                reader = bridge.open_page_ex(url_id, volume_id)
 
         if reader is None:
             # headers are optional (e.g. drive.py doesn't store
