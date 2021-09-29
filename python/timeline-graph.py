@@ -29,7 +29,7 @@ class Timeline(ShowCase, PartyMixin):
             last = None
             for ext in sorted(src_tmln, key = lambda e: e['dt']):
                 ed = ext['dt']
-                url = ext['url']
+                url = self.get_circuit_url(ext)
                 has_redirect = self.is_redirected(url)
                 if ed == last:
                     p = dst_tmln[-1]
