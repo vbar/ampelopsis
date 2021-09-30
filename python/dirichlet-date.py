@@ -24,7 +24,7 @@ class Processor(DirichletBase):
     def load_doc(self, et):
         txt = self.reconstitute(et)
         if txt:
-            url = et['url']
+            url = self.get_circuit_url(et)
             dt = self.extend_date(et)
             self.url2doc[url] = txt
             self.url2date[url] = dt

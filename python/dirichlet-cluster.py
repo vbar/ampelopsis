@@ -16,7 +16,8 @@ class Processor(DirichletBase):
         txt = self.reconstitute(et)
         if txt:
             self.extend_date(et)
-            self.url2doc[et['url']] = txt
+            url = self.get_circuit_url(et)
+            self.url2doc[url] = txt
 
     def sample(self):
         urls = self.get_urls()
