@@ -8,6 +8,8 @@ main: datetime datetimes volume lang sankey emoji chord heatmap datemap treemap 
 
 fulltext: preliminary majka morphodita
 
+metro: circuit redirdup
+
 majka:
 	python/text-separator.py
 	python/majka-stemmer.py
@@ -18,6 +20,9 @@ morphodita:
 
 circuit:
 	python/text-model.py
+
+redirdup:
+	python/redir-dupl.py
 
 ifeq ($(has_statuses),1)
 preliminary: condensate redirext
