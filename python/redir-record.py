@@ -13,7 +13,7 @@ class Extender(ShowCase):
         self.tangle = {} # str Twitter ID -> int field URL ID -> datetime date
 
     def load_item(self, et):
-        url_id = self.ensure_url_id(et)
+        url_id = self.ensure_url_id(et['url'])
 
         origid = et.get('origid')
         if not origid:
@@ -23,18 +23,6 @@ class Extender(ShowCase):
         if url.endswith("/" + origid):
             id2date = self.tangle.setdefault(origid, {})
             id2date[url_id] = parse(et['datum'])
-
-    def ensure_url_id(self, et):
-        url = et['url']
-        self.cur.execute("""insert into field(url, checkd, parsed)
-values(%s, localtimestamp, localtimestamp)
-on conflict(url) do nothing
-returning id""", (url,))
-        row = self.cur.fetchone()
-        if row:
-            return row[0]
-        else:
-            return self.get_url_id(url)
 
 
 class Processor(ShowCase):

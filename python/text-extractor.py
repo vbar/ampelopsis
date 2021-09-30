@@ -53,19 +53,6 @@ class Processor(ShowCase):
         elif os.path.exists(fname):
             os.remove(fname)
 
-    def ensure_url_id(self, url):
-        # simpler than download updates because it isn't safe for
-        # parallel instances
-        self.cur.execute("""insert into field(url, checkd, parsed)
-values(%s, localtimestamp, localtimestamp)
-on conflict(url) do nothing
-returning id""", (url,))
-        row = self.cur.fetchone()
-        if row:
-            return row[0]
-        else:
-            return self.get_url_id(url)
-
     def save_clean_text(self, url, raw):
         # lxml/libxml2 is touchier about invalid Unicode characters than
         # core Python: remove them before producing XML from them. Code

@@ -77,3 +77,20 @@ where url=%s""", (url,))
                 return url
             else:
                 return self.short_circuit_template.format(url_id)
+
+    def ensure_url_id(self, url):
+        # simpler than download updates because it isn't safe for
+        # parallel instances
+        self.cur.execute("""insert into field(url, checkd, parsed)
+values(%s, localtimestamp, localtimestamp)
+on conflict(url) do nothing
+returning id""", (url,))
+        row = self.cur.fetchone()
+        if row:
+            return row[0]
+
+        self.cur.execute("""select id
+from field
+where url=%s""", (url,))
+        row = self.cur.fetchone()
+        return row[0]
