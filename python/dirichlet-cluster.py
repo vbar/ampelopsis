@@ -5,12 +5,15 @@ import numpy as np
 import sys
 from common import get_option, make_connection
 from dirichlet_base import DirichletBase
+from party_mixin import PartyMixin
 from stop_util import load_stop_words
 
-class Processor(DirichletBase):
+class Processor(DirichletBase, PartyMixin):
     def __init__(self, cur, stop_words):
         DirichletBase.__init__(self, cur, stop_words)
+        PartyMixin.__init__(self)
         self.sample_size = int(get_option("heatmap_sample_size", "100"))
+        self.url2color = {}
 
     def load_doc(self, et):
         txt = self.reconstitute(et)
@@ -18,6 +21,9 @@ class Processor(DirichletBase):
             self.extend_date(et)
             url = self.get_circuit_url(et)
             self.url2doc[url] = txt
+
+            party_id = self.hamlet2party.get(et['osobaid'], 0)
+            self.url2color[url] = self.party2color.get(party_id, 'f0027f')
 
     def sample(self):
         urls = self.get_urls()
@@ -46,6 +52,7 @@ class Processor(DirichletBase):
     def dump(self):
         meta = {
             'rowDesc': self.get_urls(),
+            'rowColor': self.get_colors(),
             'colDesc': self.topics,
             'table': self.get_table(),
             'dateExtent': self.make_date_extent(),
@@ -62,6 +69,13 @@ class Processor(DirichletBase):
                 table.append(row)
 
         return table
+
+    def get_colors(self):
+        colors = []
+        for url in self.get_urls():
+            colors.append('#' + self.url2color[url])
+
+        return colors
 
     def make_date_extent(self):
         return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
