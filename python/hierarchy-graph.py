@@ -29,7 +29,7 @@ class Hierarchy(ShowCase, PartyMixin):
     def load_item(self, et):
         self.extend_date(et)
         hamlet_name = et['osobaid']
-        url = self.get_circuit_url(et)
+        url = et['url']
         urls = self.person2urls.get(hamlet_name)
         if not urls:
             urls = set((url,))
@@ -80,19 +80,20 @@ class Hierarchy(ShowCase, PartyMixin):
         urls = self.person2urls[hamlet_name]
         redirects = []
         for url in sorted(urls):
+            curl = self.get_circuit_url(url)
             if self.is_redirected(url):
-                redirects.append(url)
+                redirects.append(curl)
             else:
                 statuses.append({
-                    'name': url,
+                    'name': curl,
                     'value': 1,
                     'colname': 'status'
                 })
 
         tenx = 9
-        for url in redirects:
+        for curl in redirects:
             statuses.append({
-                'name': url,
+                'name': curl,
                 'value': tenx / 10,
                 'colname': 'status'
             })

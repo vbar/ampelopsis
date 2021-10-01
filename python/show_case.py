@@ -67,8 +67,7 @@ where url=%s""", (url,))
 
         return dt
 
-    def get_circuit_url(self, et):
-        url = et['url']
+    def get_circuit_url(self, url):
         if not self.short_circuit_template:
             return url
         else:

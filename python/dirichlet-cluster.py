@@ -19,7 +19,7 @@ class Processor(DirichletBase, PartyMixin):
         txt = self.reconstitute(et)
         if txt:
             self.extend_date(et)
-            url = self.get_circuit_url(et)
+            url = self.get_circuit_url(et['url'])
             self.url2doc[url] = txt
 
             party_id = self.hamlet2party.get(et['osobaid'], 0)
