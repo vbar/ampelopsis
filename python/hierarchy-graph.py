@@ -105,7 +105,8 @@ class Hierarchy(ShowCase, PartyMixin):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             hier = Hierarchy(cur)
             try:
@@ -113,6 +114,8 @@ def main():
                 hier.dump()
             finally:
                 hier.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

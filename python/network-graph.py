@@ -153,10 +153,13 @@ def dump_network(cur, selected_contributors):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             selected_contributors = get_selected_contributors(cur)
             dump_network(cur, selected_contributors)
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

@@ -24,11 +24,14 @@ class Scanner(ShowCase):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             scanner = Scanner(cur)
             scanner.run()
             scanner.dump()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

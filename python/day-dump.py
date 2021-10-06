@@ -36,7 +36,8 @@ def main():
 
     day = datetime.strptime(sys.argv[1], "%Y-%m-%d")
 
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             dumper = Dumper(cur, day)
             try:
@@ -44,6 +45,8 @@ def main():
                 dumper.dump()
             finally:
                 dumper.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

@@ -62,7 +62,8 @@ def main():
             raise Exception("--stem-pos-filter must have single value")
 
     stop_words = load_stop_words()
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
             processor = Processor(cur, stop_words, parties)
@@ -71,6 +72,8 @@ def main():
                 processor.dump_vocab()
             finally:
                 processor.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

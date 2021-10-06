@@ -277,7 +277,8 @@ set party_id=%s
 where id=%s""", (party_id, record_id))
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             condensator = Condensator(cur)
             try:
@@ -287,6 +288,8 @@ def main():
                 condensator.run()
             finally:
                 condensator.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

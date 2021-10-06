@@ -53,7 +53,8 @@ where f1.id=%s""", (url_id,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
             segmented = (len(sys.argv) == 2) and (sys.argv[1] == '--segmented')
@@ -64,6 +65,8 @@ def main():
                 timer.dump()
             finally:
                 timer.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

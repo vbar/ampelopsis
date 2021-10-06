@@ -34,7 +34,8 @@ class Processor(ShowCase, PartyMixin, TimecycleMixin):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             processor = Processor(cur)
             try:
@@ -42,6 +43,8 @@ def main():
                 processor.dump()
             finally:
                 processor.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

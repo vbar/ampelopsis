@@ -8,7 +8,7 @@ import json
 import random
 import re
 import sys
-from common import get_option, make_connection
+from common import get_option
 from lang_wrap import init_lang_recog
 from morphodita_tap import MorphoditaTap
 from opt_util import get_quoted_list_option

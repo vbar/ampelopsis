@@ -114,7 +114,8 @@ class Volume(ShowCase, PartyMixin):
         return [dt.strftime("%Y-%m-%d") for dt in (self.mindate, self.maxdate)]
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             vol = Volume(cur)
             try:
@@ -122,6 +123,8 @@ def main():
                 vol.dump()
             finally:
                 vol.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

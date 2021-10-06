@@ -112,10 +112,13 @@ where url=%s""", (url,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             ext = Extender(cur)
             ext.run()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

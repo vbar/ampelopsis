@@ -69,7 +69,8 @@ where f1.url=%s""", (town_url,))
 
 def main():
     ca = ConfigArgs()
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
             ref_net = RefNet(cur, not ca.chord, parties)
@@ -81,6 +82,8 @@ def main():
                     ref_net.dump_chord(ca.chord)
             finally:
                 ref_net.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

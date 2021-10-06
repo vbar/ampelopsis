@@ -60,11 +60,14 @@ class WordList(ShowCase):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             wl = WordList(cur)
             wl.run()
             wl.dump()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

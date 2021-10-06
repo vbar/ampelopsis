@@ -83,12 +83,15 @@ and card_url_id is not null""", (mask,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             for a in sys.argv[1:]:
                 if a:
                     dumper = Dumper(cur, a)
                     dumper.dump()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

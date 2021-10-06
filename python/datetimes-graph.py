@@ -120,7 +120,8 @@ def dump_content(xseries, value_series):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             builder = Timeline(cur)
             try:
@@ -137,6 +138,8 @@ def main():
 
             finally:
                 builder.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

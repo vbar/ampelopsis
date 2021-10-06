@@ -106,7 +106,8 @@ class Processor(PinholeBase, StemMixin):
 
 def main():
     ca = ConfigArgs()
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             processor = Processor(cur)
             try:
@@ -117,6 +118,8 @@ def main():
                     processor.dump_distance_histogram(ca.histogram)
             finally:
                 processor.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

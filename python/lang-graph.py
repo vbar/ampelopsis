@@ -132,7 +132,8 @@ class Processor(PinholeBase):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             parties = get_quoted_list_option("selected_parties", [])
             processor = Processor(cur, parties)
@@ -145,6 +146,8 @@ def main():
                 processor.dump_content(csv_target)
             finally:
                 processor.close()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

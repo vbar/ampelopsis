@@ -185,7 +185,8 @@ def main():
     elif l > 2:
         raise Exception("too many arguments")
 
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             checker = Checker(cur, maw_mode)
             writer = csv.writer(sys.stdout, delimiter=",")
@@ -197,6 +198,9 @@ def main():
                 pit_checker = PitChecker(cur, checker.get_maw())
                 pit_checker.run()
                 pit_checker.dump(writer)
+
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

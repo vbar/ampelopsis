@@ -24,11 +24,14 @@ order by hamlet_name""")
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             dumper = Dumper(cur)
             writer = csv.writer(sys.stdout, delimiter=",")
             dumper.dump(writer)
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

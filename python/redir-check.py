@@ -33,11 +33,14 @@ order by c desc""")
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             checker = Checker(cur)
             if not checker.check_cycle():
                 checker.check_freq()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

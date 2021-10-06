@@ -52,10 +52,13 @@ where id=%s""", (url_id,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             purger = Purger(cur)
             purger.run()
+    finally:
+        conn.close()
 
     ard = get_alt_repr_dir('majka')
     if os.path.exists(ard):

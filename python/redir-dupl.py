@@ -37,11 +37,14 @@ on conflict do nothing""", (source_url_id, target_url_id))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             ext = Extender(cur)
             ext.run()
             ext.process()
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

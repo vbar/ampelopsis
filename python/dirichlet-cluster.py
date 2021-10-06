@@ -86,13 +86,17 @@ class Processor(DirichletBase, PartyMixin):
 
 def main():
     stop_words = load_stop_words()
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             processor = Processor(cur, stop_words)
             processor.run()
             processor.process()
             processor.sample()
             processor.dump()
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()

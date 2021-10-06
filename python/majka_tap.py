@@ -136,12 +136,15 @@ order by url""", (mask,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             tap = MajkaTap(cur)
             for url in sys.argv[1:]:
                 rect = tap.reconstitute(url)
                 print(rect, "\n")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

@@ -54,9 +54,12 @@ def run(cur):
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             run(cur)
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
