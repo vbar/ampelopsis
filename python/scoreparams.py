@@ -9,7 +9,7 @@ class Builder(CursorWrapper):
     def __init__(self, cur):
         CursorWrapper.__init__(self, cur)
         self.eq_map = {} # ( url_head, url_id... ) -> [ url_id ]; length of list >= 2
-        
+
     def prepare(self):
         print("checking equivalence classes...")
         self.cur.execute("""select from_set, to_set
@@ -18,7 +18,7 @@ where array_length(from_set, 1) > 1""")
         rows = self.cur.fetchall()
         for row in rows:
             self.prepare_class(*row)
-            
+
     def process(self):
         print("got %d non-trivial equivalence classes" % (len(self.eq_map.keys())))
         idx = 0
@@ -32,11 +32,11 @@ where array_length(from_set, 1) > 1""")
                     j += 1
 
                 i += 1
-                
+
             idx += 1
             if not (idx % 10000):
                 print("class %d..." % (idx,))
-                
+
     def prepare_class(self, parents, children):
         digest_map = {}
         for url_id in parents:
@@ -48,7 +48,7 @@ where array_length(from_set, 1) > 1""")
                 digest_map[url_head] = [ url_id ]
             else:
                 digest_map[url_head].append(url_id)
-            
+
         for url_head, urls in digest_map.items():
             if len(urls) > 1:
                 lst = [ url_head ]
@@ -61,7 +61,7 @@ where array_length(from_set, 1) > 1""")
         url = self.get_url(url_id)
         pr = urlparse(url)
         return get_param_set(pr.query)
-    
+
     def classify(self, url_head, id1, id2):
         params1 = self.get_params(id1)
         params2 = self.get_params(id2)
@@ -94,11 +94,15 @@ set agreement=param_scoreboard.agreement + %s, irrelevancy=param_scoreboard.irre
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             builder = Builder(cur)
             builder.prepare()
             builder.process()
-                
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()

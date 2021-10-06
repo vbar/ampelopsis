@@ -10,7 +10,7 @@ class Dumper(VolumeHolder, CursorWrapper):
     def __init__(self, cur, dump_header):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
-        
+
         self.dump_header = dump_header
 
     def dump(self, url, url_id):
@@ -20,21 +20,22 @@ class Dumper(VolumeHolder, CursorWrapper):
             reader = self.open_page(url_id, volume_id)
         else:
             reader = self.open_headers(url_id, volume_id)
-            
+
         if reader:
             try:
                 for ln in reader:
                     sys.stdout.buffer.write(ln)
             finally:
                 reader.close()
-            
+
 def main():
     dump_header = False
     if (len(sys.argv) > 1) and (sys.argv[1] == '-H'):
         dump_header = True
         del sys.argv[1]
-        
-    with make_connection() as conn:
+
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             dumper = Dumper(cur, dump_header)
             try:
@@ -52,7 +53,9 @@ where url=%s""", (url,))
                             dumper.dump(url, row[0])
             finally:
                 dumper.close()
-            
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()
-        

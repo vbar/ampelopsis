@@ -7,12 +7,12 @@ from volume_holder import VolumeHolder
 class EqClass:
     def __init__(self, id1, id2):
         self.data = { id1, id2 }
-            
+
     def yank(self):
         data = self.data
         self.data = None
         return data
-        
+
 class Builder(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
         VolumeHolder.__init__(self)
@@ -43,7 +43,7 @@ class Builder(VolumeHolder, CursorWrapper):
                 if not datalist:
                     datalist = []
                     len2datalist[sz] = datalist
-                    
+
                 datalist.append(data)
 
         for sz, datalist in sorted(len2datalist.items(), key=lambda kv: kv[0], reverse=True):
@@ -53,9 +53,9 @@ class Builder(VolumeHolder, CursorWrapper):
                     ln = row[0]
                     if self.has_body(i):
                         ln = "!" + ln
-                        
+
                     print(ln)
-                    
+
                 print("")
 
     def get_url(self, i):
@@ -63,23 +63,24 @@ class Builder(VolumeHolder, CursorWrapper):
 from field
 where id=%s""", (i,))
         return self.cur.fetchone()
-    
+
     def has_body(self, url_id):
-        volume_id = self.get_volume_id(url_id) 
+        volume_id = self.get_volume_id(url_id)
         f = self.open_page(url_id, volume_id)
         if f is None:
             return False
         else:
             f.close()
             return True
-        
+
     def merge(self, ec1, ec2):
         ec1.data |= ec2.data
         for i in ec2.data:
             self.id2ec[i] = ec1
-            
+
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             builder = Builder(cur)
             cur.execute("""select from_id, to_id from redirect order by from_id, to_id""")
@@ -88,7 +89,9 @@ def main():
                 builder.add(*row)
 
             builder.dump()
-    
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()
-            

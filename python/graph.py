@@ -12,11 +12,11 @@ class Builder(VolumeHolder, HostCheck):
         VolumeHolder.__init__(self)
         HostCheck.__init__(self, cur)
         self.children = None
-        
+
     def add(self, url, url_id):
         print("adding " + url + "...", file=sys.stderr)
-        
-        volume_id = self.get_volume_id(url_id)        
+
+        volume_id = self.get_volume_id(url_id)
         f = self.open_page(url_id, volume_id)
         if f is not None:
             self.parse_file(url, f)
@@ -31,7 +31,7 @@ class Builder(VolumeHolder, HostCheck):
             parser.parse_links(page_file)
         finally:
             page_file.close()
-        
+
     def add_link(self, url):
         pr = urlparse(url.strip())
         if pr.hostname: # may not exist even for valid links, e.g. mailto:
@@ -68,11 +68,11 @@ where from_id=%s""", (source_id,))
             self.cur.execute("""insert into edges(from_id, to_id)
 values(%s, %s)
 on conflict do nothing""", (source_id, target_id))
-            
+
             self.cur.execute("""insert into nodes(url_id)
 values(%s)
 on conflict do nothing""", (target_id,))
-    
+
     def get_url_id(self, url):
         self.cur.execute("""select id
 from field
@@ -82,7 +82,8 @@ where url=%s""", (url,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             builder = Builder(cur)
             try:
@@ -93,9 +94,12 @@ where checkd is not null and (url_id is null or depth=0)
 order by url""")
                 rows = cur.fetchall()
                 for row in rows:
-                    builder.add(*row) 
+                    builder.add(*row)
             finally:
                 builder.close()
-            
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()

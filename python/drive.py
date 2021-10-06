@@ -107,7 +107,8 @@ set error_code=%s, failed=localtimestamp""", (url_id, error_code, error_code))
 def main():
     single_action = (len(sys.argv) == 2) and (sys.argv[1] == '--single-action')
 
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             driver = Driver(single_action, conn, cur)
             while True:
@@ -125,6 +126,9 @@ def main():
                         driver.close()
                         print("all done")
                         break
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@ from path_builder import PathBuilder
 class Adder(PathBuilder):
     def __init__(self, cur):
         PathBuilder.__init__(self, cur, int(get_option('path_cache_high_mark', "2000")), int(get_option('path_cache_low_mark', "1000")))
-        
+
         print("resetting yields...")
         self.cur.execute("""update nodes
 set yield=0""")
@@ -30,7 +30,8 @@ where url_id in %s""", (w, tuple(urls)))
 
 def main():
     paydirt = get_mandatory_option('paydirt_rx')
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             adder = Adder(cur)
             cur.execute("""select url, url_id, depth
@@ -43,6 +44,9 @@ order by url""", (paydirt,))
             rows = cur.fetchall()
             for row in rows:
                 adder.add(*row)
-                
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()

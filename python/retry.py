@@ -5,7 +5,8 @@ from kick import Kicker
 from seed import Seeder
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             inner_select = """select url_id
 from download_error"""
@@ -26,6 +27,9 @@ where url_id in (%s)""" % inner_select)
 
             seeder = Seeder(cur)
             seeder.seed_queue()
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()

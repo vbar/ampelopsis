@@ -13,18 +13,18 @@ where depth=0""")
         row = self.cur.fetchone()
         if row[0] == 0:
             raise Exception("root node not set")
-        
+
     def step(self, prev_depth):
         self.cur.execute("""update nodes
 set depth=%s
 where depth is null and url_id in (
-	select to_id
+        select to_id
         from edges
         join nodes on from_id=url_id
         where depth=%s
 )""", (prev_depth + 1, prev_depth))
         return self.cur.rowcount
-    
+
     def check_post(self):
         # checking extra.has_body would give better results, but since
         # extra is optional, and the rest of this script doesn't need
@@ -40,9 +40,10 @@ where checkd is not null and depth is null""")
         else:
             print("%d nodes have no body/not reachable from depth 0" % (rest,))
 
-            
+
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             bfs = BreathFirstSearch(cur)
             # graph.py actually doesn't fill the root (it only fills
@@ -56,6 +57,9 @@ def main():
                 print("found %d nodes at depth %d" % (count, depth))
 
             bfs.check_post()
-            
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()

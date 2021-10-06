@@ -492,10 +492,14 @@ where volume_id=%s""", (volume_id,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             retriever = Retriever(cur)
             retriever.retrieve_all()
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()
