@@ -81,7 +81,7 @@ class Decompressor:
 
     def decompress(self):
         if self.inst_id is None:
-            self.cur.execute("""select volume_id
+            self.cur.execute("""select id
 from directory
 where written is not null
 order by id""")
@@ -110,10 +110,14 @@ order by id""", (self.inst_id,))
 
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             decompressor = Decompressor(cur)
             decompressor.decompress()
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()

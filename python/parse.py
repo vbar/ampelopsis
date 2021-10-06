@@ -209,7 +209,8 @@ where id=%s""", (url_id,))
 def main():
     single_action = (len(sys.argv) == 2) and (sys.argv[1] == '--single-action')
 
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             parser = PolyParser(single_action, conn, cur)
             try:
@@ -229,6 +230,8 @@ def main():
                             break
             finally:
                 parser.close()
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     main()

@@ -13,10 +13,10 @@ class Extender(VolumeHolder, CursorWrapper):
 
     def extend(self, url, url_id):
         print("hashing " + url + "...", file=sys.stderr)
-        
+
         volume_id = self.get_volume_id(url_id)
         content_type = self.get_content_type(url_id, volume_id)
-        
+
         f = self.open_page(url_id, volume_id)
         if f is not None:
             try:
@@ -27,12 +27,12 @@ class Extender(VolumeHolder, CursorWrapper):
         else:
             self.cur.execute("""insert into extra(url_id, content_type, has_body)
 values(%s, %s, false)""", (url_id, content_type))
-                    
+
     def hash_content(self, url_id, content_type, f, sz):
         h = hashlib.sha1()
         for ln in f:
             h.update(ln)
-            
+
         self.cur.execute("""insert into extra(url_id, content_type, hash, siz)
 values(%s, %s, %s, %s)""", (url_id, content_type, h.hexdigest(), sz))
 
@@ -54,12 +54,13 @@ values(%s, %s, %s, %s)""", (url_id, content_type, h.hexdigest(), sz))
                             content_type = value
             finally:
                 f.close()
-                
+
         return content_type
-    
+
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             extender = Extender(cur)
             try:
@@ -70,10 +71,12 @@ where checkd is not null and has_body is null
 order by url""")
                 rows = cur.fetchall()
                 for row in rows:
-                    extender.extend(*row) 
+                    extender.extend(*row)
             finally:
                 extender.close()
-            
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()
-        

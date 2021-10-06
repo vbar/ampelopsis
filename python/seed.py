@@ -113,7 +113,8 @@ returning id""", (self.inst_name,))
 def main():
     top_protocols = get_option('top_protocols', 'http')
     protocols = re.split('\\s+', top_protocols)
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             # maybe check here whether download and/or parse is running? it shouldn't...
             act_reset(cur)
@@ -131,6 +132,9 @@ def main():
 
             seeder.cond_add_instance() # for seeding w/o arguments
             seeder.seed_queue()
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()

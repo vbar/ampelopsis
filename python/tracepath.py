@@ -8,7 +8,7 @@ class Builder(PathBuilder):
     def __init__(self, cur):
         PathBuilder.__init__(self, cur)
         self.path = {} # depth -> [ url_id ]
-        
+
     def get_url_id(self, url):
         self.cur.execute("""select id
 from field
@@ -25,7 +25,7 @@ from nodes
 where url_id=%s""", (url_id,))
         row = self.cur.fetchone()
         return row[0]
-    
+
     def add(self, depth, urls):
         self.path[depth] = urls
 
@@ -34,13 +34,14 @@ where url_id=%s""", (url_id,))
             urls = [ self.get_url(url_id) for url_id in ids ]
             for url in sorted(urls):
                 print("%d\t%s" % (depth, url))
-                
-                
+
+
 def main():
     if len(sys.argv) != 2:
         raise Exception("usage: " + sys.argv[0] + " URL")
 
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             builder = Builder(cur)
 
@@ -57,6 +58,9 @@ def main():
 
             builder.add(0, children)
             builder.dump()
-            
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()

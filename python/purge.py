@@ -26,16 +26,16 @@ class Purger(CursorWrapper):
 
         self.purge_from_set(url_id)
         self.purge_to_set(url_id)
-        
+
         self.cur.execute("""delete from edges
 where from_id=%s or to_id=%s""", (url_id, url_id))
-        
+
         self.cur.execute("""delete from nodes
 where url_id=%s""", (url_id,))
-        
+
         self.cur.execute("""delete from extra
 where url_id=%s""", (url_id,))
-        
+
         self.cur.execute("""delete from redirect
 where from_id=%s or to_id=%s""", (url_id, url_id))
 
@@ -82,7 +82,7 @@ values(%s, %s)""", (parents, mod_children))
                 self.cur.execute("""update edge_sets
 set from_set=%s
 where to_set=%s""", (new_parents, mod_children))
-                
+
             self.cur.execute("""delete from edge_sets
 where to_set=%s""", (children,))
 
@@ -92,12 +92,12 @@ from edge_sets
 where to_set=%s""", (children,))
         row = self.cur.fetchone()
         return row[0] if row else None
-    
+
     @staticmethod
     def ensure_removed(path):
         if os.path.exists(path):
             os.remove(path)
-        
+
     def purge_rest(self):
         for volume_id in self.shrunk:
             self.shrink_volume(volume_id)
@@ -106,12 +106,12 @@ where to_set=%s""", (children,))
         stem = filename[:-1] if filename.endswith('h') else filename
         url_id = int(stem)
         return url_id in self.doomed
-        
+
     def shrink_volume(self, volume_id):
         archive_path = get_volume_path(volume_id)
         backup_path = archive_path + '.bak'
         os.rename(archive_path, backup_path)
-        
+
         zin = zipfile.ZipFile(backup_path)
         zout = zipfile.ZipFile(archive_path, mode='w', compression=zipfile.ZIP_DEFLATED)
         remains = False
@@ -125,15 +125,16 @@ where to_set=%s""", (children,))
         zin.close()
 
         os.remove(backup_path)
-        
+
         if not remains:
             self.cur.execute("""delete from directory
 where id=%s""", (volume_id,))
             os.remove(archive_path)
-        
-                
+
+
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             purger = Purger(cur)
             for url in sys.argv[1:]:
@@ -147,7 +148,9 @@ where url=%s""", (url,))
                     purger.purge_fast(row[0])
 
             purger.purge_rest()
-            
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     main()
-        

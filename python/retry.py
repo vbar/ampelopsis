@@ -5,7 +5,8 @@ from kick import Kicker
 from seed import Seeder
 
 def main():
-    with make_connection() as conn:
+    conn = make_connection()
+    try:
         with conn.cursor() as cur:
             # if a page does not exist/is forbidden, asking for it
             # again is probably a waste of time...
@@ -30,6 +31,9 @@ where not(error_code in (403, 404, 410))""")
 
             seeder = Seeder(cur)
             seeder.seed_queue()
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     main()
