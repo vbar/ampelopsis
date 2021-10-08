@@ -9,8 +9,9 @@ def get_emojis(txt):
 
     # https://stackoverflow.com/questions/43146528/how-to-extract-all-the-emojis-from-text/43146653
     data = regex.findall(r'\X', txt)
+    unicode_emoji = emoji.UNICODE_EMOJI['en'] if 'en' in emoji.UNICODE_EMOJI else emoji.UNICODE_EMOJI
     for word in data:
-        if any(char in emoji.UNICODE_EMOJI['en'] for char in word):
+        if any(char in unicode_emoji for char in word):
             lst.append(word)
 
     return lst
