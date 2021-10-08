@@ -146,7 +146,7 @@ def main():
                     if global_live or future_live:
                         driver.wait()
                     else:
-                        driver.do_notify()
+                        driver.last_notify()
                         driver.close()
                         print("all done")
                         break

@@ -14,6 +14,7 @@ class DownloadBase(HostCheck):
         self.single_action = single_action
         self.host_id = 0
         self.max_host_id = self.get_max_host()
+        self.notification_relay = get_option("notification_relay", None)
 
         # according to HTTP spec, Retry-After can also have absolute
         # time value, but that had not been seen yet
@@ -207,6 +208,11 @@ where instance_id=%d""" % self.inst_id
 
     def do_notify(self):
         self.cur.execute("""notify %s""" % get_parse_notification_name(self.inst_id))
+
+    def last_notify(self):
+        self.do_notify()
+        if self.notification_relay:
+            self.cur.execute("""notify download_ready""")
 
     def wait(self):
         timeout = self.get_interval()
