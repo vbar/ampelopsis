@@ -323,7 +323,7 @@ def main():
                     if global_live or future_live or retriever.has_holds():
                         retriever.wait()
                     else:
-                        retriever.do_notify()
+                        retriever.last_notify()
                         print("all done", file=sys.stderr)
                         break
     finally:
