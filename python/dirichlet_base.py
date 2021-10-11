@@ -20,6 +20,7 @@ class DirichletBase(ShowCase, StemMixin):
         self.visible_clusters = int(get_option("visible_clusters", "128"))
         self.lang_recog = init_lang_recog()
         self.url2doc = {}
+        self.url2person = {}
         self.topics = []
         self.matrix = None
 
@@ -30,6 +31,8 @@ class DirichletBase(ShowCase, StemMixin):
         lst = tokenize(et['text'], False)
         lng = self.lang_recog.check(lst)
         if lng == 'cs':
+            url = self.get_circuit_url(et['url'])
+            self.url2person[url] = et['osobaid']
             self.load_doc(et)
 
     def process(self):
@@ -56,16 +59,19 @@ class DirichletBase(ShowCase, StemMixin):
         if self.visible_clusters < l:
             print("sampling %d of %d topics..." % (self.visible_clusters, l), file=sys.stderr)
             supplementary_threshold = float(self.visible_clusters) / float(l)
-            wide = np.array(self.matrix)
+            wide = self.matrix
             assert l == wide.shape[1]
             narrow = None
             topics = []
-            curve = [np.max(wide[:, i]) for i in range(l)]
+            curve = []
+            for i in range(l):
+                curve.append(self.get_prominence(wide[:, i:i+1]))
+
             curve.sort(reverse=True)
             threshold = curve[self.visible_clusters]
             for i in range(l):
                 col = wide[:, i:i+1]
-                mx = np.max(col)
+                mx = self.get_prominence(col)
                 if (mx > threshold) or ((mx == threshold) and (random.random() < supplementary_threshold)):
                     if narrow is None:
                         narrow = np.array(col, copy=True)
@@ -79,6 +85,17 @@ class DirichletBase(ShowCase, StemMixin):
             assert narrow.shape[1] == len(topics)
             self.matrix = narrow.tolist()
             self.topics = topics
+
+    def get_prominence(self, col):
+        person2max = {}
+        for i, url in enumerate(self.get_urls()):
+            v = col[i]
+            person = self.url2person[url]
+            ov = person2max.get(person, 0)
+            if v > ov:
+                person2max[person] = v
+
+        return sum(person2max.values())
 
     def get_urls(self):
         return sorted(self.url2doc.keys())

@@ -26,6 +26,9 @@ class Processor(DirichletBase, PartyMixin):
             self.url2color[url] = self.party2color.get(party_id, 'f0027f')
 
     def sample(self):
+        # called first because get_prominence works better on complete URLs
+        self.sample_topics()
+
         urls = self.get_urls()
         l = len(urls)
         if l > self.sample_size:
@@ -44,8 +47,6 @@ class Processor(DirichletBase, PartyMixin):
 
             self.url2doc = url2doc
             self.matrix = matrix
-
-        self.sample_topics()
 
         print("%d documents with %d topics after sampling" % (len(self.matrix), len(self.topics)), file=sys.stderr)
 
