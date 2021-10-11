@@ -1,32 +1,67 @@
-from lxml import etree
-from urllib.parse import urljoin
+import json
+import re
+from url_heads import hamlet_record_head, hamlet_search_head
 
 class PageParser:
     def __init__(self, owner, url):
         self.owner = owner
-        self.base = url
-        self.found_base = False
-                
+
+        schema = (
+            ( "^" + hamlet_search_head + "\\?desc=1&strana=(?P<page>\\d+)&sort=Dne", self.process_overview ),
+            ( "^" + hamlet_record_head, self.process_detail )
+        )
+
+        self.match = None
+        for url_rx, proc_meth in schema:
+            m = re.match(url_rx, url)
+            if m:
+                self.match = m
+                self.process = proc_meth
+                break
+
     def parse_links(self, fp):
-        # limit memory usage
-        context = etree.iterparse(fp, events=('end',), tag=('a', 'base'), html=True, recover=True)
-        for action, elem in context:
-            if not self.found_base and (elem.tag == 'base'):
-                parent = elem.getparent()[0]
-                if parent is not None and (parent.tag == 'head'):
-                    grandparent = parent.getparent()[0]
-                    if grandparent is not None and (grandparent.tag == 'html'):
-                        self.found_base = True
-                        href = elem.get('href')
-                        if href:
-                            self.base = urljoin(self.base, href)
-            elif elem.tag == 'a':
-                href = elem.get('href')
-                if href:
-                    link = urljoin(self.base, href)
-                    self.owner.add_link(link)
-                
-            # cleanup
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
+        if not self.match:
+            # external URL
+            return
+
+        buf = b''
+        for ln in fp:
+            buf += ln
+
+        doc = json.loads(buf.decode('utf-8'))
+        self.process(doc)
+
+    def process_overview(self, doc):
+        items = doc.get('results')
+        page_size = len(items)
+        page = int(self.match.group('page'))
+        if (page == 1) and (page_size > 0):
+            total = int(doc.get('total'))
+            n = total // page_size
+
+            # API has limit
+            if n > 200:
+                n = 200
+
+            i = 2
+            while i <= n:
+                url = hamlet_search_head + ("?desc=1&strana=%d&sort=Dne" % i)
+                self.owner.add_link(url)
+                i += 1
+
+        for et in items:
+            record_id = et.get('Id')
+            detail_url = hamlet_record_head + record_id
+            self.owner.add_link(detail_url)
+
+    def process_detail(self, doc):
+        doc_url = doc.get('url')
+        if doc_url:
+            self.owner.add_link(doc_url)
+
+        attachments = doc.get('prilohy')
+        if isinstance(attachments, list):
+            for att in attachments:
+                att_url = att.get('DocumentUrl')
+                if att_url:
+                    self.owner.add_link(doc_url)
