@@ -41,7 +41,7 @@ class Processor(PinholeBase):
         self.data.append(item)
 
     def dump(self):
-        keys = [ p[0] for p in sorted(self.variant2count.items(), key=lambda p: (p[1], p[0])) ]
+        keys = [ p[0] for p in sorted(self.variant2count.items(), key=lambda q: (q[1], str(q[0]))) ]
         indirect = {}
         names = []
         colors = []
