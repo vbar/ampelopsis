@@ -64,4 +64,4 @@ class PageParser:
             for att in attachments:
                 att_url = att.get('DocumentUrl')
                 if att_url:
-                    self.owner.add_link(doc_url)
+                    self.owner.add_link(att_url)
