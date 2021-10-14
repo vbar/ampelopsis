@@ -1,9 +1,12 @@
 all: circuit main
 
-main: length type typelength
+main: category length type typelength
 
 circuit:
 	python/text-model.py
+
+category:
+	python/category-graph.py > web/category.json
 
 length:
 	python/length-graph.py > web/length.json
