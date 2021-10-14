@@ -2,6 +2,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
 <div id="the_graph"></div>
 <div id="footer"></div>
 
@@ -32,6 +34,7 @@ var svg = d3.select("#the_graph")
 
 d3.json("typelength.json", function (metadata) {
     var types = metadata.types,
+        submitters = metadata.submitters,
         data = metadata.data,
         mx = d3.max(data, selectLength),
         dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S"),
@@ -119,7 +122,7 @@ d3.json("typelength.json", function (metadata) {
         })
         .attr("height", y.bandwidth())
         .attr("stroke", "black")
-        .style("fill", "#69b3a2")
+        .style("fill", "#ddd")
         .style("opacity", 0.8);
 
     svg.selectAll("medianLines")
@@ -153,12 +156,18 @@ d3.json("typelength.json", function (metadata) {
             return y(types[d[1]]) + (y.bandwidth() / 2) - jitterWidth / 2 + Math.random() * jitterWidth;
         })
         .attr("r", 4)
-        .style("fill", '#f0027f')
+        .style("fill", function (d) {
+            return d3.schemeCategory10[d[3] % 10];
+        })
         .style("opacity", 0.2)
         .on("click", function (d) {
             if (d3.event.defaultPrevented) return;
             window.open(d[0]);
-        });
+        })
+        .append("title")
+        .text(function (d) {
+            return submitters[d[3]];
+        })
 });
 
 </script>
