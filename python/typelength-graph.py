@@ -3,12 +3,12 @@
 import json
 import sys
 from common import get_option, make_connection
-from show_case import ShowCase
+from show_cabinet import ShowCabinet
 from token_util import tokenize
 
-class Processor(ShowCase):
+class Processor(ShowCabinet):
     def __init__(self, cur):
-        ShowCase.__init__(self, cur)
+        ShowCabinet.__init__(self, cur)
         self.type2count = {}
         self.data = []
 
@@ -52,9 +52,6 @@ class Processor(ShowCase):
         }
 
         json.dump(custom, sys.stdout, indent=2, ensure_ascii=False)
-
-    def make_date_extent(self):
-        return [dt.isoformat() for dt in (self.mindate, self.maxdate)]
 
 
 def main():

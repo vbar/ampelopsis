@@ -3,11 +3,11 @@
 import json
 import sys
 from common import get_loose_path, get_option, make_connection
-from show_case import ShowCase
+from show_cabinet import ShowCabinet
 
-class Processor(ShowCase):
+class Processor(ShowCabinet):
     def __init__(self, cur):
-        ShowCase.__init__(self, cur)
+        ShowCabinet.__init__(self, cur)
         self.storage_alternative = get_option("storage_alternative", None)
 
     def load_item(self, att):
