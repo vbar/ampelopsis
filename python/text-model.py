@@ -3,24 +3,36 @@
 import json
 import sys
 from common import get_loose_path, get_option, make_connection
-from show_cabinet import ShowCabinet
+from show_room import ShowRoom
 
-class Processor(ShowCabinet):
+class Processor(ShowRoom):
     def __init__(self, cur):
-        ShowCabinet.__init__(self, cur)
+        ShowRoom.__init__(self, cur)
         self.storage_alternative = get_option("storage_alternative", None)
 
-    def load_item(self, att):
+    def load_item(self, doc):
         assert self.storage_alternative
-        url = att['DocumentUrl']
+
+        url = doc.get('url')
         url_id = self.get_url_id(url)
-        if not url_id:
-            return
+        if url_id:
+            name = doc.get('nazevMaterialu', "")
+            desc = doc.get('popis', "")
+            if name or desc:
+                txt = "%s\n\n%s" % (name, desc)
+                self.write_alt(url_id, txt)
 
-        txt = att.get('DocumentPlainText')
-        if not txt:
-            return
+        attachments = doc.get('prilohy')
+        if isinstance(attachments, list):
+            for att in attachments:
+                url = att['DocumentUrl']
+                url_id = self.get_url_id(url)
+                if url_id:
+                    txt = att.get('DocumentPlainText')
+                    if txt:
+                        self.write_alt(url_id, txt)
 
+    def write_alt(self, url_id, txt):
         loose_path = get_loose_path(url_id, alt_repre=self.storage_alternative)
         with open(loose_path, 'w') as f:
             f.write(txt)

@@ -1,9 +1,12 @@
 all: circuit main
 
-main: category length type typelength
+main: activity category length type typelength
 
 circuit:
 	python/text-model.py
+
+activity:
+	python/activity-graph.py > web/activity.json
 
 category:
 	python/category-graph.py > web/category.json

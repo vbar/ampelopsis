@@ -24,16 +24,12 @@ order by url""" % (hamlet_record_head, '%'))
             self.load_page(*row)
 
     def get_url_id(self, url):
-        self.cur.execute("""select id, checkd
+        self.cur.execute("""select id
 from field
 where url=%s""", (url,))
         row = self.cur.fetchone()
         if row is None:
             print("unknown URL " + url, file=sys.stderr)
-            return None
-
-        if row[1] is None:
-            print("URL " + url + " not downloaded", file=sys.stderr)
             return None
 
         return row[0]
