@@ -23,6 +23,8 @@ class Target:
         self.http_code = None
         self.http_phrase = None
         self.retry_after = None
+        self.body_bytes_head = b""
+        self.body_error_state = 0
 
     def write_header(self, data):
         if self.header_target.write(data) != len(data):
@@ -64,6 +66,12 @@ class Target:
                 self.body_target = open(get_loose_path(self.url_id), 'wb')
             else:
                 return -1
+
+        if self.body_error_state == 0:
+            error_bytes = "<html><head><title>Požadavek byl zablokován</title></head>".encode('utf-8')
+            self.body_bytes_head += data
+            if len(self.body_bytes_head) >= len(error_bytes):
+                self.body_error_state = 1 if self.body_bytes_head.startswith(error_bytes) else -1
 
         return self.body_target.write(data)
 
@@ -231,6 +239,11 @@ where host_id = any(%s)""", (sorted(avail),))
 
                     msg = "got " + eff_url
                     added_hold = False
+
+                    if target.body_error_state == 1:
+                        target.http_code = 403
+                        target.http_phrase = "Požadavek byl zablokován"
+
                     if target.http_code != 200:
                         self.cur.execute("""insert into download_error(url_id, error_code, error_message, failed)
 values(%s, %s, %s, localtimestamp)""", (target.url_id, target.http_code, target.http_phrase))
