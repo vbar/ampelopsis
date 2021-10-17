@@ -1,0 +1,172 @@
+<!-- based on https://bl.ocks.org/kgeorgiou/68f864364f277720252d0329408433ae -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Spřízněnost témat</title>
+<style>
+
+line {
+  stroke: #eaeaea;
+}
+
+</style>
+<body>
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script src="//d3js.org/d3.v4.min.js"></script>
+<script>
+function makeHandler(idx) {
+    return function (d) {
+        if (d3.event.defaultPrevented) return;
+
+        var prop = d.proportions[idx];
+        window.open(prop[2]);
+    }
+}
+
+function drawNodePie(nodeElement, large, percentages) {
+    var radius = large ? 32 : 16,
+        halfRadius = radius / 2,
+        halfCircumference = 2 * Math.PI * halfRadius,
+        percentToDraw = 0,
+        perc;
+
+    nodeElement.insert("circle")
+        .attr("class", "parent-pie")
+        .attr("r", 16)
+        .attr("fill", '#888')
+        .style("opacity", 0.5);
+
+    if (!percentages) return;
+
+    for (var i = 0; i < percentages.length; ++i) {
+        perc = percentages[i];
+        percentToDraw += perc.percent;
+
+        nodeElement.insert('circle', '.parent-pie + *')
+            .attr("r", halfRadius)
+            .attr("fill", 'transparent')
+            .style('stroke', perc.color)
+            .style('stroke-width', radius)
+            .style('stroke-dasharray',
+                   halfCircumference * percentToDraw / 100 + ' ' + halfCircumference)
+            .on("click", makeHandler(i))
+            .append("title").text(function (d) {
+                return d.name;
+            });
+    }
+}
+
+var width = 1000,
+    height = 800,
+    params = location.search.split('&'),
+    strength = -700;
+
+params.forEach(function (assig) {
+    var strengthPair = assig.split('strength=');
+
+    if (strengthPair.length == 2) {
+        strength = +strengthPair[1];
+    }
+});
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(function (d) {
+        return d.node;
+    }))
+    .force("charge", d3.forceManyBody().strength(strength))
+    .force("center", d3.forceCenter(width / 2, height / 2));
+
+function dragstarted(d) {
+    if (!d3.event.active) {
+        simulation.alphaTarget(0.3).restart();
+    }
+
+    d.fx = d.x;
+    d.fy = d.y;
+}
+
+function dragged(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+}
+
+function dragended(d) {
+    if (!d3.event.active) {
+        simulation.alphaTarget(0);
+    }
+
+    d.fx = null;
+    d.fy = null;
+}
+
+d3.json("topics.json", function (error, graph) {
+    if (error) throw error;
+
+    var link = svg.append("g")
+        .selectAll("line")
+        .data(graph.links)
+        .enter().append("line");
+
+    var node = svg.append("g")
+        .selectAll("g")
+        .data(graph.nodes)
+        .enter()
+        .append("g")
+        .call(d3.drag()
+              .on("start", dragstarted)
+              .on("drag", dragged)
+              .on("end", dragended));
+
+    node.each(function (d) {
+        var total = d3.sum(d.proportions, function (dj) { return dj[1]; }),
+            percentages = [];
+
+        d.proportions.forEach(function (dj) {
+            var it = {
+                'color': graph.colors[dj[0]],
+                'percent': 100 * dj[1] / total
+            };
+
+            percentages.push(it);
+        });
+
+        drawNodePie(d3.select(this), d.large, percentages);
+    });
+
+    simulation.nodes(graph.nodes)
+        .on("tick", ticked);
+
+    simulation.force("link")
+        .links(graph.links);
+
+    function ticked() {
+        link
+            .attr("x1", function (d) {
+                return d.source.x;
+            })
+            .attr("y1", function (d) {
+                return d.source.y;
+            })
+            .attr("x2", function (d) {
+                return d.target.x;
+            })
+            .attr("y2", function (d) {
+                return d.target.y;
+            });
+
+        d3.selectAll("circle")
+            .attr("cx", function (d) {
+                return d.x;
+            })
+            .attr("cy", function (d) {
+                return d.y;
+            });
+    }
+});
+
+</script>

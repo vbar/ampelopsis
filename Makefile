@@ -4,7 +4,7 @@ has_statuses=$(shell funnel_links=$(funnel_links); echo $$(( funnel_links >= 1 )
 
 all: fulltext main
 
-main: datetime datetimes volume varlen lang sankey emoji chord heatmap datemap treemap distance timeline timecycle vocab selpos demanding
+main: datetime datetimes volume varlen lang sankey emoji chord topics heatmap datemap treemap distance timeline timecycle vocab selpos demanding
 
 fulltext: preliminary majka morphodita
 
@@ -93,6 +93,9 @@ heatmap:
 
 datemap:
 	python/dirichlet-date.py > web/datemap.json
+
+topics:
+	python/dirichlet-topics.py > web/topics.json
 
 treemap:
 	python/hierarchy-graph.py > web/treemap.json
