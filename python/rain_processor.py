@@ -1,6 +1,7 @@
 import collections
 import datetime
-from math import sqrt
+import math
+import numpy as np
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
 import sys
@@ -20,6 +21,7 @@ class RainProcessor(PinholeBase, StemMixin, TimelineHelperMixin):
         StemMixin.__init__(self)
         TimelineHelperMixin.__init__(self, get_option("timeline_bin_scale", "minutes"))
         self.puff = int(get_option("event_distance_puff", "5"))
+        self.sim_to_dist = get_option("similarity_to_distance_conversion", "sqrt")
         self.link_threshold = float(get_option("inverse_distance_threshold", "0.01"))
         self.cluster_count = int(get_option("cluster_count", "128"))
         self.topic_match_threshold = float(get_option("topic_match_threshold", "0.67"))
@@ -80,17 +82,34 @@ class RainProcessor(PinholeBase, StemMixin, TimelineHelperMixin):
             persons.append(hamlet_name)
             setmatrix.append(series)
 
+        if self.sim_to_dist == "sqrt":
+            sim2dist = lambda s: math.sqrt(1 / s)
+        elif self.sim_to_dist == "log":
+            sim2dist = lambda s: math.log(1 + 1 / s)
+        else:
+            sim2dist = lambda s: 1 / s
+
         l = len(setmatrix)
+        sim_lst = []
         for i in range(l):
             for j in range(i + 1, l):
                 print("measuring similarity between %s and %s..." % (persons[i], persons[j]), file=sys.stderr)
                 sim = set_jaccard_score(setmatrix[i], setmatrix[j])
-                if (sim is not None) and (sim > self.link_threshold):
-                    # hamlet name is-a variant
-                    low_node = self.introduce_node(persons[i], False)
-                    high_node = self.introduce_node(persons[j], False)
-                    edge = (low_node, high_node)
-                    self.ref_map[edge] = sqrt(1 / sim)
+                if sim is not None:
+                    sim_lst.append(sim)
+                    if sim > self.link_threshold:
+                        # hamlet name is-a variant
+                        low_node = self.introduce_node(persons[i], False)
+                        high_node = self.introduce_node(persons[j], False)
+                        edge = (low_node, high_node)
+                        self.ref_map[edge] = sim2dist(sim)
+
+        sim_arr = np.array(sim_lst)
+        sim_arr.sort()
+        levels = ( 0.25, 0.5, 0.75 )
+        values = ( np.quantile(sim_arr, lev) for lev in levels )
+        msg = " / ".join(("%g" % v) for v in values)
+        print("...giving %g - %s - %g" % (sim_arr[0], msg, sim_arr[-1]), file=sys.stderr)
 
     def add_sample(self, hamlet_name, rdt, url_id):
         dt = self.quantize(rdt)
