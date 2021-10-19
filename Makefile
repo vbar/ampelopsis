@@ -144,3 +144,6 @@ selpos:
 
 relpos:
 	python/relpos-graph.py > web/relpos.json
+
+antlion:
+	python/antlion-graph.py --pit > cache/antlion.csv
