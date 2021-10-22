@@ -1,6 +1,9 @@
-all: circuit main
+all: circuit bottle
 
-main: activity category length type typelength
+legacy: activity category length type typelength
+
+bottle:
+	python/bottle.py
 
 circuit:
 	python/text-model.py

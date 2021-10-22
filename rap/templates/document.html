@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>{{ model.name }}</p>
+<p>{{ model.description }}</p>
+<ul>
+  {% for att in model.attachments %}
+  <li><a href="{{ url_for('url', url_id=att.id) }}">{{ att.type }}</a> ({{ att.day }})</li>
+  {% endfor %}
+</ul>
+{% endblock %}

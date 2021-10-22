@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+<script>
+
+function condExpFormat(value) {
+    var smallFormat = d3.format("d"),
+        largeFormat = d3.format(".0g");
+
+    return (Math.abs(value) < 10000) ? smallFormat(value) : largeFormat(value);
+}
+
+var margin = {top: 10, right: 30, bottom: 50, left: 80},
+    width = 1200 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
+
+var svg = d3.select("#the_graph")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json(
+    "{{ url_for('static', filename='cs-CZ.json') }}",
+    function(error, locale) {
+        if (error) throw error;
+
+        d3.timeFormatDefaultLocale(locale);
+
+        d3.json("{{ url_for('activity') }}", function (metadata) {
+            var submitters = metadata.submitters,
+                data = metadata.data,
+                mn = d3.min(data, function (d) {
+                    return d[2];
+                }),
+                mx = d3.max(data, function (d) {
+                    return d[2];
+                }),
+                dateParse = d3.timeParse("%Y-%m-%d");
+
+            if ('dateExtent' in metadata) {
+                var dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+                    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+                    footer = document.getElementById('footer');
+
+                footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+            }
+
+            var x = d3.scaleTime()
+                .domain(dateExtent)
+                .range([ 0, width ]);
+            svg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x));
+
+            var y = d3.scaleLog()
+                .domain([mn, mx])
+                .range([ height, 0 ]);
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(12, condExpFormat));
+
+            svg.selectAll("indPoints")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", function (d) {
+                    return x(dateParse(d[1]));
+                })
+                .attr("cy", function (d) {
+                    return y(d[2]);
+                })
+                .attr("r", 5)
+                .style("stroke", function (d) {
+                    return d3.schemeCategory10[d[3] % 10];
+                })
+                .style("stroke-width", 2)
+                .style("fill-opacity", 0)
+                .on("click", function (d) {
+                    if (d3.event.defaultPrevented) return;
+                    window.open(d[0], "_self");
+                })
+                .append("title")
+                .text(function (d) {
+                    return d[4];
+                })
+        });
+});
+
+</script>
+
+{% endblock %}
