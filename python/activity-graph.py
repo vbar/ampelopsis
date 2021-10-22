@@ -40,7 +40,7 @@ class Processor(ShowRoom):
             self.data.append(item)
 
     def dump(self):
-        submitter_keys = [ p[0] for p in sorted(self.submitter2count.items(), key=lambda q: (q[1], q[0])) ]
+        submitter_keys = [ p[0] for p in sorted(self.submitter2count.items(), key=lambda q: (-1 * q[1], q[0])) ]
         indirect_submitter = {}
         submitters = []
         for idx, submitter in enumerate(submitter_keys):
