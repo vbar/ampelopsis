@@ -1,15 +1,12 @@
-all: circuit bottle
+all: plaintext bottle
 
-legacy: activity category length type typelength
+legacy: category length type typelength
 
 bottle:
 	python/bottle.py
 
-circuit:
+plaintext:
 	python/text-model.py
-
-activity:
-	python/activity-graph.py > web/activity.json
 
 category:
 	python/category-graph.py > web/category.json
