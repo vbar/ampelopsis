@@ -72,11 +72,16 @@ from rap_attachments
 where doc_id=%s
 order by att_no""", (url_id,))
     for row in cur.fetchall():
-        attachments.append({
-            'id': row[0],
+        url_id = row[0]
+        item = {
             'day': row[1],
             'type': row[2]
-        })
+        }
+
+        if get_detail_path(url_id):
+            item['id'] = url_id
+
+        attachments.append(item)
 
     model['attachments'] = attachments
 
@@ -118,4 +123,8 @@ def document(url_id):
 
 @app.route('/detail/<int:url_id>')
 def url(url_id):
-    return send_file(get_detail_path(url_id), mimetype='text/plain')
+    path = get_detail_path(url_id)
+    if not path:
+        abort(404)
+
+    return send_file(path, mimetype='text/plain')
