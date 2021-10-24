@@ -1,4 +1,4 @@
-from flask import abort, g, jsonify, render_template, send_file, url_for
+from flask import abort, g, jsonify, render_template, request, send_file, url_for
 from .database import databased
 from .filesystem import get_detail_path
 from rap import app
@@ -18,14 +18,31 @@ order by id""")
     return submitters
 
 
-def get_activity(cur):
-    cur.execute("""select rap_documents.doc_id, doc_day, grouped.wc, submitter_id, doc_name
+def get_activity(cur, search):
+    if not search:
+        cur.execute("""select rap_documents.doc_id, doc_day, grouped.wc, submitter_id, doc_name
 from rap_documents
 join (
         select doc_id, sum(word_count) wc
         from rap_attachments group by doc_id
 ) grouped on grouped.doc_id=rap_documents.doc_id
 where wc>0""") # log scale cannot show zero size
+    else:
+        cur.execute("""select rap_documents.doc_id, doc_day, grouped.wc, submitter_id, doc_name
+from rap_documents
+join (
+        select doc_id, sum(word_count) wc
+        from rap_attachments
+        group by doc_id
+) grouped on grouped.doc_id=rap_documents.doc_id
+join (
+        select doc_id, count(att_id) cnt
+        from rap_attachments
+        where content @@ to_tsquery('rap_config', %s)
+        group by doc_id
+) found on found.doc_id=rap_documents.doc_id
+where wc>0 and cnt>0""", (search,))
+
     rows = cur.fetchall()
     data = []
     for row in rows:
@@ -91,16 +108,18 @@ order by att_no""", (url_id,))
 @app.route("/")
 @app.route('/index')
 def index():
-    return render_template('index.html')
+    search = request.args.get('s')
+    return render_template('index.html', enable_search=True, search=search)
 
 
 @app.route('/activity')
 @databased
 def activity():
+    search = request.args.get('s')
     with g.conn.cursor() as cur:
         custom = {
             'submitters': list_submitters(cur),
-            'data': get_activity(cur)
+            'data': get_activity(cur, search)
         }
 
         date_extent = make_date_extent(cur)

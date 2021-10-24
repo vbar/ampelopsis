@@ -1,9 +1,15 @@
-all: plaintext bottle
+all: plaintext morphodita simple bottle
 
-legacy: category length type typelength
+explore: category length type typelength simplelength
 
 bottle:
 	python/bottle.py
+
+simple:
+	python/text-simple.py
+
+morphodita:
+	python/morphodita-stemmer.py
 
 plaintext:
 	python/text-model.py
@@ -19,3 +25,6 @@ type:
 
 typelength:
 	python/typelength-graph.py > web/typelength.json
+
+simplelength:
+	python/simple-graph.py > web/simplelength.json

@@ -29,7 +29,7 @@ d3.json(
 
         d3.timeFormatDefaultLocale(locale);
 
-        d3.json("{{ url_for('activity') }}", function (metadata) {
+        d3.json("{{ url_for('activity', s=search) }}", function (metadata) {
             var submitters = metadata.submitters,
                 data = metadata.data,
                 mn = d3.min(data, function (d) {
@@ -38,15 +38,9 @@ d3.json(
                 mx = d3.max(data, function (d) {
                     return d[2];
                 }),
-                dateParse = d3.timeParse("%Y-%m-%d");
-
-            if ('dateExtent' in metadata) {
-                var dateFormat = d3.timeFormat('%-d.%-m.%Y'),
-                    dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
-                    footer = document.getElementById('footer');
-
-                footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
-            }
+                dateParse = d3.timeParse("%Y-%m-%d"),
+                dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+                dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ];
 
             var x = d3.scaleTime()
                 .domain(dateExtent)

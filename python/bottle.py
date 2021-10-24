@@ -2,8 +2,9 @@
 
 import collections
 from dateutil.parser import parse
+import os
 import sys
-from common import get_option, make_connection
+from common import get_loose_path, get_option, make_connection
 from show_room import ShowRoom
 from token_util import tokenize
 
@@ -12,6 +13,7 @@ DocMeta = collections.namedtuple('DocMeta', 'pid name description attachments')
 class Processor(ShowRoom):
     def __init__(self, cur):
         ShowRoom.__init__(self, cur)
+        self.simple_repre = get_option("simple_representation", "simple")
         self.submitter2count = {}
         self.att_count = 0
         self.doc2meta = {} # int url ID -> DocMeta
@@ -39,7 +41,7 @@ class Processor(ShowRoom):
         self.data.append(item)
 
     def insert(self):
-        print("inserting %d submitters..." % len(self.submitter2count.keys()))
+        print("inserting %d submitters..." % len(self.submitter2count.keys()), file=sys.stderr)
         submitter_keys = [ p[0] for p in sorted(self.submitter2count.items(), key=lambda q: (-1 * q[1], q[0])) ]
         indirect_submitter = {}
         for submitter in submitter_keys:
@@ -56,7 +58,7 @@ where submitter=%s""", (submitter,))
 
             indirect_submitter[submitter] = row[0]
 
-        print("inserting %d documents..." % len(self.data))
+        print("inserting %d documents..." % len(self.data), file=sys.stderr)
         for url_id, dt, submitter in self.data:
             submitter_id = indirect_submitter[submitter]
             meta = self.doc2meta[url_id]
@@ -65,10 +67,11 @@ values(%s, %s, %s, %s, %s, %s)
 on conflict(doc_id) do update
 set pid=%s, submitter_id=%s, doc_day=%s, doc_name=%s, doc_desc=%s""", (url_id, meta.pid, submitter_id, dt, meta.name, meta.description, meta.pid, submitter_id, dt, meta.name, meta.description))
 
-        print("inserting %d attachments..." % self.att_count)
-        for doc_id, meta in sorted(self.doc2meta.items(), key=lambda p: p[0]):
+        print("inserting %d attachments..." % self.att_count, file=sys.stderr)
+        for doc_id, meta in sorted(self.doc2meta.items(), key=lambda p: (p[1].pid, p[0])):
             attachments = meta.attachments
             if attachments is not None:
+                print("attachments of %s..." % meta.pid, file=sys.stderr)
                 att_no = 0
                 for att in attachments:
                     att_no += 1
@@ -94,6 +97,14 @@ set pid=%s, submitter_id=%s, doc_day=%s, doc_name=%s, doc_desc=%s""", (url_id, m
 values(%s, %s, %s, %s, %s, %s)
 on conflict(att_id) do update
 set doc_id=%s, att_day=%s, att_type=%s, att_no=%s, word_count=%s""", (att_id, doc_id, att_day, att_type, att_no, length, doc_id, att_day, att_type, att_no, length))
+
+                    simple_path = get_loose_path(att_id, alt_repre=self.simple_repre)
+                    if os.path.exists(simple_path):
+                        with open(simple_path, 'r') as f:
+                            content = f.read()
+                            self.cur.execute("""update rap_attachments
+set content=to_tsvector('rap_config', %s)
+where att_id=%s""", (content, att_id))
 
 
 def main():

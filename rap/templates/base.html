@@ -5,9 +5,37 @@
     <script src="https://d3js.org/d3.v4.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     <title>VeKLEP {{ title }}</title>
+    <style>
+
+#search-form {
+    margin: 0;
+    padding: 0;
+}
+
+#s {
+  margin-left: 1em;
+}
+
+    </style>
   </head>
   <body>
-    <div>VeKLEP <a href="/index">index</a></div>
+      {% if enable_search %}
+      <form id="search-form" action="{{ url_for(request.endpoint) }}" method="get">
+        <p>
+          VeKLEP <a href="/">index</a>
+          {% if search %}
+          <input type="text" id="s" name="s" value="{{ search }}">
+          {% else %}
+          <input type="text" id="s" name="s">
+          {% endif %}
+          <input type="submit" value="Vyhledat">
+        </p>
+      </form>
+      {% else %}
+      <p>
+        VeKLEP <a href="/">index</a>
+      </p>
+      {% endif %}
     <hr>
 
     {% block content %}
