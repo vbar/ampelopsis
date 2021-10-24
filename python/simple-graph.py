@@ -1,20 +1,26 @@
 #!/usr/bin/python3
 
-from common import make_connection
+import os
+from common import get_loose_path, get_option, make_connection
 from length_base import LengthBase
-from token_util import tokenize
 
 class Processor(LengthBase):
     def __init__(self, cur):
         LengthBase.__init__(self, cur)
+        self.simple_repre = get_option("simple_representation", "simple")
 
     def get_length(self, att):
-        txt = att.get('DocumentPlainText')
-        if not txt:
+        url = att.get('DocumentUrl')
+        if not url:
             return 0
 
-        lst = tokenize(txt)
-        return len(lst)
+        url_id = self.get_url_id(url)
+        simple_path = get_loose_path(url_id, alt_repre=self.simple_repre)
+        if not os.path.exists(simple_path):
+            return 0
+
+        statinfo = os.stat(simple_path)
+        return statinfo.st_size
 
 
 def main():

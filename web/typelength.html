@@ -22,7 +22,17 @@ function condExpFormat(value) {
 
 var margin = {top: 10, right: 30, bottom: 50, left: 160},
     width = 1000 - margin.left - margin.right,
-    height = 800 - margin.top - margin.bottom;
+    height = 800 - margin.top - margin.bottom,
+    params = location.search.split('&'),
+    model = 'typelength.json';
+
+params.forEach(function (assig) {
+    var modelPair = assig.split('m=');
+
+    if (modelPair.length == 2) {
+        model = modelPair[1].replace(/[^a-zA-Z0-9_.-]+/g, '');
+    }
+});
 
 var svg = d3.select("#the_graph")
     .append("svg")
@@ -32,7 +42,7 @@ var svg = d3.select("#the_graph")
     .attr("transform",
           "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("typelength.json", function (metadata) {
+d3.json(model, function (metadata) {
     var types = metadata.types,
         submitters = metadata.submitters,
         data = metadata.data,
