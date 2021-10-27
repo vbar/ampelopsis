@@ -1,32 +1,54 @@
-from lxml import etree
-from urllib.parse import urljoin
+import json
+import re
+import zipfile
+from url_heads import hamlet_dump, hamlet_record_head
 
 class PageParser:
     def __init__(self, owner, url):
         self.owner = owner
-        self.base = url
-        self.found_base = False
-                
+
+        schema = (
+            ( "^" + hamlet_dump + "$", self.process_dump ),
+            ( "^" + hamlet_record_head, self.process_detail )
+        )
+
+        self.match = None
+        for url_rx, proc_meth in schema:
+            m = re.match(url_rx, url)
+            if m:
+                self.match = m
+                self.process = proc_meth
+                break
+
     def parse_links(self, fp):
-        # limit memory usage
-        context = etree.iterparse(fp, events=('end',), tag=('a', 'base'), html=True, recover=True)
-        for action, elem in context:
-            if not self.found_base and (elem.tag == 'base'):
-                parent = elem.getparent()[0]
-                if parent is not None and (parent.tag == 'head'):
-                    grandparent = parent.getparent()[0]
-                    if grandparent is not None and (grandparent.tag == 'html'):
-                        self.found_base = True
-                        href = elem.get('href')
-                        if href:
-                            self.base = urljoin(self.base, href)
-            elif elem.tag == 'a':
-                href = elem.get('href')
-                if href:
-                    link = urljoin(self.base, href)
-                    self.owner.add_link(link)
-                
-            # cleanup
-            elem.clear()
-            while elem.getprevious() is not None:
-                del elem.getparent()[0]
+        if not self.match:
+            # external URL
+            return
+
+        self.process(fp)
+
+    def process_dump(self, fp):
+        with zipfile.ZipFile(fp) as zp:
+            info = zp.getinfo("dataset.stenozaznamy-psp.dump.json")
+            with zp.open(info) as f:
+                self.process_overview(f)
+
+    def process_overview(self, fp):
+        doc = self.get_doc(fp)
+        for skel in doc:
+            record_id = skel['id']
+            detail_url = hamlet_record_head + record_id
+            self.owner.add_link(detail_url)
+
+    def process_detail(self, fp):
+        doc = self.get_doc(fp)
+        doc_url = doc.get('url')
+        if doc_url:
+            self.owner.add_link(doc_url)
+
+    def get_doc(self, fp):
+        buf = b''
+        for ln in fp:
+            buf += ln
+
+        return json.loads(buf.decode('utf-8'))
