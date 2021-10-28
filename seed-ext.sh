@@ -1,4 +1,3 @@
 #!/bin/sh
 
-python/seed.py 'https://www.psp.cz/'
-
+python/seed.py "`python/baker.py`" 'https://www.psp.cz/'

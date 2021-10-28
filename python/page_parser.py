@@ -1,15 +1,20 @@
 import json
+from lxml import etree
 import re
 import zipfile
-from url_heads import hamlet_dump, hamlet_record_head
+from baker import make_personage_query_urls
+from personage import parse_personage
+from url_heads import green_url_head, hamlet_dump, hamlet_record_head
 
 class PageParser:
     def __init__(self, owner, url):
         self.owner = owner
+        self.html_parser = etree.HTMLParser()
 
         schema = (
             ( "^" + hamlet_dump + "$", self.process_dump ),
-            ( "^" + hamlet_record_head, self.process_detail )
+            ( "^" + hamlet_record_head, self.process_detail ),
+            ( "^" + green_url_head + "(?P<hname>[-a-zA-Z0-9]+)$", self.process_card )
         )
 
         self.match = None
@@ -45,6 +50,24 @@ class PageParser:
         doc_url = doc.get('url')
         if doc_url:
             self.owner.add_link(doc_url)
+
+        hamlet_name = doc.get('OsobaId')
+        if hamlet_name:
+            card_url = green_url_head + hamlet_name
+            self.owner.add_link(card_url)
+
+    def process_card(self, fp):
+        # iterative parser no longer works (doesn't get header text)
+        doc = etree.parse(fp, self.html_parser)
+        person = None
+        headers = doc.xpath("//h3")
+        for header in headers:
+            whole_text = "".join(header.xpath("text()"))
+            person = parse_personage(whole_text)
+            if person and person.query_name:
+                wikidata_urls = make_personage_query_urls(person)
+                for wikidata_url in wikidata_urls:
+                    self.owner.add_link(wikidata_url)
 
     def get_doc(self, fp):
         buf = b''
