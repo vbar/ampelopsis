@@ -1,0 +1,141 @@
+<!-- based on https://www.d3-graph-gallery.com/boxplot -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v4.js"></script>
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script>
+
+function selectLength(d) {
+    return d[2];
+}
+
+var margin = {top: 10, right: 30, bottom: 50, left: 160},
+    width = 1000 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
+
+var svg = d3.select("#the_graph")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("varlen.json", function (metadata) {
+    var names = metadata.names,
+        colors = metadata.colors,
+        data = metadata.data,
+        sumstat = metadata.sumstat,
+        mx = d3.max(data, selectLength),
+        dateParse = d3.timeParse("%Y-%m-%dT%H:%M:%S%Z"),
+        dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+        dateExtent = [ dateParse(metadata.dateExtent[0]), dateParse(metadata.dateExtent[1]) ],
+        footer = document.getElementById('footer');
+
+    footer.innerHTML = dateFormat(dateExtent[0]) + " - " + dateFormat(dateExtent[1]);
+
+    var y = d3.scaleBand()
+        .range([ height, 0 ])
+        .domain(names)
+        .padding(.4);
+    svg.append("g")
+        .call(d3.axisLeft(y).tickSize(0))
+        .select(".domain").remove()
+
+    var x = d3.scaleLog()
+        .domain([1, mx])
+        .range([0, width]);
+    svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x).ticks(12, d3.format("d")))
+        .select(".domain").remove()
+
+    svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("x", width)
+        .attr("y", height + margin.top + 30)
+        .text("slov v příspěvku");
+
+    svg.selectAll("vertLines")
+        .data(sumstat)
+        .enter()
+        .append("line")
+        .attr("x1", function (d) {
+            return x(d.value.min);
+        })
+        .attr("x2", function (d) {
+            return x(d.value.max);
+        })
+        .attr("y1", function (d) {
+            return y(d.key) + y.bandwidth() / 2;
+        })
+        .attr("y2", function (d) {
+            return y(d.key) + y.bandwidth() / 2;
+        })
+        .attr("stroke", "black")
+        .style("width", 40);
+
+    svg.selectAll("boxes")
+        .data(sumstat)
+        .enter()
+        .append("rect")
+        .attr("x", function (d) {
+            return x(d.value.q1);
+        })
+        .attr("width", function (d) {
+            return x(d.value.q3) - x(d.value.q1);
+        })
+        .attr("y", function (d) {
+            return y(d.key);
+        })
+        .attr("height", y.bandwidth())
+        .attr("stroke", "black")
+        .style("fill", function (d) {
+            return d.value.color;
+        })
+        .style("opacity", 0.7);
+
+    svg.selectAll("medianLines")
+        .data(sumstat)
+        .enter()
+        .append("line")
+        .attr("y1", function (d) {
+            return y(d.key);
+        })
+        .attr("y2", function (d) {
+            return y(d.key) + y.bandwidth() / 2;
+        })
+        .attr("x1", function (d) {
+            return x(d.value.median);
+        })
+        .attr("x2", function (d) {
+            return x(d.value.median);
+        })
+        .attr("stroke", "black")
+        .style("width", 80);
+
+    var jitterWidth = 80;
+    svg.selectAll("indPoints")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", function (d) {
+            return x(d[2]);
+        })
+        .attr("cy", function (d) {
+            return y(names[d[1]]) + (y.bandwidth() / 2) - jitterWidth / 2 + Math.random() * jitterWidth;
+        })
+        .attr("r", 4)
+        .style("fill", function (d) {
+            return colors[d[1]];
+        })
+        .style("opacity", 0.2)
+        .on("click", function (d) {
+            if (d3.event.defaultPrevented) return;
+            window.open(d[0]);
+        });
+});
+
+</script>
