@@ -27,6 +27,9 @@ class Purger(CursorWrapper):
         self.purge_from_set(url_id)
         self.purge_to_set(url_id)
 
+        self.cur.execute("""delete from locality
+where url_id=%s""", (url_id,))
+
         self.cur.execute("""delete from edges
 where from_id=%s or to_id=%s""", (url_id, url_id))
 
@@ -127,6 +130,8 @@ where to_set=%s""", (children,))
         os.remove(backup_path)
 
         if not remains:
+            self.cur.execute("""delete from volume_loc
+where volume_id=%s""", (volume_id,))
             self.cur.execute("""delete from directory
 where id=%s""", (volume_id,))
             os.remove(archive_path)

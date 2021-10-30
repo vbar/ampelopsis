@@ -147,3 +147,9 @@ relpos:
 
 antlion:
 	python/antlion-graph.py --pit > cache/antlion.csv
+
+maw:
+	python/antlion-graph.py --maw > cache/maw.csv
+
+purge:
+	python/antlion-purge.py
