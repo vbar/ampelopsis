@@ -35,7 +35,7 @@ order by party_id""", (tuple(deco_set),))
 
     def get_presentation_name(self, variant):
         if type(variant) is str:
-            return self.person_map[variant]
+            return self.person_map.get(variant, variant)
         else:
             return self.party_map[variant]
 
