@@ -19,7 +19,7 @@ class Processor(PinholeBase):
         self.data = []
 
     def load_item(self, rec):
-        ext_url = rec['url']
+        url = self.get_circuit_url(rec)
 
         hamlet_name = rec['OsobaId']
         variant = self.get_variant(hamlet_name)
@@ -38,8 +38,6 @@ class Processor(PinholeBase):
             self.variant2length[variant] = [ length ]
         else:
             payload.append(length)
-
-        url = self.get_circuit_url(ext_url)
 
         item = ( url, variant, length )
         self.data.append(item)

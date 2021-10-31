@@ -35,6 +35,7 @@ order by url""" % hamlet_record_head)
         if not self.silent:
             print("loading %s..." % (page_url,), file=sys.stderr)
 
+        rec['url_id'] = url_id
         self.load_item(rec)
 
     def is_redirected(self, url):
@@ -46,7 +47,11 @@ where url=%s""", (url,))
         return row[0] > 0
 
     def extend_date(self, rec):
-        dt = parse(rec['datum'])
+        d = rec.get('datum')
+        if not d:
+            return None
+
+        dt = parse(d)
         if (self.mindate is None) or (dt < self.mindate):
             self.mindate = dt
 
@@ -55,15 +60,12 @@ where url=%s""", (url,))
 
         return dt
 
-    def get_circuit_url(self, url):
+    def get_circuit_url(self, ext_rec):
         if not self.short_circuit_template:
-            return url
+            return ext_rec['url']
         else:
-            url_id = self.get_url_id(url)
-            if url_id is None:
-                return url
-            else:
-                return self.short_circuit_template.format(url_id)
+            url_id = ext_rec['url_id']
+            return self.short_circuit_template.format(url_id)
 
     def ensure_url_id(self, url):
         # simpler than download updates because it isn't safe for
