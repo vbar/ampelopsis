@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<hr>
+<div id="the_graph"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+var margin = {top: 20, right: 10, bottom: 10, left: 50},
+    width = 1200 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom,
+    maxRadius = 32;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+var dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+    dateParse = d3.timeParse("%Y-%m-%d");
+
+d3.json("{{ url_for('daytime') }}").then(function (metadata) {
+    var maxLength = d3.max(metadata.dayDesc, function (d) {
+        return d[1];
+    });
+
+    var x = d3.scaleLinear()
+        .domain([0, maxLength])
+        .range([0, width]);
+
+    var y = d3.scaleLinear()
+        .domain([0, metadata.dayDesc.length])
+        .range([0, height]);
+
+    var xAxis = d3.axisTop()
+        .scale(x)
+        .ticks(23);
+
+    for (var idx = 0; idx < metadata.dayDesc.length; ++idx) {
+        var dummy = function (idx) {
+            var template = "{{ url_for('url', url_id=0) }}",
+                description = metadata.dayDesc[idx],
+                lineDate = dateFormat(dateParse(description[0])),
+                timeline = metadata.dayLines[idx],
+                runningTotal = 0,
+                data = timeline.map(function (d) {
+                    var indir = d[0],
+                        it = {
+                            'name': metadata.names[indir],
+                            'color': metadata.colors[indir],
+                            'url': template.replace("0", d[2]),
+                            'since': runningTotal
+                        };
+
+                    runningTotal += d[1];
+                    it['until'] = runningTotal;
+
+                    return it;
+                });
+
+            console.log(description[0])
+            svg.append("g")
+                .selectAll('line')
+                .data(data)
+                .enter()
+                .append('line')
+                .attr("stroke", function (d) {
+                    return d.color;
+                })
+                .attr("stroke-width", 2)
+                .on("click", function (event, d) {
+                    if (event.defaultPrevented) return;
+                    window.open(d.url, "_self");
+                })
+                .attr('x1', function (d) {
+                    return x(d.since);
+                })
+                .attr('y1', function (d) {
+                    return y(idx);
+                })
+                .attr('x2', function (d) {
+                    return x(d.until);
+                })
+                .attr('y2', function (d) {
+                    return y(idx);
+                })
+                .append("title").text(function (d) {
+                    return lineDate + "\n" + d.name;
+                });
+        }(idx);
+    }
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .call(xAxis);
+});
+
+</script>
+
+{% endblock %}
