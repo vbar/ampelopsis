@@ -2,7 +2,7 @@
 
 {% block content %}
 <hr>
-<div id="the_graph"></div>
+<div class="container-fluid" id="the_graph"></div>
 {% endblock %}
 
 {% block scripts %}
@@ -63,7 +63,6 @@ d3.json("{{ url_for('daytime') }}").then(function (metadata) {
                     return it;
                 });
 
-            console.log(description[0])
             svg.append("g")
                 .selectAll('line')
                 .data(data)

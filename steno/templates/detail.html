@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<p>
+<div class="container-fluid">
   Steno <a href="/">index</a>
   {% if model.prev_id %}
   <a href="{{ url_for('url', url_id=model.prev_id) }}">&lt;&lt;</a>
@@ -9,9 +9,11 @@
   {% if model.next_id %}
   <a href="{{ url_for('url', url_id=model.next_id) }}">&gt;&gt;</a>
   {% endif %}
-</p>
+</div>
 <hr>
-<h1>{{ model.speaker_name }}</h1>
-<p><em>{{ model.day }}</em></p>
-<p>{{ model.text }}</p>
+<div class="container">
+  <h1>{{ model.speaker_name }}</h1>
+  <p><em>{{ model.day }}</em></p>
+  <p>{{ model.text }}</p>
+</div>
 {% endblock %}
