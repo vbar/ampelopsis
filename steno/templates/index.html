@@ -1,33 +1,122 @@
 {% extends "base.html" %}
 
+{% block declarations %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css">
+
+<style>
+
+#search-row {
+    margin-top: 4px;
+}
+
+#slider-range {
+    width: 100%;
+    margin-top: 8px;
+}
+
+hr {
+    margin-top: 0;
+}
+
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="container-fluid">
+  <div id="search-row" class="row g-4">
+    <div class="col-2">
+      <input class="form-control form-control-sm" type="text" id="start-day" readonly>
+    </div>
+    <div class="col-2">
+      <input class="form-control form-control-sm" type="text" id="end-day" readonly>
+    </div>
+    <div class="col-7">
+      <div class="form-group" id="slider-range"></div>
+    </div>
+    <div class="col-1">
+      <button id="search-button" class="btn btn-primary mb-3">Hledat</button>
+    </div>
+  </div>
+</div>
 <hr>
 <div class="container-fluid" id="the_graph"></div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js" integrity="sha256-hlKLmzaRlE8SCJC1Kw8zoUbU8BxA+8kR3gseuKfMjxA=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>
 
-var margin = {top: 20, right: 10, bottom: 10, left: 50},
-    width = 1200 - margin.left - margin.right,
-    height = 800 - margin.top - margin.bottom,
-    maxRadius = 32;
-
-var svg = d3.select("#the_graph").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform",
-          "translate(" + margin.left + "," + margin.top + ")");
-
 var dateFormat = d3.timeFormat('%-d.%-m.%Y'),
-    dateParse = d3.timeParse("%Y-%m-%d");
+    dateParse = d3.timeParse("%Y-%m-%d"),
+    dateEnd = new Date(),
+    dateStart = new Date(dateEnd.getTime() - 5 * 365 * 24 * 3600000),
+    fragment = location.hash,
+    daytimeTemplate = "{{ url_for('daytime', start_sec='1', end_sec='2') }}";
 
-d3.json("{{ url_for('daytime') }}").then(function (metadata) {
-    var maxLength = d3.max(metadata.dayDesc, function (d) {
-        return d[1];
+if (fragment && (fragment[0] == '#')) {
+    var secondArray = fragment.slice(1).split('/').map(s => ( parseInt(s)) );
+
+    if ((secondArray.length == 2) && !isNaN(secondArray[0]) && !isNaN(secondArray[1])) {
+        dateStart = new Date(1000 * secondArray[0]);
+        dateEnd = new Date(1000 * secondArray[1]);
+    }
+}
+
+var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
+    var date = (match == "1") ? dateStart : dateEnd;
+
+    return Math.floor(date.getTime() / 1000);
+});
+
+d3.json(daytime).then(drawGraph);
+
+$("#search-button").on("click", function (e) {
+    e.stopPropagation();
+
+    var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
+        var idx = (match == "1") ? 0 : 1;
+
+        return $("#slider-range").slider("values", idx);
     });
+
+    d3.select("svg").remove();
+    d3.json(daytime).then(drawGraph);
+});
+
+function drawGraph(metadata) {
+    var margin = {top: 20, right: 10, bottom: 10, left: 50},
+        width = 1200 - margin.left - margin.right,
+        height = 800 - margin.top - margin.bottom;
+
+    var svg = d3.select("#the_graph").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+              "translate(" + margin.left + "," + margin.top + ")");
+
+    var sliderRange = metadata.dateExtent.map(d => ( dateParse(d).getTime() / 1000 )),
+        seconds = metadata.dayDesc.map(d => ( dateParse(d[0]).getTime() / 1000 )),
+        sliderSelection = [ d3.min(seconds), d3.max(seconds) ],
+        maxLength = d3.max(metadata.dayDesc, d => ( d[1] ));
+
+    $("#slider-range").slider({
+        range: true,
+        min: sliderRange[0],
+        max: sliderRange[1],
+        values: sliderSelection,
+        slide: function (event, ui) {
+            var preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
+
+            $("#start-day").val(preSel[0]);
+            $("#end-day").val(preSel[1]);
+        }
+    });
+
+    $("#start-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 0))));
+    $("#end-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 1))));
 
     var x = d3.scaleLinear()
         .domain([0, maxLength])
@@ -97,7 +186,9 @@ d3.json("{{ url_for('daytime') }}").then(function (metadata) {
     svg.append("g")
         .attr("class", "x axis")
         .call(xAxis);
-});
+
+    location.hash = '#' + sliderSelection[0] + "/" + sliderSelection[1];
+}
 
 </script>
 

@@ -29,13 +29,13 @@ order by id""")
     return (names, colors)
 
 
-def list_days(cur, since):
+def list_days(cur, start_date, end_date):
     description = []
     cur.execute("""select speech_day, sum(word_count) total
 from steno_speech
-where speech_day>=%s
+where (speech_day>=%s) and (speech_day<=%s)
 group by speech_day
-order by speech_day""", (since,))
+order by speech_day""", (start_date, end_date))
     rows = cur.fetchall()
     for day, total in rows:
         out = [ day.isoformat(), total ]
@@ -44,14 +44,14 @@ order by speech_day""", (since,))
     return description
 
 
-def list_details(cur, since):
+def list_details(cur, start_date, end_date):
     daylines = []
     cur_day = None
     timeline = None
     cur.execute("""select speech_day, speech_id, speaker_id, word_count
 from steno_speech
-where speech_day>=%s
-order by speech_day, speech_order""", (since,))
+where (speech_day>=%s) and (speech_day<=%s)
+order by speech_day, speech_order""", (start_date, end_date))
     rows = cur.fetchall()
     for day, speech_id, speaker_id, length in rows:
         if cur_day != day:
@@ -68,6 +68,16 @@ order by speech_day, speech_order""", (since,))
         daylines.append(timeline)
 
     return daylines
+
+
+def make_date_extent(cur):
+    cur.execute("""select min(speech_day) mn, max(speech_day) mx
+from steno_speech""")
+    row = cur.fetchone()
+    if row:
+        return [ d.isoformat() for d in row ]
+    else:
+        return None
 
 
 def get_speaker_name(cur, url_id):
@@ -111,18 +121,19 @@ def index():
     return render_template('index.html', title='index')
 
 
-@app.route('/daytime')
+@app.route('/daytime/<int:start_sec>/<int:end_sec>')
 @databased
-def daytime():
-    dt = datetime.today()
-    since = dt - relativedelta(years=5)
+def daytime(start_sec, end_sec):
+    start_date = datetime.utcfromtimestamp(start_sec)
+    end_date = datetime.utcfromtimestamp(end_sec)
     with g.conn.cursor() as cur:
         names, colors = list_persons(cur)
         custom = {
             'names': names,
             'colors': colors,
-            'dayDesc': list_days(cur, since),
-            'dayLines': list_details(cur, since)
+            'dayDesc': list_days(cur, start_date, end_date),
+            'dayLines': list_details(cur, start_date, end_date),
+            'dateExtent': make_date_extent(cur)
         }
 
         return jsonify(custom)
