@@ -16,4 +16,10 @@
   <p><em>{{ model.day }}</em></p>
   <p>{{ model.text }}</p>
 </div>
+{% if model.ext_url %}
+<hr>
+<div class="container-fluid">
+  <p><a href="{{ model.ext_url }}">{{ model.ext_url }}</a></p>
+</div>
+{% endif %}
 {% endblock %}

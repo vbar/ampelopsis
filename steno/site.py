@@ -160,7 +160,8 @@ def url(url_id):
             'day': day_str,
             'speaker_name': get_speaker_name(cur, url_id),
             'prev_id': get_prev_speech(cur, day, order),
-            'next_id': get_next_speech(cur, day, order)
+            'next_id': get_next_speech(cur, day, order),
+            'ext_url': doc.get('url')
         }
 
         return render_template('detail.html', title=doc.get('Id'), model=model)
