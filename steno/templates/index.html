@@ -48,6 +48,8 @@ hr {
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>
 
+$("body").css("cursor", "progress");
+
 var dateFormat = d3.timeFormat('%-d.%-m.%Y'),
     dateParse = d3.timeParse("%Y-%m-%d"),
     dateEnd = new Date(),
@@ -85,7 +87,11 @@ $("#slider-range").slider({
     }
 });
 
+$("#slider-range").slider("disable");
+
 $("#search-button").on("click", function (e) {
+    $("body").css("cursor", "progress");
+
     e.stopPropagation();
 
     var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
@@ -93,6 +99,8 @@ $("#search-button").on("click", function (e) {
 
         return $("#slider-range").slider("values", idx);
     });
+
+    $("#slider-range").slider("disable");
 
     d3.select("svg").remove();
     d3.json(daytime).then(drawGraph);
@@ -131,6 +139,8 @@ function drawGraph(metadata) {
         max: sliderRange[1],
         values: sliderSelection
     });
+
+    $("#slider-range").slider("enable");
 
     $("#start-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 0))));
     $("#end-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 1))));
@@ -205,6 +215,7 @@ function drawGraph(metadata) {
         .call(xAxis);
 
     location.hash = '#' + sliderSelection[0] + "/" + sliderSelection[1];
+    $("body").css("cursor", "default");
 }
 
 </script>
