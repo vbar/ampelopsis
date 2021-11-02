@@ -88,11 +88,17 @@ $("#search-button").on("click", function (e) {
 function drawGraph(metadata) {
     var margin = {top: 20, right: 10, bottom: 10, left: 50},
         width = 1200 - margin.left - margin.right,
+        maxThickness = 6,
+        thickness = 2,
         minHeight = 800 - margin.top - margin.bottom,
-        height = 2 * metadata.dayDesc.length;
+        height = thickness * metadata.dayDesc.length;
 
     if (height < minHeight) {
         height = minHeight;
+        thickness = Math.floor(height / metadata.dayDesc.length);
+        if (thickness > maxThickness) {
+            thickness = maxThickness;
+        }
     }
 
     var svg = d3.select("#the_graph").append("svg")
@@ -165,7 +171,7 @@ function drawGraph(metadata) {
                 .attr("stroke", function (d) {
                     return d.color;
                 })
-                .attr("stroke-width", 2)
+                .attr("stroke-width", thickness)
                 .on("click", function (event, d) {
                     if (event.defaultPrevented) return;
                     window.open(d.url, "_self");
