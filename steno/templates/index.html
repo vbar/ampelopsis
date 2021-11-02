@@ -72,6 +72,19 @@ var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
 
 d3.json(daytime).then(drawGraph);
 
+$("#slider-range").slider({
+    range: true,
+    min: 0,
+    max: 100,
+    values: [0, 100],
+    slide: function (event, ui) {
+        var preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
+
+        $("#start-day").val(preSel[0]);
+        $("#end-day").val(preSel[1]);
+    }
+});
+
 $("#search-button").on("click", function (e) {
     e.stopPropagation();
 
@@ -113,17 +126,10 @@ function drawGraph(metadata) {
         sliderSelection = [ d3.min(seconds), d3.max(seconds) ],
         maxLength = d3.max(metadata.dayDesc, d => ( d[1] ));
 
-    $("#slider-range").slider({
-        range: true,
+    $("#slider-range").slider("option", {
         min: sliderRange[0],
         max: sliderRange[1],
-        values: sliderSelection,
-        slide: function (event, ui) {
-            var preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
-
-            $("#start-day").val(preSel[0]);
-            $("#end-day").val(preSel[1]);
-        }
+        values: sliderSelection
     });
 
     $("#start-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 0))));
