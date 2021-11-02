@@ -88,7 +88,12 @@ $("#search-button").on("click", function (e) {
 function drawGraph(metadata) {
     var margin = {top: 20, right: 10, bottom: 10, left: 50},
         width = 1200 - margin.left - margin.right,
-        height = 800 - margin.top - margin.bottom;
+        minHeight = 800 - margin.top - margin.bottom,
+        height = 2 * metadata.dayDesc.length;
+
+    if (height < minHeight) {
+        height = minHeight;
+    }
 
     var svg = d3.select("#the_graph").append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -169,13 +174,13 @@ function drawGraph(metadata) {
                     return x(d.since);
                 })
                 .attr('y1', function (d) {
-                    return y(idx);
+                    return y(idx + 1);
                 })
                 .attr('x2', function (d) {
                     return x(d.until);
                 })
                 .attr('y2', function (d) {
-                    return y(idx);
+                    return y(idx + 1);
                 })
                 .append("title").text(function (d) {
                     return lineDate + "\n" + d.name;
