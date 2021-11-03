@@ -47,7 +47,11 @@ hr {
 
 $("body").css("cursor", "progress");
 
-var dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+var margin = {top: 20, right: 10, bottom: 10, left: 10},
+    contentMargin = 20,
+    minThickness = 2,
+    maxThickness = 6,
+    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
     dateParse = d3.timeParse("%Y-%m-%d"),
     dateEnd = new Date(),
     dateStart = new Date(dateEnd.getTime() - 5 * 365 * 24 * 3600000),
@@ -127,10 +131,8 @@ $("#search-button").on("click", function (e) {
 });
 
 function drawGraph(metadata) {
-    var margin = {top: 20, right: 10, bottom: 10, left: 50},
-        width = 1200 - margin.left - margin.right,
-        maxThickness = 6,
-        thickness = 2,
+    var width = window.innerWidth - contentMargin - margin.left - margin.right,
+        thickness = minThickness,
         minHeight = 800 - margin.top - margin.bottom,
         height = thickness * metadata.dayDesc.length;
 
