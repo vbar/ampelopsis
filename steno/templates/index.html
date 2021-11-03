@@ -74,6 +74,8 @@ var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
 
 d3.json(daytime).then(drawGraph);
 
+var sliderLastValues = [ null, null ];
+
 $("#slider-range").slider({
     range: true,
     min: 0,
@@ -84,6 +86,28 @@ $("#slider-range").slider({
 
         $("#start-day").val(preSel[0]);
         $("#end-day").val(preSel[1]);
+    },
+    start: function (event, ui) {
+        $(".ui-slider-handle").tooltip("dispose");
+    },
+    stop: function (event, ui) {
+        var i, moved = [ false, false ],
+            preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
+
+        for (i = 0; i < 2; ++i) {
+            moved[i] = sliderLastValues[i] != ui.values[i];
+            sliderLastValues[i] = ui.values[i];
+            $(".ui-slider-handle").eq(i).tooltip({
+                "placement": "bottom",
+                "title": preSel[i]
+            });
+        }
+
+        for (i = 0; i < 2; ++i) {
+            if (moved[i]) {
+                $(".ui-slider-handle").eq(i).tooltip("show");
+            }
+        }
     }
 });
 
@@ -132,6 +156,7 @@ function drawGraph(metadata) {
     var sliderRange = metadata.dateExtent.map(d => ( dateParse(d).getTime() / 1000 )),
         seconds = metadata.dayDesc.map(d => ( dateParse(d[0]).getTime() / 1000 )),
         sliderSelection = [ d3.min(seconds), d3.max(seconds) ],
+        presentationSelection = sliderSelection.map(d => ( dateFormat(new Date(1000 * d)) )),
         maxLength = d3.max(metadata.dayDesc, d => ( d[1] ));
 
     $("#slider-range").slider("option", {
@@ -142,8 +167,17 @@ function drawGraph(metadata) {
 
     $("#slider-range").slider("enable");
 
-    $("#start-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 0))));
-    $("#end-day").val(dateFormat(new Date(1000 * $("#slider-range").slider("values", 1))));
+    $("#start-day").val(presentationSelection[0]);
+    $("#end-day").val(presentationSelection[1]);
+
+    $(".ui-slider-handle").tooltip("dispose");
+    for (var i = 0; i < 2; ++i) {
+        sliderLastValues[i] = sliderSelection[i];
+        $(".ui-slider-handle").eq(i).tooltip({
+            "placement": "bottom",
+            "title": presentationSelection[i]
+        });
+    }
 
     var x = d3.scaleLinear()
         .domain([0, maxLength])
