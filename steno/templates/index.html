@@ -23,14 +23,11 @@ hr {
 
 {% block content %}
 <div class="container-fluid">
-  <div id="search-row" class="row g-4">
+  <div id="search-row" class="row g-3">
     <div class="col-2">
-      <input class="form-control form-control-sm" type="text" id="start-day" readonly>
+      <input class="form-control form-control-sm" type="text" id="present-range" readonly>
     </div>
-    <div class="col-2">
-      <input class="form-control form-control-sm" type="text" id="end-day" readonly>
-    </div>
-    <div class="col-7">
+    <div class="col-9">
       <div class="form-group" id="slider-range"></div>
     </div>
     <div class="col-1">
@@ -84,8 +81,7 @@ $("#slider-range").slider({
     slide: function (event, ui) {
         var preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
 
-        $("#start-day").val(preSel[0]);
-        $("#end-day").val(preSel[1]);
+        $("#present-range").val(preSel[0] + " - " + preSel[1]);
     },
     start: function (event, ui) {
         $(".ui-slider-handle").tooltip("dispose");
@@ -167,8 +163,7 @@ function drawGraph(metadata) {
 
     $("#slider-range").slider("enable");
 
-    $("#start-day").val(presentationSelection[0]);
-    $("#end-day").val(presentationSelection[1]);
+    $("#present-range").val(presentationSelection[0] + " - " + presentationSelection[1]);
 
     $(".ui-slider-handle").tooltip("dispose");
     for (var i = 0; i < 2; ++i) {
