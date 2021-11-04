@@ -48,15 +48,16 @@ hr {
 $("body").css("cursor", "progress");
 
 var margin = {top: 20, right: 10, bottom: 10, left: 10},
-    contentMargin = 20,
+    contentMargin = 40,
     minThickness = 2,
     maxThickness = 6,
+    daytimeTemplate = "{{ url_for('daytime', start_sec='1', end_sec='2') }}",
+    linkTemplate = "{{ url_for('url', url_id=0) }}",
     dateFormat = d3.timeFormat('%-d.%-m.%Y'),
     dateParse = d3.timeParse("%Y-%m-%d"),
     dateEnd = new Date(),
     dateStart = new Date(dateEnd.getTime() - 5 * 365 * 24 * 3600000),
-    fragment = location.hash,
-    daytimeTemplate = "{{ url_for('daytime', start_sec='1', end_sec='2') }}";
+    fragment = location.hash;
 
 if (fragment && (fragment[0] == '#')) {
     var secondArray = fragment.slice(1).split('/').map(s => ( parseInt(s)) );
@@ -73,9 +74,9 @@ var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
     return Math.floor(date.getTime() / 1000);
 });
 
-d3.json(daytime).then(drawGraph);
+d3.json(daytime).then(update);
 
-var sliderLastValues = [ null, null ];
+sliderLastValues = [ null, null ];
 
 $("#slider-range").slider({
     range: true,
@@ -127,35 +128,39 @@ $("#search-button").on("click", function (e) {
     $("#slider-range").slider("disable");
 
     d3.select("svg").remove();
-    d3.json(daytime).then(drawGraph);
+    d3.json(daytime).then(update);
 });
 
-function drawGraph(metadata) {
-    var width = window.innerWidth - contentMargin - margin.left - margin.right,
-        thickness = minThickness,
-        minHeight = 800 - margin.top - margin.bottom,
-        height = thickness * metadata.dayDesc.length;
+resizeTimer = null;
+lastWidth = null;
 
-    if (height < minHeight) {
-        height = minHeight;
-        thickness = Math.floor(height / metadata.dayDesc.length);
-        if (thickness > maxThickness) {
-            thickness = maxThickness;
-        }
+window.onresize = function (event) {
+    if (window.innerWidth == lastWidth) {
+        return;
     }
 
-    var svg = d3.select("#the_graph").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform",
-              "translate(" + margin.left + "," + margin.top + ")");
+    lastWidth = window.innerWidth;
 
-    var sliderRange = metadata.dateExtent.map(d => ( dateParse(d).getTime() / 1000 )),
+    if (resizeTimer) {
+        clearTimeout(resizeTimer);
+    }
+
+    resizeTimer = setTimeout(function () {
+        d3.select("svg").remove();
+        draw();
+    }, 100);
+};
+
+function update(mt) {
+    metadata = mt;
+    maxLength = d3.max(metadata.dayDesc, d => ( d[1] ));
+
+    var runningTotal,
+        data,
+        sliderRange = metadata.dateExtent.map(d => ( dateParse(d).getTime() / 1000 )),
         seconds = metadata.dayDesc.map(d => ( dateParse(d[0]).getTime() / 1000 )),
         sliderSelection = [ d3.min(seconds), d3.max(seconds) ],
-        presentationSelection = sliderSelection.map(d => ( dateFormat(new Date(1000 * d)) )),
-        maxLength = d3.max(metadata.dayDesc, d => ( d[1] ));
+        presentationSelection = sliderSelection.map(d => ( dateFormat(new Date(1000 * d)) ));
 
     $("#slider-range").slider("option", {
         min: sliderRange[0],
@@ -176,6 +181,54 @@ function drawGraph(metadata) {
         });
     }
 
+    matrix = [];
+    for (var idx = 0; idx < metadata.dayDesc.length; ++idx) {
+        runningTotal = 0;
+        data = metadata.dayLines[idx].map(function (d) {
+            var indir = d[0],
+                it = {
+                    'name': metadata.names[indir],
+                    'color': metadata.colors[indir],
+                    'url': linkTemplate.replace("0", d[2]),
+                    'since': runningTotal
+                };
+
+            runningTotal += d[1];
+            it['until'] = runningTotal;
+
+            return it;
+        });
+
+        matrix.push(data);
+    }
+
+    draw();
+
+    location.hash = '#' + sliderSelection[0] + "/" + sliderSelection[1];
+    $("body").css("cursor", "default");
+}
+
+function draw() {
+    var width = window.innerWidth - contentMargin - margin.left - margin.right,
+        thickness = minThickness,
+        minHeight = 800 - margin.top - margin.bottom,
+        height = thickness * metadata.dayDesc.length;
+
+    if (height < minHeight) {
+        height = minHeight;
+        thickness = Math.floor(height / metadata.dayDesc.length);
+        if (thickness > maxThickness) {
+            thickness = maxThickness;
+        }
+    }
+
+    var svg = d3.select("#the_graph").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+              "translate(" + margin.left + "," + margin.top + ")");
+
     var x = d3.scaleLinear()
         .domain([0, maxLength])
         .range([0, width]);
@@ -190,25 +243,9 @@ function drawGraph(metadata) {
 
     for (var idx = 0; idx < metadata.dayDesc.length; ++idx) {
         var dummy = function (idx) {
-            var template = "{{ url_for('url', url_id=0) }}",
-                description = metadata.dayDesc[idx],
+            var description = metadata.dayDesc[idx],
                 lineDate = dateFormat(dateParse(description[0])),
-                timeline = metadata.dayLines[idx],
-                runningTotal = 0,
-                data = timeline.map(function (d) {
-                    var indir = d[0],
-                        it = {
-                            'name': metadata.names[indir],
-                            'color': metadata.colors[indir],
-                            'url': template.replace("0", d[2]),
-                            'since': runningTotal
-                        };
-
-                    runningTotal += d[1];
-                    it['until'] = runningTotal;
-
-                    return it;
-                });
+                data = matrix[idx];
 
             svg.append("g")
                 .selectAll('line')
@@ -244,9 +281,6 @@ function drawGraph(metadata) {
     svg.append("g")
         .attr("class", "x axis")
         .call(xAxis);
-
-    location.hash = '#' + sliderSelection[0] + "/" + sliderSelection[1];
-    $("body").css("cursor", "default");
 }
 
 </script>
