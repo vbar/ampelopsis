@@ -4,13 +4,14 @@
 
 import os
 import sys
-from common import get_option, make_connection
+from common import get_loose_path, get_option, make_connection
 from show_case import ShowCase
 from token_util import tokenize
 
 class Processor(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
+        self.simple_repre = get_option("simple_representation", "simple")
         self.hamlet2id = {}
         cur.execute("""select id, hamlet_name
 from steno_record
@@ -39,6 +40,14 @@ order by id""")
 values(%s, %s, %s, %s, %s)
 on conflict(speech_id) do update
 set speaker_id=%s, speech_day=%s, speech_order=%s, word_count=%s""", (speech_id, speaker_id, day, speech_order, length, speaker_id, day, speech_order, length))
+
+        simple_path = get_loose_path(speech_id, alt_repre=self.simple_repre)
+        if os.path.exists(simple_path):
+            with open(simple_path, 'r') as f:
+                content = f.read()
+                self.cur.execute("""update steno_speech
+set content=to_tsvector('steno_config', %s)
+where speech_id=%s""", (content, speech_id))
 
 
 def main():
