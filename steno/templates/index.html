@@ -23,12 +23,15 @@ hr {
 
 {% block content %}
 <div class="container-fluid">
-  <div id="search-row" class="row g-3">
+  <div id="search-row" class="row g-4">
     <div class="col-2">
       <input class="form-control form-control-sm" type="text" id="present-range" readonly>
     </div>
-    <div class="col-9">
+    <div class="col-6">
       <div class="form-group" id="slider-range"></div>
+    </div>
+    <div class="col-3">
+      <input class="form-control form-control-sm" type="text" id="search-text">
     </div>
     <div class="col-1">
       <button id="search-button" class="btn btn-primary mb-3">Hledat</button>
@@ -56,18 +59,33 @@ var margin = {top: 20, right: 10, bottom: 10, left: 10},
     dateParse = d3.timeParse("%Y-%m-%d"),
     dateEnd = new Date(),
     dateStart = new Date(dateEnd.getTime() - 5 * 365 * 24 * 3600000),
-    fragment = location.hash;
+    searchText = "",
+    fragment = location.hash,
+    rawArray,
+    segment;
 
 if (fragment && (fragment[0] == '#')) {
-    var secondArray = fragment.slice(1).split('/').map(s => ( parseInt(s)) );
+    rawArray = fragment.slice(1).split('/');
+    if (rawArray.length >= 2) {
+        for (var idx = 0; idx < 2; ++idx) {
+            segment = parseInt(rawArray[idx]);
+            if (!isNaN(segment)) {
+                secondArray.push(segment);
+            }
+        }
+    }
 
-    if ((secondArray.length == 2) && !isNaN(secondArray[0]) && !isNaN(secondArray[1])) {
+    if (secondArray.length == 2) {
         dateStart = new Date(1000 * secondArray[0]);
         dateEnd = new Date(1000 * secondArray[1]);
     }
+
+    if (rawArray.length >= 3) {
+        searchText = decodeURIComponent(rawArray[2]);
+    }
 }
 
-d3.json(getDataUrlFromDates(dateStart, dateEnd)).then(update);
+d3.json(getDataUrlFromDates(dateStart, dateEnd, searchText)).then(update);
 
 sliderLastValues = [ null, null ];
 
@@ -123,7 +141,7 @@ $("#search-button").on("click", function (e) {
     slider.slider("disable");
 
     d3.select("svg").remove();
-    d3.json(getDataUrl(rng[0], rng[1])).then(update);
+    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update);
 });
 
 resizeTimer = null;
@@ -146,14 +164,19 @@ window.onresize = function (event) {
     }, 100);
 };
 
-function getDataUrlFromDates(sinceDate, untilDate) {
-    return getDataUrl(Math.floor(sinceDate.getTime() / 1000), Math.floor(untilDate.getTime() / 1000));
+function getDataUrlFromDates(sinceDate, untilDate, searchFilter) {
+    return getDataUrl(Math.floor(sinceDate.getTime() / 1000), Math.floor(untilDate.getTime() / 1000), searchFilter);
 }
 
-function getDataUrl(sinceSec, untilSec) {
-    var daytimeTemplate = "{{ url_for('daytime') }}";
+function getDataUrl(sinceSec, untilSec, searchFilter) {
+    var daytimeTemplate = "{{ url_for('daytime') }}",
+        url = daytimeTemplate + "?ts=" + sinceSec + "&tu=" + untilSec;
 
-    return daytimeTemplate + "?st=" + sinceSec + "&ut=" + untilSec;
+    if (searchFilter) {
+        url += "&s=" + encodeURIComponent(searchFilter);
+    }
+
+    return url;
 }
 
 function update(mt) {
@@ -162,10 +185,21 @@ function update(mt) {
 
     var runningTotal,
         data,
+        fragment,
+        searchFilter = $("#search-text").val(),
         sliderRange = metadata.dateExtent.map(d => ( dateParse(d).getTime() / 1000 )),
-        seconds = metadata.dayDesc.map(d => ( dateParse(d[0]).getTime() / 1000 )),
-        sliderSelection = [ d3.min(seconds), d3.max(seconds) ],
-        presentationSelection = sliderSelection.map(d => ( dateFormat(new Date(1000 * d)) ));
+        seconds,
+        sliderSelection,
+        presentationSelection;
+
+    if (metadata.dayDesc.length) {
+        seconds = metadata.dayDesc.map(d => ( dateParse(d[0]).getTime() / 1000 ));
+        sliderSelection = [ d3.min(seconds), d3.max(seconds) ];
+    } else {
+        sliderSelection = sliderRange;
+    }
+
+    presentationSelection = sliderSelection.map(d => ( dateFormat(new Date(1000 * d)) ));
 
     $("#slider-range").slider("option", {
         min: sliderRange[0],
@@ -209,7 +243,14 @@ function update(mt) {
 
     draw();
 
-    location.hash = '#' + sliderSelection[0] + "/" + sliderSelection[1];
+    fragment = '#' + sliderSelection[0] + "/" + sliderSelection[1];
+    if (searchFilter) {
+        fragment += "/";
+        fragment += encodeURIComponent(searchFilter);
+    }
+
+    location.hash = fragment;
+
     $("body").css("cursor", "default");
 }
 

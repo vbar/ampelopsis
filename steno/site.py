@@ -9,6 +9,8 @@ from steno import app
 
 Speaker = collections.namedtuple('Speaker', 'name card')
 
+SearchFilter = collections.namedtuple('SearchFilter', 'start_date end_date search_text')
+
 def list_persons(cur):
     names = []
     colors = []
@@ -32,13 +34,21 @@ order by id""")
     return (names, colors)
 
 
-def list_days(cur, start_date, end_date):
+def list_days(cur, sf):
     description = []
-    cur.execute("""select speech_day, sum(word_count) total
+    if not sf.search_text:
+        cur.execute("""select speech_day, sum(word_count) total
 from steno_speech
 where (speech_day>=%s) and (speech_day<=%s)
 group by speech_day
-order by speech_day""", (start_date, end_date))
+order by speech_day""", (sf.start_date, sf.end_date))
+    else:
+        cur.execute("""select speech_day, sum(word_count) total
+from steno_speech
+where (speech_day>=%s) and (speech_day<=%s) and (content @@ to_tsquery('steno_config', %s))
+group by speech_day
+order by speech_day""", (sf.start_date, sf.end_date, sf.search_text))
+
     rows = cur.fetchall()
     for day, total in rows:
         out = [ day.isoformat(), total ]
@@ -47,14 +57,21 @@ order by speech_day""", (start_date, end_date))
     return description
 
 
-def list_details(cur, start_date, end_date):
+def list_details(cur, sf):
     daylines = []
     cur_day = None
     timeline = None
-    cur.execute("""select speech_day, speech_id, speaker_id, word_count
+    if not sf.search_text:
+        cur.execute("""select speech_day, speech_id, speaker_id, word_count
 from steno_speech
 where (speech_day>=%s) and (speech_day<=%s)
-order by speech_day, speech_order""", (start_date, end_date))
+order by speech_day, speech_order""", (sf.start_date, sf.end_date))
+    else:
+        cur.execute("""select speech_day, speech_id, speaker_id, word_count
+from steno_speech
+where (speech_day>=%s) and (speech_day<=%s) and (content @@ to_tsquery('steno_config', %s))
+order by speech_day, speech_order""", (sf.start_date, sf.end_date, sf.search_text))
+
     rows = cur.fetchall()
     for day, speech_id, speaker_id, length in rows:
         if cur_day != day:
@@ -131,8 +148,9 @@ def index():
 @app.route('/daytime')
 @databased
 def daytime():
-    start_sec = request.args.get('st')
-    end_sec = request.args.get('ut')
+    search = request.args.get('s')
+    start_sec = request.args.get('ts')
+    end_sec = request.args.get('tu')
     if (not start_sec) or (not end_sec):
         abort(400)
 
@@ -141,13 +159,14 @@ def daytime():
 
     start_date = datetime.utcfromtimestamp(int(start_sec))
     end_date = datetime.utcfromtimestamp(int(end_sec))
+    search_filter = SearchFilter(start_date, end_date, search)
     with g.conn.cursor() as cur:
         names, colors = list_persons(cur)
         custom = {
             'names': names,
             'colors': colors,
-            'dayDesc': list_days(cur, start_date, end_date),
-            'dayLines': list_details(cur, start_date, end_date),
+            'dayDesc': list_days(cur, search_filter),
+            'dayLines': list_details(cur, search_filter),
             'dateExtent': make_date_extent(cur)
         }
 
