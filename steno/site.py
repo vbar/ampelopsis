@@ -2,7 +2,7 @@ import collections
 from datetime import datetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
-from flask import abort, g, jsonify, render_template
+from flask import abort, g, jsonify, render_template, request
 from .database import databased
 from .filesystem import get_detail_doc
 from steno import app
@@ -128,11 +128,19 @@ def index():
     return render_template('index.html', title='index')
 
 
-@app.route('/daytime/<int:start_sec>/<int:end_sec>')
+@app.route('/daytime')
 @databased
-def daytime(start_sec, end_sec):
-    start_date = datetime.utcfromtimestamp(start_sec)
-    end_date = datetime.utcfromtimestamp(end_sec)
+def daytime():
+    start_sec = request.args.get('st')
+    end_sec = request.args.get('ut')
+    if (not start_sec) or (not end_sec):
+        abort(400)
+
+    if (not start_sec.isdigit()) or (not end_sec.isdigit()):
+        abort(400)
+
+    start_date = datetime.utcfromtimestamp(int(start_sec))
+    end_date = datetime.utcfromtimestamp(int(end_sec))
     with g.conn.cursor() as cur:
         names, colors = list_persons(cur)
         custom = {

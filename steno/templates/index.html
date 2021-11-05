@@ -51,7 +51,6 @@ var margin = {top: 20, right: 10, bottom: 10, left: 10},
     contentMargin = 40,
     minThickness = 2,
     maxThickness = 6,
-    daytimeTemplate = "{{ url_for('daytime', start_sec='1', end_sec='2') }}",
     linkTemplate = "{{ url_for('url', url_id=0) }}",
     dateFormat = d3.timeFormat('%-d.%-m.%Y'),
     dateParse = d3.timeParse("%Y-%m-%d"),
@@ -68,13 +67,7 @@ if (fragment && (fragment[0] == '#')) {
     }
 }
 
-var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
-    var date = (match == "1") ? dateStart : dateEnd;
-
-    return Math.floor(date.getTime() / 1000);
-});
-
-d3.json(daytime).then(update);
+d3.json(getDataUrlFromDates(dateStart, dateEnd)).then(update);
 
 sliderLastValues = [ null, null ];
 
@@ -115,20 +108,22 @@ $("#slider-range").slider({
 $("#slider-range").slider("disable");
 
 $("#search-button").on("click", function (e) {
+    var idx,
+        slider = $("#slider-range"),
+        rng = [];
+
     $("body").css("cursor", "progress");
 
     e.stopPropagation();
 
-    var daytime = daytimeTemplate.replace(/[12]/g, function (match) {
-        var idx = (match == "1") ? 0 : 1;
+    for (idx = 0; idx < 2; ++idx) {
+        rng.push(slider.slider("values", idx));
+    }
 
-        return $("#slider-range").slider("values", idx);
-    });
-
-    $("#slider-range").slider("disable");
+    slider.slider("disable");
 
     d3.select("svg").remove();
-    d3.json(daytime).then(update);
+    d3.json(getDataUrl(rng[0], rng[1])).then(update);
 });
 
 resizeTimer = null;
@@ -150,6 +145,16 @@ window.onresize = function (event) {
         draw();
     }, 100);
 };
+
+function getDataUrlFromDates(sinceDate, untilDate) {
+    return getDataUrl(Math.floor(sinceDate.getTime() / 1000), Math.floor(untilDate.getTime() / 1000));
+}
+
+function getDataUrl(sinceSec, untilSec) {
+    var daytimeTemplate = "{{ url_for('daytime') }}";
+
+    return daytimeTemplate + "?st=" + sinceSec + "&ut=" + untilSec;
+}
 
 function update(mt) {
     metadata = mt;
