@@ -10,34 +10,102 @@
 </style>
 {% endblock %}
 
+
 {% block content %}
 <div class="container-fluid">
   <div class="nav-row">
     Steno <a href="/">index</a>
-    {% if model.prev_id %}
-    <a href="{{ url_for('.frame', url_id=model.prev_id) }}">&lt;&lt;</a>
-    {% endif %}
-    {% if model.next_id %}
-    <a href="{{ url_for('.frame', url_id=model.next_id) }}">&gt;&gt;</a>
-    {% endif %}
+    <a id="prev-link">&lt;&lt;</a>
+    <a id="next-link">&gt;&gt;</a>
   </div>
 </div>
 <hr>
 <div class="container">
-  <h1>
-    {% if model.speaker_card %}
-    <a href="{{ model.speaker_card }}" target="_blank">{{ model.speaker_name }}</a>
-    {% else %}
-    {{ model.speaker_name }}
-    {% endif %}
-  </h1>
-  <p><em>{{ model.day }}</em></p>
-  <p>{{ model.text }}</p>
+  <h1 id="main-header"></h1>
+  <p><em id="model-day"></em></p>
+  <p id="model-text"></p>
 </div>
-{% if model.ext_url %}
 <hr>
 <div class="container-fluid">
-  <p><a href="{{ model.ext_url }}" target="_blank">{{ model.ext_url }}</a></p>
+  <p><a id="ext-url" target="_blank"></a></p>
 </div>
-{% endif %}
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+
+var model = {{ model|safe }},
+    selfTemplate = "{{ url_for('.frame', url_id=0) }}",
+    dataTemplate = "{{ url_for('.data', url_id=0) }}";
+
+window.history.replaceState(model, model.title, selfTemplate.replace("0", model.cur_id));
+
+$("#prev-link").on("click", function (event) {
+    if (event.defaultPrevented || !model.prev_id) return;
+
+    d3.json(dataTemplate.replace("0", model.prev_id)).then(function (m) {
+        model = m;
+        window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
+        applyModel();
+    });
+
+    return false;
+});
+
+$("#next-link").on("click", function (event) {
+    if (event.defaultPrevented || !model.next_id) return;
+
+    d3.json(dataTemplate.replace("0", model.next_id)).then(function (m) {
+        model = m;
+        window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
+        applyModel();
+    });
+
+    return false;
+});
+
+window.onpopstate = function (event) {
+    model = event.state;
+    applyModel();
+};
+
+applyModel();
+
+function applyModel() {
+    $("title").text("Steno " + model.title);
+
+    if (model.prev_id) {
+        $("#prev-link").css("visibility", "visible");
+        $("#prev-link").attr("href", selfTemplate.replace("0", model.prev_id));
+    } else {
+        $("#prev-link").css("visibility", "hidden");
+        $("#prev-link").attr("href", "#");
+    }
+
+    if (model.next_id) {
+        $("#next-link").css("visibility", "visible");
+        $("#next-link").attr("href", selfTemplate.replace("0", model.next_id));
+    } else {
+        $("#next-link").css("visibility", "hidden");
+        $("#next-link").attr("href", "#");
+    }
+
+    if (model.speaker_card) {
+        $("#main-header").html('<a target="_blank"/>');
+        $("#main-header a").attr("href", model.speaker_card);
+        $("#main-header a").text(model.speaker_name);
+    } else {
+        $("#main-header").empty();
+        $("#main-header").text(model.speaker_name);
+    }
+
+    $("#model-day").text(model.day);
+    $("#model-text").text(model.text);
+
+    $("#ext-url").text(model.ext_url);
+    $("#ext-url").attr("href", model.ext_url);
+}
+
+</script>
 {% endblock %}

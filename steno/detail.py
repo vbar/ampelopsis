@@ -1,6 +1,7 @@
 import collections
 from dateutil.parser import parse
-from flask import abort, Blueprint, g, render_template
+from flask import abort, Blueprint, g, jsonify, render_template
+import json
 from .database import databased
 from .filesystem import get_detail_doc
 
@@ -47,6 +48,40 @@ limit 1""", (day, order))
     return row[0] if row else None
 
 
+def get_detail_model(cur, url_id, doc):
+    raw_day = doc.get('datum')
+    day = None
+    day_str = None
+    if raw_day:
+        day = parse(raw_day)
+        day_str = day.strftime('%-d.%-m.%Y')
+
+    speaker_name = None
+    speaker_card = None
+    speaker = get_speaker(cur, url_id)
+    if speaker:
+        speaker_name = speaker.name
+        speaker_card = speaker.card
+
+    if not speaker_name:
+        speaker_name = doc.get('celeJmeno')
+
+    order = doc.get('poradi')
+    model = {
+        'cur_id': url_id,
+        'title': doc.get('Id'),
+        'text': doc.get('text'),
+        'day': day_str,
+        'speaker_name': speaker_name,
+        'speaker_card': speaker_card,
+        'prev_id': get_prev_speech(cur, day, order),
+        'next_id': get_next_speech(cur, day, order),
+        'ext_url': doc.get('url')
+    }
+
+    return model
+
+
 @bp.route('/<int:url_id>')
 @databased
 def frame(url_id):
@@ -55,32 +90,17 @@ def frame(url_id):
         abort(404)
 
     with g.conn.cursor() as cur:
-        raw_day = doc.get('datum')
-        day = None
-        day_str = None
-        if raw_day:
-            day = parse(raw_day)
-            day_str = day.strftime('%-d.%-m.%Y')
+        model = get_detail_model(cur, url_id, doc)
+        return render_template('detail.html', title=doc.get('Id'), model=json.dumps(model))
 
-        speaker_name = None
-        speaker_card = None
-        speaker = get_speaker(cur, url_id)
-        if speaker:
-            speaker_name = speaker.name
-            speaker_card = speaker.card
 
-        if not speaker_name:
-            speaker_name = doc.get('celeJmeno')
+@bp.route('/data/<int:url_id>')
+@databased
+def data(url_id):
+    doc = get_detail_doc(url_id)
+    if not doc:
+        abort(404)
 
-        order = doc.get('poradi')
-        model = {
-            'text': doc.get('text'),
-            'day': day_str,
-            'speaker_name': speaker_name,
-            'speaker_card': speaker_card,
-            'prev_id': get_prev_speech(cur, day, order),
-            'next_id': get_next_speech(cur, day, order),
-            'ext_url': doc.get('url')
-        }
-
-        return render_template('detail.html', title=doc.get('Id'), model=model)
+    with g.conn.cursor() as cur:
+        model = get_detail_model(cur, url_id, doc)
+        return jsonify(model)
