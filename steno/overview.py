@@ -1,15 +1,11 @@
 import collections
 from datetime import datetime
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
-from flask import abort, g, jsonify, render_template, request
+from flask import abort, Blueprint, g, jsonify, render_template, request
 from .database import databased
-from .filesystem import get_detail_doc
-from steno import app
-
-Speaker = collections.namedtuple('Speaker', 'name card')
 
 SearchFilter = collections.namedtuple('SearchFilter', 'start_date end_date search_text')
+
+bp = Blueprint('overview', __name__, template_folder='templates')
 
 def list_persons(cur):
     names = []
@@ -100,54 +96,15 @@ from steno_speech""")
         return None
 
 
-def get_speaker(cur, url_id):
-    cur.execute("""select presentation_name, field.url
-from steno_speech
-join steno_record on speaker_id=steno_record.id
-left join field on card_url_id=field.id
-where speech_id=%s""", (url_id,))
-    row = cur.fetchone()
-    if row:
-        return Speaker(row[0], row[1])
-    else:
-        return None
-
-
-def get_prev_speech(cur, day, order):
-    if (not day) or (order is None):
-        return None
-
-    cur.execute("""select speech_id
-from steno_speech
-where speech_day=%s and speech_order<%s
-order by speech_order desc
-limit 1""", (day, order))
-    row = cur.fetchone()
-    return row[0] if row else None
-
-
-def get_next_speech(cur, day, order):
-    if (not day) or (order is None):
-        return None
-
-    cur.execute("""select speech_id
-from steno_speech
-where speech_day=%s and speech_order>%s
-order by speech_order
-limit 1""", (day, order))
-    row = cur.fetchone()
-    return row[0] if row else None
-
-
-@app.route("/")
-@app.route('/index')
-def index():
+@bp.route("/")
+@bp.route('/index')
+def frame():
     return render_template('index.html', title='index')
 
 
-@app.route('/daytime')
+@bp.route('/data')
 @databased
-def daytime():
+def data():
     search = request.args.get('s')
     start_sec = request.args.get('ts')
     end_sec = request.args.get('tu')
@@ -171,42 +128,3 @@ def daytime():
         }
 
         return jsonify(custom)
-
-
-@app.route('/detail/<int:url_id>')
-@databased
-def url(url_id):
-    doc = get_detail_doc(url_id)
-    if not doc:
-        abort(404)
-
-    with g.conn.cursor() as cur:
-        raw_day = doc.get('datum')
-        day = None
-        day_str = None
-        if raw_day:
-            day = parse(raw_day)
-            day_str = day.strftime('%-d.%-m.%Y')
-
-        speaker_name = None
-        speaker_card = None
-        speaker = get_speaker(cur, url_id)
-        if speaker:
-            speaker_name = speaker.name
-            speaker_card = speaker.card
-
-        if not speaker_name:
-            speaker_name = doc.get('celeJmeno')
-
-        order = doc.get('poradi')
-        model = {
-            'text': doc.get('text'),
-            'day': day_str,
-            'speaker_name': speaker_name,
-            'speaker_card': speaker_card,
-            'prev_id': get_prev_speech(cur, day, order),
-            'next_id': get_next_speech(cur, day, order),
-            'ext_url': doc.get('url')
-        }
-
-        return render_template('detail.html', title=doc.get('Id'), model=model)
