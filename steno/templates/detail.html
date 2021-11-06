@@ -35,9 +35,10 @@
 {% block scripts %}
 <script>
 
-var model = {{ model|safe }},
-    selfTemplate = "{{ url_for('.frame', url_id=0) }}",
-    dataTemplate = "{{ url_for('.data', url_id=0) }}";
+model = {{ model|safe }};
+
+const selfTemplate = "{{ url_for('.frame', url_id=0) }}",
+      dataTemplate = "{{ url_for('.data', url_id=0) }}";
 
 window.history.replaceState(model, model.title, selfTemplate.replace("0", model.cur_id));
 

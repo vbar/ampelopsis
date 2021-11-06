@@ -49,14 +49,15 @@ hr {
 
 $("body").css("cursor", "progress");
 
-var margin = {top: 20, right: 10, bottom: 10, left: 10},
-    contentMargin = 40,
-    minThickness = 2,
-    maxThickness = 6,
-    linkTemplate = "{{ url_for('detail.frame', url_id=0) }}",
-    dateFormat = d3.timeFormat('%-d.%-m.%Y'),
-    dateParse = d3.timeParse("%Y-%m-%d"),
-    dateEnd = new Date(),
+const margin = {top: 20, right: 10, bottom: 10, left: 10},
+      contentMargin = 40,
+      minThickness = 2,
+      maxThickness = 6,
+      linkTemplate = "{{ url_for('detail.frame', url_id=0) }}",
+      dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+      dateParse = d3.timeParse("%Y-%m-%d");
+
+var dateEnd = new Date(),
     dateStart = new Date(dateEnd.getTime() - 5 * 365 * 24 * 3600000),
     searchText = "",
     fragment = location.hash,
