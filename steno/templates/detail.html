@@ -27,7 +27,7 @@
 <div class="container-fluid" id="the_graph"></div>
 <div class="container">
   <h1 id="main-header"></h1>
-  <p id="model-text"></p>
+  <div id="model-text"></div>
 </div>
 <hr>
 <div class="container-fluid">
@@ -172,7 +172,17 @@ function applyModel(r=true) {
     }
 
     $("#model-day").text(model.day);
-    $("#model-text").text(model.text);
+
+    var paras = d3.select("#model-text")
+        .selectAll("p")
+        .data(model.paras);
+
+    paras.exit().remove();
+
+    paras.enter()
+        .append("p")
+        .merge(paras)
+        .text(d => ( d ));
 
     $("#ext-url").text(model.ext_url);
     $("#ext-url").attr("href", model.ext_url);

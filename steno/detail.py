@@ -2,6 +2,7 @@ import collections
 from dateutil.parser import parse
 from flask import abort, Blueprint, g, jsonify, render_template
 import json
+import re
 from .database import databased
 from .filesystem import get_detail_doc
 from .shared_model import list_persons
@@ -9,6 +10,8 @@ from .shared_model import list_persons
 Speaker = collections.namedtuple('Speaker', 'name card')
 
 bp = Blueprint('detail', __name__, url_prefix='/detail')
+
+para_rx = re.compile("\n")
 
 def get_speaker(cur, url_id):
     cur.execute("""select presentation_name, field.url
@@ -93,11 +96,17 @@ def get_detail_model(cur, url_id, doc):
     if not speaker_name:
         speaker_name = doc.get('celeJmeno')
 
+    txt = doc.get('text')
+    if txt:
+        paras = [ p for p in para_rx.split(txt) if p ]
+    else:
+        paras = None
+
     order = doc.get('poradi')
     model = {
         'cur_id': url_id,
         'title': doc.get('Id'),
-        'text': doc.get('text'),
+        'paras': paras,
         'day': day_str,
         'speaker_name': speaker_name,
         'speaker_card': speaker_card,
