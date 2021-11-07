@@ -4,6 +4,7 @@ from flask import abort, Blueprint, g, jsonify, render_template
 import json
 from .database import databased
 from .filesystem import get_detail_doc
+from .shared_model import list_persons
 
 Speaker = collections.namedtuple('Speaker', 'name card')
 
@@ -48,6 +49,32 @@ limit 1""", (day, order))
     return row[0] if row else None
 
 
+def get_speech_index(cur, day, order):
+    if (not day) or (order is None):
+        return None
+
+    cur.execute("""select count(*)
+from steno_speech
+where speech_day=%s and speech_order<%s""", (day, order))
+    row = cur.fetchone()
+    return row[0]
+
+
+def list_day_detail(cur, dt):
+    timeline = []
+    cur.execute("""select speech_id, speaker_id, word_count
+from steno_speech
+where speech_day=%s
+order by speech_order""", (dt,))
+    rows = cur.fetchall()
+    for row in rows:
+        item = [ c for c in row ]
+        timeline.append(item)
+
+    return timeline
+
+
+
 def get_detail_model(cur, url_id, doc):
     raw_day = doc.get('datum')
     day = None
@@ -76,6 +103,7 @@ def get_detail_model(cur, url_id, doc):
         'speaker_card': speaker_card,
         'prev_id': get_prev_speech(cur, day, order),
         'next_id': get_next_speech(cur, day, order),
+        'index': get_speech_index(cur, day, order),
         'ext_url': doc.get('url')
     }
 
@@ -89,9 +117,21 @@ def frame(url_id):
     if not doc:
         abort(404)
 
+    raw_day = doc.get('datum')
+    day = None
+    if raw_day:
+        day = parse(raw_day)
+
     with g.conn.cursor() as cur:
         model = get_detail_model(cur, url_id, doc)
-        return render_template('detail.html', title=doc.get('Id'), model=json.dumps(model))
+        names, colors = list_persons(cur)
+
+        if day:
+            timeline = list_day_detail(cur, day)
+        else:
+            timeline = None
+
+        return render_template('detail.html', title=doc.get('Id'), model=json.dumps(model), names=json.dumps(names), colors=json.dumps(colors), timeline=json.dumps(timeline))
 
 
 @bp.route('/data/<int:url_id>')

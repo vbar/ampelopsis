@@ -2,33 +2,11 @@ import collections
 from datetime import datetime
 from flask import abort, Blueprint, g, jsonify, render_template, request
 from .database import databased
+from .shared_model import list_persons
 
 SearchFilter = collections.namedtuple('SearchFilter', 'start_date end_date search_text')
 
 bp = Blueprint('overview', __name__, template_folder='templates')
-
-def list_persons(cur):
-    names = []
-    colors = []
-    cur.execute("""select steno_record.id, presentation_name, color
-from steno_record
-left join steno_party on steno_party.id=steno_record.party_id
-order by id""")
-    rows = cur.fetchall()
-    for person_id, person_name, party_color in rows:
-        while len(names) < person_id:
-            names.append("")
-
-        while len(colors) < person_id:
-            colors.append("")
-
-        names.append(person_name)
-
-        bare_color = party_color or 'AAA'
-        colors.append('#' + bare_color)
-
-    return (names, colors)
-
 
 def list_days(cur, sf):
     description = []

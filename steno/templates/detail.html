@@ -19,7 +19,7 @@
     <a id="next-link">&gt;&gt;</a>
   </div>
 </div>
-<hr>
+<div class="container-fluid" id="the_graph"></div>
 <div class="container">
   <h1 id="main-header"></h1>
   <p><em id="model-day"></em></p>
@@ -37,8 +37,70 @@
 
 model = {{ model|safe }};
 
-const selfTemplate = "{{ url_for('.frame', url_id=0) }}",
+const margin = {top: 20, right: 10, bottom: 10, left: 10},
+      contentMargin = 40,
+      thickness = 6,
+      height = 2.5 * thickness,
+      metaNames = {{ names|safe }},
+      metaColors = {{ colors|safe }},
+      timeline = {{ timeline|safe }},
+      maxLength = d3.sum(timeline, d => ( d[2] )),
+      selfTemplate = "{{ url_for('.frame', url_id=0) }}",
       dataTemplate = "{{ url_for('.data', url_id=0) }}";
+
+var width = window.innerWidth - contentMargin - margin.left - margin.right,
+    runningTotal = 0,
+    data = timeline.map(function (d) {
+        var indir = d[1],
+            it = {
+                'name': metaNames[indir],
+                'color': metaColors[indir],
+                'url_id': d[0],
+                'since': runningTotal
+            };
+
+        runningTotal += d[2];
+        it['until'] = runningTotal;
+
+        return it;
+    });
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+var xScale = d3.scaleLinear()
+    .domain([0, maxLength])
+    .range([0, width]);
+
+var yScale = d3.scaleLinear()
+    .domain([0, 2])
+    .range([0, height]);
+
+svg.append("g")
+    .selectAll('line')
+    .data(data)
+    .enter()
+    .append('line')
+    .attr("stroke", d => ( d.color ))
+    .attr("stroke-width", thickness)
+    .on("click", function (event, d) {
+        if (event.defaultPrevented) return;
+
+        d3.json(dataTemplate.replace("0", d.url_id)).then(function (m) {
+            model = m;
+            window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
+            applyModel();
+        });
+    })
+    .attr('x1', d => ( xScale(d.since) ))
+    .attr('y1', horizLevel)
+    .attr('x2', d => ( xScale(d.until) ))
+    .attr('y2', horizLevel)
+    .append("title").text(d => ( d.name ));
 
 window.history.replaceState(model, model.title, selfTemplate.replace("0", model.cur_id));
 
@@ -71,10 +133,14 @@ window.onpopstate = function (event) {
     applyModel();
 };
 
-applyModel();
+window.onresize = function (event) {
+    redraw();
+};
 
-function applyModel() {
-    $("title").text("Steno " + model.title);
+applyModel(false);
+
+function applyModel(r=true) {
+    $("head title").text("Steno " + model.title);
 
     if (model.prev_id) {
         $("#prev-link").css("visibility", "visible");
@@ -106,6 +172,29 @@ function applyModel() {
 
     $("#ext-url").text(model.ext_url);
     $("#ext-url").attr("href", model.ext_url);
+
+    if (r) {
+        redraw();
+    }
+}
+
+function redraw() {
+    var width = window.innerWidth - contentMargin - margin.left - margin.right,
+        svg = d3.select("svg"); // width cannot be set on global variable
+
+    xScale.range([0, width]);
+
+    svg.attr("width", width + margin.left + margin.right);
+
+    svg.selectAll('line')
+        .attr('x1', d => ( xScale(d.since) ))
+        .attr('y1', horizLevel)
+        .attr('x2', d => ( xScale(d.until) ))
+        .attr('y2', horizLevel);
+}
+
+function horizLevel(d, i) {
+    return yScale((i == model.index) ? 0 : 1);
 }
 
 </script>
