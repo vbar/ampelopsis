@@ -20,7 +20,7 @@ order by speech_day""", (sf.start_date, sf.end_date))
     else:
         cur.execute("""select speech_day, sum(word_count) total
 from steno_speech
-where (speech_day>=%s) and (speech_day<=%s) and (content @@ to_tsquery('steno_config', %s))
+where (speech_day>=%s) and (speech_day<=%s) and (content @@ plainto_tsquery('steno_config', %s))
 group by speech_day
 order by speech_day""", (sf.start_date, sf.end_date, sf.search_text))
 
@@ -44,7 +44,7 @@ order by speech_day, speech_order""", (sf.start_date, sf.end_date))
     else:
         cur.execute("""select speech_day, speech_id, speaker_id, word_count
 from steno_speech
-where (speech_day>=%s) and (speech_day<=%s) and (content @@ to_tsquery('steno_config', %s))
+where (speech_day>=%s) and (speech_day<=%s) and (content @@ plainto_tsquery('steno_config', %s))
 order by speech_day, speech_order""", (sf.start_date, sf.end_date, sf.search_text))
 
     rows = cur.fetchall()
