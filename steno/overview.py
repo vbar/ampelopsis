@@ -2,6 +2,7 @@ import collections
 from datetime import datetime
 from flask import abort, Blueprint, g, jsonify, render_template, request
 from .database import databased
+from .morphodita_conv import stem_text
 from .shared_model import list_persons
 
 SearchFilter = collections.namedtuple('SearchFilter', 'start_date end_date search_text')
@@ -94,7 +95,8 @@ def data():
 
     start_date = datetime.utcfromtimestamp(int(start_sec))
     end_date = datetime.utcfromtimestamp(int(end_sec))
-    search_filter = SearchFilter(start_date, end_date, search)
+    # FIXME: should warn when search text is ignored (i.e. has no words)
+    search_filter = SearchFilter(start_date, end_date, stem_text(search))
     with g.conn.cursor() as cur:
         names, colors = list_persons(cur)
         custom = {
