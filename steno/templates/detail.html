@@ -7,6 +7,10 @@
     margin-top: 16px;
 }
 
+#model-day {
+    margin-left: 8px;
+}
+
 </style>
 {% endblock %}
 
@@ -15,6 +19,7 @@
 <div class="container-fluid">
   <div class="nav-row">
     Steno <a href="/">index</a>
+    <em id="model-day"></em>
     <a id="prev-link">&lt;&lt;</a>
     <a id="next-link">&gt;&gt;</a>
   </div>
@@ -22,7 +27,6 @@
 <div class="container-fluid" id="the_graph"></div>
 <div class="container">
   <h1 id="main-header"></h1>
-  <p><em id="model-day"></em></p>
   <p id="model-text"></p>
 </div>
 <hr>
