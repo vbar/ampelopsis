@@ -11,6 +11,7 @@ from mem_cache import MemCache
 from page_parser import PageParser
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
+from url_templates import session_archive_rx, session_index_tmpl
 from volume_holder import VolumeHolder
 
 class PolyParser(VolumeHolder, HostCheck):
@@ -55,17 +56,29 @@ order by nameval""")
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
 
+    def get_url_state(self, url_id):
+        self.cur.execute("""select url, failed
+from field
+left join download_error on id=url_id
+where id=%s""", (url_id,))
+        row = self.cur.fetchone()
+        return (row[0], row[1]) if row else None
+
     def parse_all(self):
         row = self.pop_work_item()
         while row:
             url_id = row[0]
 
-            url = self.get_url(url_id)
-            if not url:
+            pair = self.get_url_state(url_id)
+            if not pair:
                 print("URL %d not found" % (url_id,), file=sys.stderr)
             else:
-                volume_id = self.get_volume_id(url_id)
-                self.parse(url_id, url, volume_id)
+                url, fail_flag = pair
+                if not fail_flag:
+                    volume_id = self.get_volume_id(url_id)
+                    self.parse(url_id, url, volume_id)
+                else:
+                    self.parse_alt(url_id, url)
 
             row = self.pop_work_item()
 
@@ -104,6 +117,17 @@ from download_queue""")
                 parser.parse_links(reader)
             finally:
                 reader.close()
+
+        self.cur.execute("""update field
+set parsed=localtimestamp
+where id=%s""", (url_id,))
+
+    def parse_alt(self, url_id, url):
+        m = session_archive_rx.match(url)
+        if m:
+            index_url = session_index_tmpl.format(m.group(1), m.group(2))
+            print("switching %s -> %s" % (url, index_url), file=sys.stderr)
+            self.add_link(index_url)
 
         self.cur.execute("""update field
 set parsed=localtimestamp
