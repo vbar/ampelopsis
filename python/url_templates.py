@@ -1,3 +1,4 @@
+import re
 from url_util import compile_url_pattern
 
 legislature_index_tmpl = "https://www.psp.cz/eknih/{0}ps/stenprot/zip/index.htm"
@@ -10,7 +11,13 @@ session_index_tmpl = session_folder_tmpl + "index.htm"
 
 session_page_tmpl = session_folder_tmpl + "{2}.html"
 
-segment_tmpl = session_folder_tmpl + "s{2}.htm"
+segment_local_name = "s{2}.htm"
+
+segment_tmpl = session_folder_tmpl + segment_local_name
+
+speaker_mp_tmpl = "https://www.psp.cz/sqw/detail.sqw?id="
+
+speaker_minister_tmpl = "https://www.vlada.cz/cz/clenove-vlady/"
 
 legislature_index_rx = compile_url_pattern(legislature_index_tmpl)
 
@@ -21,3 +28,7 @@ session_index_rx = compile_url_pattern(session_index_tmpl)
 session_page_rx = compile_url_pattern(session_page_tmpl, last_grp="[0-9-]+")
 
 segment_rx = compile_url_pattern(segment_tmpl, whole=False, last_grp="[0-9]+")
+
+segment_local_rx = compile_url_pattern(segment_local_name, whole=False, last_grp="[0-9]+")
+
+speaker_rx = re.compile('^(?:' + re.escape(speaker_mp_tmpl) + '|' + re.escape(speaker_minister_tmpl) + ')')

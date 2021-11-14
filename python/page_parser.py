@@ -1,6 +1,7 @@
 from lxml import etree
 from urllib.parse import urljoin
-from url_templates import legislature_index_rx, segment_rx, session_archive_rx, session_index_rx, session_page_rx
+import zipfile
+from url_templates import legislature_index_rx, segment_local_rx, segment_rx, session_archive_rx, session_index_rx, session_page_rx, speaker_rx
 
 
 class PageParser:
@@ -11,8 +12,10 @@ class PageParser:
 
         schema = (
             ( legislature_index_rx, self.process_legislature ),
+            ( session_archive_rx, self.process_archive ),
             ( session_index_rx, self.process_session ),
-            ( session_page_rx, self.process_page )
+            ( session_page_rx, self.process_page ),
+            ( segment_rx, self.process_segment )
         )
 
         self.match = None
@@ -25,21 +28,31 @@ class PageParser:
 
     def parse_links(self, fp):
         if not self.match:
-            # archive or session page
+            # speaker/external page
             return
 
         self.process(fp)
 
     def process_legislature(self, fp):
-        self.process_index(fp, session_archive_rx)
+        self.process_html(fp, session_archive_rx)
+
+    def process_archive(self, fp):
+        with zipfile.ZipFile(fp) as zp:
+            for info in zp.infolist():
+                if segment_local_rx.match(info.filename):
+                    with zp.open(info) as f:
+                        self.process_segment(f)
 
     def process_session(self, fp):
-        self.process_index(fp, session_page_rx)
+        self.process_html(fp, session_page_rx)
 
     def process_page(self, fp):
-        self.process_index(fp, segment_rx)
+        self.process_html(fp, segment_rx)
 
-    def process_index(self, fp, child_rx):
+    def process_segment(self, fp):
+        self.process_html(fp, speaker_rx)
+
+    def process_html(self, fp, child_rx):
         context = etree.iterparse(fp, events=('end',), tag=('a', 'base'), html=True, recover=True)
         for action, elem in context:
             if not self.found_base and (elem.tag == 'base'):
