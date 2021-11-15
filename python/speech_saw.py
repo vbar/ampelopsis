@@ -97,18 +97,20 @@ where url=%s""", (url,))
     def process_archive(self, fp):
         base_url = session_folder_tmpl.format(self.legislature_id, self.session_id)
         with zipfile.ZipFile(fp) as zp:
-            day_map = {}
-            segment_map = {}
+            day_map = {} # (int, int) -> info
+            segment_map = {} # filename -> info
             for info in zp.infolist():
                 filename = info.filename
-                if page_local_rx.match(filename):
-                    day_map[filename] = info
+                m = page_local_rx.match(filename)
+                if m:
+                    key = tuple([ int(m.group(n)) for n in range(1, 3) ])
+                    day_map[key] = info
                 elif segment_local_rx.match(filename):
                     segment_map[filename] = info
 
-            for page, info in sorted(day_map.items()):
+            for key, info in sorted(day_map.items()):
+                self.base = base_url + info.filename
                 with zp.open(info) as f:
-                    self.base = base_url + page
                     self.process_archive_day(zp, segment_map, f)
 
     def process_archive_day(self, zp, segment_map, fp):
