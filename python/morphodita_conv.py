@@ -48,7 +48,7 @@ def split_position_name(tagger, txt, strictly_sentence=False):
 
                 i -= 1
                 tailing = len(rev_tail) > old_length
-        elif sentence_no == 1:
+        else:
             # only accepting single-sentence paragraphs
             if strictly_sentence:
                 raise Exception("unexpected multiple sentences")
