@@ -9,33 +9,38 @@ import yaml
 import zipfile
 from common import make_connection
 from cursor_wrapper import CursorWrapper
+from morphodita_conv import make_tagger, split_position_name
 from url_templates import page_local_rx, segment_local_rx, segment_rx, session_archive_rx, session_folder_tmpl, session_page_rx, speaker_rx
 from volume_holder import VolumeHolder
 
-nbsp_rx = re.compile('\xa0')
+nbsp_rx = re.compile('(?:\xa0|\\s)+')
+
+def clean_text_node(raw_text):
+    text = nbsp_rx.sub(' ', raw_text)
+    return text.strip()
+
 
 def clean_text(text_nodes):
     texts = []
     for raw_text in text_nodes:
-        semi_text = nbsp_rx.sub(' ', raw_text)
-        texts.append(semi_text.strip())
+        texts.append(clean_text_node(raw_text))
 
     return " ".join(texts)
 
 
 class SpeechSaw(VolumeHolder, CursorWrapper):
-    def __init__(self, cur):
+    def __init__(self, cur, tagger):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
         self.html_parser = etree.HTMLParser()
+        self.tagger = tagger
         self.orig_url = None
         self.legislature_id = None
         self.session_id = None
         self.base = None
         self.nav_count = None
         self.current_date = None
-        self.current_speaker_link = None
-        self.current_speaker_text = None
+        self.current_speaker = None
         self.current_text = None
         self.processing_order = 0
 
@@ -208,11 +213,20 @@ where url=%s""", (url,))
                     if switched:
                         raise Exception("multiple speakers in one paragraph")
 
-                    if self.current_speaker_link:
-                        self.flush()
+                    self.flush()
 
-                    self.current_speaker_link = link
-                    self.current_speaker_text = clean_text(a.xpath('.//text()'))
+                    self.current_speaker = {
+                        'url': link
+                    }
+
+                    speaker_text = clean_text(a.xpath('.//text()'))
+                    if speaker_text:
+                        self.current_speaker['text'] = speaker_text
+                        pn = split_position_name(self.tagger, speaker_text, True)
+                        if pn:
+                            self.current_speaker['position'] = pn[0]
+                            self.current_speaker['name'] = pn[1]
+
                     self.current_text = ""
                     switched = True
                 # fragments of this page would match segment; consider
@@ -228,10 +242,34 @@ where url=%s""", (url,))
                 # stay current)
                 return False
 
-        if self.current_speaker_link is None: # didn't start yet
+        text_nodes = p.xpath('.//text()')
+        if len(text_nodes):
+            speaker_text = clean_text_node(text_nodes[0])
+            if switched: # no reason to parse the name twice...
+                # ...but we should check
+                if self.current_speaker['text'] != speaker_text:
+                    raise Exception("anchor text doesn't match paragraph start")
+
+                text_nodes = text_nodes[1:]
+            else:
+                pn = split_position_name(self.tagger, speaker_text, False)
+                if pn:
+                    self.flush()
+
+                    self.current_speaker = {
+                        'text': speaker_text,
+                        'position': pn[0],
+                        'name': pn[1]
+                    }
+
+                    self.current_text = ""
+                    # not setting switched b/c it isn't used below
+                    text_nodes = text_nodes[1:]
+
+        if not self.current_speaker: # didn't start yet
             return True
 
-        text = clean_text(p.xpath('.//text()'))
+        text = clean_text(text_nodes)
         if text:
             if self.current_text:
                 self.current_text += " "
@@ -241,19 +279,13 @@ where url=%s""", (url,))
         return True
 
     def flush(self):
-        if not self.current_speaker_link:
+        if not self.current_speaker:
             return
 
         self.processing_order += 1
 
-        if self.current_text:
-            if self.current_text.startswith(self.current_speaker_text):
-                current_text = self.current_text[len(self.current_speaker_text):].lstrip()
-            else:
-                current_text = self.current_text
-
-            if current_text and (current_text[0] == ":"):
-                current_text = current_text[1:].lstrip()
+        if self.current_text and (self.current_text[0] == ":"):
+            current_text = self.current_text[1:].lstrip()
         else:
             current_text = self.current_text
 
@@ -261,11 +293,13 @@ where url=%s""", (url,))
             'legislature': int(self.legislature_id),
             'session': int(self.session_id),
             'order': self.processing_order,
-            'speaker_text': self.current_speaker_text,
-            'speaker_url': self.current_speaker_link,
             'text': current_text,
             'orig_url': self.orig_url
         }
+
+        for field_name in ('text', 'position', 'name', 'url'):
+            if field_name in self.current_speaker:
+                out['speaker_' + field_name] = self.current_speaker[field_name]
 
         if self.current_date:
             out['date'] = self.current_date.isoformat()
@@ -280,7 +314,9 @@ def main():
     conn = make_connection()
     try:
         with conn.cursor() as cur:
-            saw = SpeechSaw(cur)
+            print("loading tagger...", file=sys.stderr)
+            tagger = make_tagger()
+            saw = SpeechSaw(cur, tagger)
             try:
                 for a in sys.argv[1:]:
                     saw.run(a)

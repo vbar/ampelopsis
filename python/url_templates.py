@@ -29,7 +29,7 @@ session_index_rx = compile_url_pattern(session_index_tmpl)
 
 session_page_rx = compile_url_pattern(session_page_tmpl, last_grp="[0-9-]+")
 
-page_local_rx = compile_url_pattern(page_local_name, last_grp="[0-9-]+")
+page_local_rx = compile_url_pattern(page_local_name, last_grp="([0-9]+)-([0-9]+)")
 
 segment_rx = compile_url_pattern(segment_tmpl, whole=False, last_grp="[0-9]+")
 
