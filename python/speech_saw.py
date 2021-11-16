@@ -306,6 +306,8 @@ where url=%s""", (url,))
 
         self.pass_out(out)
 
+
+class SpeechPrinter(SpeechSaw):
     def pass_out(self, out):
         print(yaml.dump(out, allow_unicode=True))
 
@@ -316,7 +318,7 @@ def main():
         with conn.cursor() as cur:
             print("loading tagger...", file=sys.stderr)
             tagger = make_tagger()
-            saw = SpeechSaw(cur, tagger)
+            saw = SpeechPrinter(cur, tagger)
             try:
                 for a in sys.argv[1:]:
                     saw.run(a)
