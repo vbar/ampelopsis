@@ -21,6 +21,8 @@ speaker_mp_tmpl = "https://www.psp.cz/sqw/detail.sqw?id="
 
 speaker_minister_tmpl = "https://www.vlada.cz/cz/clenove-vlady/"
 
+synth_url_tmpl = "http://localhost/{0}ps/{1}schuz/{2}"
+
 legislature_index_rx = compile_url_pattern(legislature_index_tmpl)
 
 session_archive_rx = compile_url_pattern(session_archive_tmpl)
