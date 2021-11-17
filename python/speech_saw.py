@@ -195,12 +195,21 @@ where url=%s""", (url,))
                         self.current_date = dt
 
     def accumulate(self, p):
-        if 'date' == p.get('class'):
+        pid = p.get('id')
+        if pid in ('breadcrumb', 'logo'):
+            return True
+
+        pclass = p.get('class')
+        if pclass == 'no-screen':
+            return True
+        elif pclass == 'date':
             date_text = clean_text(p.xpath('.//text()'))
             if date_text:
                 dt = dateparser.parse(date_text, languages=['cs'])
                 if dt:
                     self.current_date = dt
+
+            return True
 
         anchors = p.xpath('.//a')
         switched = False
@@ -232,15 +241,11 @@ where url=%s""", (url,))
                 # fragments of this page would match segment; consider
                 # only links to different pages
                 elif (href[0] != '#') and segment_rx.match(link):
-                    # we're in navigation paragraph...
                     par_nav_count += 1
 
         if par_nav_count:
             self.nav_count += 1
-            if self.nav_count == 2:
-                # ...at document end (but if there's a speaker, they
-                # stay current)
-                return False
+            return self.nav_count == 1
 
         text_nodes = p.xpath('.//text()')
         if len(text_nodes):
@@ -272,7 +277,7 @@ where url=%s""", (url,))
         text = clean_text(text_nodes)
         if text:
             if self.current_text:
-                self.current_text += " "
+                self.current_text += "\n"
 
             self.current_text += text
 
