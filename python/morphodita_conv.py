@@ -1,7 +1,10 @@
 import os
+import re
 from ufal.morphodita import *
 from common import get_option
 from opt_util import get_cache_path
+
+lemma_tail_rx = re.compile("^([^-]+)-[0-9]+$")
 
 def make_tagger():
     stemmer_data = get_cache_path(get_option("morphodita_tagger_file", "czech-morfflex-pdt-161115.tagger"))
@@ -44,7 +47,9 @@ def split_position_name(tagger, txt, strictly_sentence=False):
                         lemma_tail = raw_lemma[semi_pos+2:]
                         # some first names (e.g. Filip) are also last names
                         if lemma_tail in ('S', 'Y'):
-                            rev_tail.append(lemma)
+                            m = lemma_tail_rx.match(lemma)
+                            lemma_head = m.group(1) if m else lemma
+                            rev_tail.append(lemma_head)
 
                 i -= 1
                 tailing = len(rev_tail) > old_length
