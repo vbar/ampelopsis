@@ -1,13 +1,13 @@
 from lxml import etree
 from urllib.parse import urljoin
 import zipfile
-from html_lookup import HtmlLookup
-from url_templates import legislature_index_rx, segment_local_rx, segment_rx, session_archive_rx, session_index_rx, session_page_rx, speaker_mp_rx, speaker_rx
+from html_lookup import make_card_query_urls
+from url_templates import legislature_index_rx, segment_local_rx, segment_rx, session_archive_rx, session_index_rx, session_page_rx, speaker_rx
 
-class PageParser(HtmlLookup):
+class PageParser:
     def __init__(self, owner, url):
-        HtmlLookup.__init__(self)
         self.owner = owner
+        self.orig_url = url
         self.base = url
         self.found_base = False
 
@@ -17,7 +17,7 @@ class PageParser(HtmlLookup):
             ( session_index_rx, self.process_session ),
             ( session_page_rx, self.process_page ),
             ( segment_rx, self.process_segment ),
-            ( speaker_mp_rx, self.process_member )
+            ( speaker_rx, self.process_card )
         )
 
         self.match = None
@@ -54,10 +54,8 @@ class PageParser(HtmlLookup):
     def process_segment(self, fp):
         self.process_html(fp, speaker_rx)
 
-    def process_member(self, fp):
-        html_parser = self.ensure_html_parser('windows-1250')
-        doc = etree.parse(fp, html_parser)
-        wikidata_urls = self.make_mp_query_urls(doc)
+    def process_card(self, fp):
+        wikidata_urls = make_card_query_urls(self.orig_url, fp)
         for wikidata_url in wikidata_urls:
             self.owner.add_link(wikidata_url)
 

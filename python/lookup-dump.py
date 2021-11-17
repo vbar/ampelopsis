@@ -5,16 +5,15 @@ from lxml import etree
 import sys
 from common import make_connection
 from cursor_wrapper import CursorWrapper
-from html_lookup import HtmlLookup
-from url_templates import speaker_mp_rx
+from html_lookup import make_card_query_urls
+from url_templates import speaker_rx
 from urlize import print_query
 from volume_holder import VolumeHolder
 
-class Lookup(VolumeHolder, CursorWrapper, HtmlLookup):
+class Lookup(VolumeHolder, CursorWrapper):
     def __init__(self, cur):
         VolumeHolder.__init__(self)
         CursorWrapper.__init__(self, cur)
-        HtmlLookup.__init__(self)
 
     def get_url_id(self, url):
         self.cur.execute("""select id, checkd
@@ -32,9 +31,8 @@ where url=%s""", (url,))
         return row[0]
 
     def dump(self, url):
-        m = speaker_mp_rx.match(url)
-        if not m:
-            print("%s not a personal card" % url, file=sys.stderr)
+        if not speaker_rx.match(url):
+            print(url + " is not a card", file=sys.stderr)
             return
 
         url_id = self.get_url_id(url)
@@ -48,9 +46,7 @@ where url=%s""", (url,))
             return None
 
         try:
-            html_parser = self.ensure_html_parser('windows-1250')
-            doc = etree.parse(reader, html_parser)
-            qurls = self.make_mp_query_urls(doc)
+            qurls = make_card_query_urls(url, reader)
             for qurl in qurls:
                 print(qurl)
                 print_query(qurl)
