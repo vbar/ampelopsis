@@ -37,4 +37,6 @@ segment_rx = compile_url_pattern(segment_tmpl, whole=False, last_grp="[0-9]+")
 
 segment_local_rx = compile_url_pattern(segment_local_name, whole=False, last_grp="[0-9]+")
 
+speaker_mp_rx = re.compile('^' + re.escape(speaker_mp_tmpl))
+
 speaker_rx = re.compile('^(?:' + re.escape(speaker_mp_tmpl) + '|' + re.escape(speaker_minister_tmpl) + ')')

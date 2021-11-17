@@ -2,30 +2,16 @@
 
 import dateparser
 from lxml import etree
-import re
 import sys
 from urllib.parse import urljoin, urlparse, urlunparse
 import yaml
 import zipfile
+from clean_util import clean_text, clean_text_node
 from common import make_connection
 from cursor_wrapper import CursorWrapper
 from morphodita_conv import make_tagger, split_position_name
 from url_templates import page_local_rx, segment_local_rx, segment_rx, session_archive_rx, session_folder_tmpl, session_page_rx, speaker_rx
 from volume_holder import VolumeHolder
-
-nbsp_rx = re.compile('(?:\xa0|\\s)+')
-
-def clean_text_node(raw_text):
-    text = nbsp_rx.sub(' ', raw_text)
-    return text.strip()
-
-
-def clean_text(text_nodes):
-    texts = []
-    for raw_text in text_nodes:
-        texts.append(clean_text_node(raw_text))
-
-    return " ".join(texts)
 
 
 class SpeechSaw(VolumeHolder, CursorWrapper):
