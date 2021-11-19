@@ -2,7 +2,7 @@ import dateparser
 from lxml import etree
 import re
 from baker import make_personage_query_urls
-from clean_util import clean_text, clean_text_node
+from clean_util import clean_text, clean_text_node, clean_title, clean_title_node
 from personage import make_personage
 from url_templates import speaker_minister_rx, speaker_mp_rx
 
@@ -16,7 +16,7 @@ class HtmlMpLookup:
 
     def make_card_person(self, card_doc):
         titles = card_doc.xpath('//title/text()')
-        title = clean_text(titles)
+        title = clean_title(titles)
         if not title:
             return None
 
@@ -52,7 +52,7 @@ class HtmlMinisterLookup:
         if len(headers) != 1:
             return None
 
-        header = clean_text_node(headers[0])
+        header = clean_title_node(headers[0])
         if not header:
             return None
 
