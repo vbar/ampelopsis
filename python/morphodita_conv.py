@@ -35,10 +35,10 @@ def split_position_name(tagger, txt, strictly_sentence=False):
 
             i = len(lemmas)
             tailing = True
-            while (i > 0) and tailing:
+            while i > 0:
                 lemma_obj = lemmas[i - 1]
                 tag = lemma_obj.tag
-                old_length = len(rev_tail)
+                matching = False
                 if tag == 'NNMS1-----A----':
                     raw_lemma = lemma_obj.lemma
                     semi_pos = raw_lemma.find("_;")
@@ -47,12 +47,21 @@ def split_position_name(tagger, txt, strictly_sentence=False):
                         lemma_tail = raw_lemma[semi_pos+2:]
                         # some first names (e.g. Filip) are also last names
                         if lemma_tail in ('S', 'Y'):
-                            m = lemma_tail_rx.match(lemma)
-                            lemma_head = m.group(1) if m else lemma
-                            rev_tail.append(lemma_head)
-
+                            matching = True
+                            if tailing:
+                                m = lemma_tail_rx.match(lemma)
+                                lemma_head = m.group(1) if m else lemma
+                                rev_tail.append(lemma_head)
+                            else:
+                                # text has multiple names; this is
+                                # probably incorrect for e.g. Ursula
+                                # von der Leyen, but we can add a test
+                                # for lemmas in the middle of a name
+                                # here when we see them
+                                return None
                 i -= 1
-                tailing = len(rev_tail) > old_length
+                if not matching:
+                    tailing = False
         else:
             # only accepting single-sentence paragraphs
             if strictly_sentence:
