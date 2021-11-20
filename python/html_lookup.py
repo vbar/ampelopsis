@@ -45,7 +45,7 @@ class HtmlMinisterLookup:
     def __init__(self):
         # vlada.cz declares charset inside HTML
         self.html_parser = etree.HTMLParser()
-        self.born_rx = re.compile("\\bnarodila?.+?([0-9]{4})")
+        self.born_rx = re.compile("\\b[Nn]aro(?:dil|zen).+?([0-9]{4})")
 
     def make_card_person(self, card_doc):
         headers = card_doc.xpath('//h1/text()')
