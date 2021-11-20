@@ -4,32 +4,12 @@ import json
 from lxml import etree
 import sys
 from common import make_connection
-from cursor_wrapper import CursorWrapper
+from frame import Frame
 from html_lookup import make_card_query_urls
 from url_templates import speaker_rx
 from urlize import print_query
-from volume_holder import VolumeHolder
 
-class Lookup(VolumeHolder, CursorWrapper):
-    def __init__(self, cur):
-        VolumeHolder.__init__(self)
-        CursorWrapper.__init__(self, cur)
-
-    def get_url_id(self, url):
-        self.cur.execute("""select id, checkd
-from field
-where url=%s""", (url,))
-        row = self.cur.fetchone()
-        if row is None:
-            print("unknown URL " + url, file=sys.stderr)
-            return None
-
-        if row[1] is None:
-            print("URL " + url + " not downloaded", file=sys.stderr)
-            return None
-
-        return row[0]
-
+class Lookup(Frame):
     def dump(self, url):
         if not speaker_rx.match(url):
             print(url + " is not a card", file=sys.stderr)
