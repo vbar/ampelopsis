@@ -5,7 +5,7 @@ from lxml import etree
 import sys
 from common import make_connection
 from frame import Frame
-from html_lookup import make_card_query_urls
+from html_lookup import make_all_card_query_urls
 from url_templates import speaker_rx
 from urlize import print_query
 
@@ -26,7 +26,7 @@ class Lookup(Frame):
             return None
 
         try:
-            qurls = make_card_query_urls(url, reader)
+            qurls = make_all_card_query_urls(url, reader)
             for qurl in qurls:
                 print(qurl)
                 print_query(qurl)

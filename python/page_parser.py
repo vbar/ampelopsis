@@ -1,7 +1,7 @@
 from lxml import etree
 from urllib.parse import urljoin
 import zipfile
-from html_lookup import make_card_query_urls
+from html_lookup import make_all_card_query_urls
 from url_templates import legislature_index_rx, segment_local_rx, segment_rx, session_archive_rx, session_index_rx, session_page_rx, speaker_rx
 
 class PageParser:
@@ -55,7 +55,7 @@ class PageParser:
         self.process_html(fp, speaker_rx)
 
     def process_card(self, fp):
-        wikidata_urls = make_card_query_urls(self.orig_url, fp)
+        wikidata_urls = make_all_card_query_urls(self.orig_url, fp)
         for wikidata_url in wikidata_urls:
             self.owner.add_link(wikidata_url)
 

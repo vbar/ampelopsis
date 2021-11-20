@@ -2,12 +2,22 @@
 
 from urlize import create_query_url
 
-def make_query(core, person):
-    query = "select ?w ?l ?p ?t ?c ?z"
-    if not person:
-        query += " ?g ?b"
+KERNEL = 1
+
+WOOD = 2
+
+ALL = KERNEL | WOOD
+
+def make_query(core, wood_flag, person):
+    query = "select"
+    if wood_flag:
+        query += " ?w ?l ?p ?t ?c ?z"
+        if person:
+            query += " ?f ?u"
+        else:
+            query += " ?g ?b"
     else:
-        query += " ?f ?u"
+        query += " ?w ?l"
 
     query += "{\n"
     query += core
@@ -20,15 +30,19 @@ def make_query(core, person):
     if person:
         query += "&& contains(lcase(?l), \"%s\") && year(?b) = %d" % (person.query_name, person.birth_year)
 
-    query += """)
+    query += ")"
+
+    if wood_flag:
+        query += """
     ?p rdfs:label ?t.
     filter(lang(?t) = "cs")
     optional { ?p wdt:P465 ?c. }
     optional {
         ?p wdt:P1813 ?z.
         filter(lang(?z)="cs")
-    }
-}"""
+    }"""
+
+    query += "}"
 
     return query
 
@@ -42,12 +56,16 @@ def make_meta_query_url():
     pq:P4353 ?p.
 """
 
-    return create_query_url(make_query(gov_core, None))
+    return create_query_url(make_query(gov_core, True, None))
 
 
-def make_personage_query_urls(person):
+def make_personage_query_urls(person, level):
+    # no longer requiring wd:Q82955 - some politicians (that are party
+    # members) do not have it...
+    kernel_core = """?w wdt:P27 wd:Q213.
+"""
+
     pol_core = """?w wdt:P27 wd:Q213;
-        wdt:P106 wd:Q82955;
         p:P102 ?s.
     ?s ps:P102 ?p.
     optional { ?s pq:P580 ?f. }
@@ -55,7 +73,6 @@ def make_personage_query_urls(person):
 """
 
     mp_core = """?w wdt:P27 wd:Q213;
-        wdt:P106 wd:Q82955;
         p:P4100 ?s.
     {
         ?s ps:P4100/p:P31/pq:P642 ?p.
@@ -67,10 +84,13 @@ def make_personage_query_urls(person):
 """
 
     assert person
-    queries = (
-        make_query(pol_core, person),
-        make_query(mp_core, person)
-    )
+    queries = []
+    if level & KERNEL:
+        queries.append(make_query(kernel_core, False, person))
+
+    if level & WOOD:
+        queries.append(make_query(pol_core, True, person))
+        queries.append(make_query(mp_core, True, person))
 
     return [ create_query_url(query) for query in queries ]
 
