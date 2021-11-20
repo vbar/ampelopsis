@@ -2,15 +2,16 @@
 
 import re
 import sys
-from baker import KERNEL
+from baker import KERNEL, WOOD
 from common import make_connection
 from json_frame import JsonFrame
 from html_lookup import make_card_query_urls
 from url_templates import speaker_minister_tmpl, speaker_mp_tmpl
 
 class Scanner(JsonFrame):
-    def __init__(self, cur):
+    def __init__(self, cur, wood_flag):
         JsonFrame.__init__(self, cur)
+        self.level = WOOD if wood_flag else KERNEL
         self.total = 0
         self.unknown = set()
 
@@ -42,7 +43,7 @@ order by url""" % speaker_pattern)
             return None
 
         try:
-            qurls = make_card_query_urls(card_url, KERNEL, reader)
+            qurls = make_card_query_urls(card_url, self.level, reader)
             success = 0
             for qurl in qurls:
                 if self.check_query(qurl):
@@ -74,17 +75,21 @@ order by url""" % speaker_pattern)
 
 
 def main():
-    mode = None
-    if len(sys.argv) > 1:
-        raw_mode = sys.argv[1]
-    if raw_mode in ('-s', '--summary'):
-        mode = 'summary'
+    wood_flag = False
+    summary_flag = False
+    for a in sys.argv[1:]:
+        if a in ('-s', '--summary'):
+            summary_flag = True
+        elif a in ('-w', '--wood'):
+            wood_flag = True
+        else:
+            raise Exception("unknown argument " + raw_mode)
 
     with make_connection() as conn:
         with conn.cursor() as cur:
-            scanner = Scanner(cur)
+            scanner = Scanner(cur, wood_flag)
             scanner.run()
-            if mode == 'summary':
+            if summary_flag:
                 scanner.dump_summary()
             else:
                 scanner.dump()
