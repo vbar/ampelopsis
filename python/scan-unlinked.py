@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# requires merged URLs
+# requires speech URLs
 
 import csv
 import sys

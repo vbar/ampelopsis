@@ -1,7 +1,7 @@
-all: merge condensate
+all: mold condensate
 
-merge:
-	python/merge.py
+mold:
+	python/mold.py
 
 condensate:
 	python/condensate.py

@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
 import json
+import os
 import sys
-from common import get_loose_path, make_connection
+from common import get_loose_path, get_option, make_connection
 from morphodita_conv import make_tagger
 from speech_saw import SpeechSaw
 from url_templates import session_archive_tmpl, session_page_tmpl, synth_url_tmpl
@@ -11,6 +12,10 @@ from url_util import make_url_pattern
 synth_url_format = synth_url_tmpl.format('{0:04d}', '{1:03d}', '{2:06d}')
 
 class SpeechInserter(SpeechSaw):
+    def __init__(self, cur, tagger):
+        SpeechSaw.__init__(self, cur, tagger)
+        self.plain_repre = get_option("plain_repre", "plain")
+
     def pass_out(self, out):
         synth_url = synth_url_format.format(out['legislature'], out['session'], out['order'])
         self.cur.execute("""insert into field(url, checkd, parsed)
@@ -26,8 +31,17 @@ where url=%s""", (synth_url,))
             row = self.cur.fetchone()
 
         url_id = row[0]
+        txt = out.pop('text', None)
         with open(get_loose_path(url_id), 'w') as f:
             json.dump(out, f, ensure_ascii=False)
+
+        plain_path = get_loose_path(url_id, alt_repre=self.plain_repre)
+        if txt:
+            with open(plain_path, 'w') as f:
+                f.write(txt)
+        else:
+            if os.path.exists(plain_path):
+                os.remove(plain_path)
 
 
 def insert_archives(cur, tagger):
@@ -41,7 +55,7 @@ order by url""" % pattern
     rows = cur.fetchall()
     for row in rows:
         archive_url = row[0]
-        print("merging %s..." % archive_url, file=sys.stderr)
+        print("splitting %s..." % archive_url, file=sys.stderr)
         builder = SpeechInserter(cur, tagger)
         builder.run(archive_url)
         builder.flush()
@@ -61,7 +75,7 @@ order by matches[1]::integer, matches[2]::integer, matches[3]::integer, matches[
     builder = None
     for row in rows:
         url, legislature_id, session_id = row
-        print("merging %s..." % url, file=sys.stderr)
+        print("splitting %s..." % url, file=sys.stderr)
         if builder is None:
             builder = SpeechInserter(cur, tagger)
         elif (legislature_id != int(builder.legislature_id)) or (session_id != int(builder.session_id)):
