@@ -4,12 +4,12 @@ import json
 from lxml import etree
 import sys
 from common import make_connection
-from frame import Frame
+from json_frame import JsonFrame
 from html_lookup import make_all_card_query_urls
 from url_templates import speaker_rx
 from urlize import print_query
 
-class Lookup(Frame):
+class Lookup(JsonFrame):
     def dump(self, url):
         if not speaker_rx.match(url):
             print(url + " is not a card", file=sys.stderr)
