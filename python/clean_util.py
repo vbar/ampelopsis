@@ -2,7 +2,7 @@ import re
 
 nbsp_rx = re.compile('(?:\xa0|\\s)+')
 
-title_before_rx = re.compile('^(?:doc|ing|judr|lic|mgr(?:[.] et mgr)?|m[uv]dr|paeddr|phdr|rndr)[.]\\s+(.+)$', re.IGNORECASE)
+title_before_rx = re.compile('^(?:bc|doc|ing|judr|lic|mgr(?:[.] et mgr)?|m[uv]dr|paeddr|phdr|prof|rndr)[.]\\s+(.+)$', re.IGNORECASE)
 
 title_after_rx = re.compile('^([^,]+),')
 
