@@ -166,16 +166,15 @@ values(%s, %s)""", (person_id, party_id))
         # else the record is already there
 
     def insert_starting(self, person_id, party_id, from_date):
-        self.cur.execute("""select from_date
+        self.cur.execute("""select id, from_date
 from ast_party_member
 where person_id=%s and party_id=%s and from_date is not null and until_date is null""", (person_id, party_id))
         rows = self.cur.fetchall()
-        for row in rows:
-            old_from = row[0]
+        for interval_id, old_from in rows:
             if old_from > from_date:
                 self.cur.execute("""update ast_party_member
 set from_date=%s
-where person_id=%s and party_id=%s and from_date is not null and until_date is null""", (from_date, person_id, party_id))
+where id=%s""", (from_date, interval_id))
 
             return
 
@@ -183,16 +182,15 @@ where person_id=%s and party_id=%s and from_date is not null and until_date is n
 values(%s, %s, %s)""", (person_id, party_id, from_date))
 
     def insert_ending(self, person_id, party_id, until_date):
-        self.cur.execute("""select until_date
+        self.cur.execute("""select id, until_date
 from ast_party_member
 where person_id=%s and party_id=%s and from_date is null and until_date is not null""", (person_id, party_id))
         rows = self.cur.fetchall()
-        for row in rows:
-            old_until = row[0]
+        for interval_id, old_until in rows:
             if old_until < until_date:
                 self.cur.execute("""update ast_party_member
 set until_date=%s
-where person_id=%s and party_id=%s and from_date is null and until_date is not null""", (until_date, person_id, party_id))
+where id=%s""", (until_date, interval_id))
 
             return
 
@@ -203,21 +201,21 @@ values(%s, %s, %s)""", (person_id, party_id, until_date))
         assert from_date
         assert until_date
 
-        self.cur.execute("""select from_date, until_date
+        self.cur.execute("""select id, from_date, until_date
 from ast_party_member
 where person_id=%s and party_id=%s and from_date is not null and until_date is not null
 order by from_date, until_date""", (person_id, party_id))
         rows = self.cur.fetchall()
-        ext_count = 0
-        for sweep_from, sweep_until in rows:
+        last_id = None
+        for interval_id, sweep_from, sweep_until in rows:
             if sweep_from > sweep_until:
                 raise Exception("invalid interval")
 
             if (from_date <= sweep_from) and (until_date >= sweep_from):
-                if (ext_count > 1) and ((from_date != sweep_from) or (until_date != sweep_until)):
+                if (last_id is not None) and ((from_date != sweep_from) or (until_date != sweep_until)):
                     self.cur.execute("""delete
 from ast_party_member
-where person_id=%s and party_id=%s and from_date=%s and until_date=%s""", (person_id, party_id, from_date, until_date))
+where id=%s""", (last_id,))
 
                 if until_date < sweep_until:
                     until_date = sweep_until
@@ -225,11 +223,11 @@ where person_id=%s and party_id=%s and from_date=%s and until_date=%s""", (perso
                 if (from_date != sweep_from) or (until_date != sweep_until):
                     self.cur.execute("""update ast_party_member
 set from_date=%s, until_date=%s
-where person_id=%s and party_id=%s and from_date=%s and until_date=%s""", (from_date, until_date, person_id, party_id, sweep_from, sweep_until))
+where id=%s""", (from_date, until_date, interval_id))
 
-                ext_count += 1
+                last_id = interval_id
 
-        if not ext_count:
+        if last_id is None:
             self.cur.execute("""insert into ast_party_member(person_id, party_id, from_date, until_date)
 values(%s, %s, %s, %s)""", (person_id, party_id, from_date, until_date))
 
