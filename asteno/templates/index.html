@@ -129,22 +129,16 @@ $("#slider-range").slider({
 
 $("#slider-range").slider("disable");
 
-$("#search-button").on("click", function (e) {
-    var slider = $("#slider-range"),
-        rng = [];
-
-    $("body").css("cursor", "progress");
-
-    e.stopPropagation();
-
-    for (let idx = 0; idx < 2; ++idx) {
-        rng.push(slider.slider("values", idx));
+$('#search-text').keyup(function (e) {
+    if (e.keyCode == 13) {
+        e.stopPropagation();
+        updateFilter();
     }
+});
 
-    slider.slider("disable");
-
-    d3.select("svg").remove();
-    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update);
+$("#search-button").on("click", function (e) {
+    e.stopPropagation();
+    updateFilter();
 });
 
 resizeTimer = null;
@@ -168,6 +162,22 @@ window.onresize = function (event) {
         }, 100);
     }
 };
+
+function updateFilter() {
+    var slider = $("#slider-range"),
+        rng = [];
+
+    $("body").css("cursor", "progress");
+
+    for (let idx = 0; idx < 2; ++idx) {
+        rng.push(slider.slider("values", idx));
+    }
+
+    slider.slider("disable");
+
+    d3.select("svg").remove();
+    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update);
+}
 
 function getDataUrlFromDates(sinceDate, untilDate, searchFilter) {
     return getDataUrl(Math.floor(sinceDate.getTime() / 1000), Math.floor(untilDate.getTime() / 1000), searchFilter);
