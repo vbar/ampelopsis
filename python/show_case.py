@@ -45,7 +45,7 @@ order by url""")
         self.load_item(doc)
 
     def extend_date(self, doc):
-        d = doc.get('datum')
+        d = doc.get('date')
         if not d:
             return None
 
