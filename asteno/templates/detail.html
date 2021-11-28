@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block declarations %}
+<style>
+
+.nav-row {
+    margin-top: 16px;
+}
+
+#model-day {
+    margin-left: 8px;
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid">
+  <div class="nav-row">
+    Steno <a href="/">index</a>
+    <em id="model-day"></em>
+    <a id="prev-link">&lt;&lt;</a>
+    <a id="next-link">&gt;&gt;</a>
+  </div>
+</div>
+<div class="container-fluid" id="the_graph"></div>
+<div class="container">
+  <h1 id="main-header"></h1>
+  <div id="model-text"></div>
+</div>
+<hr>
+<div class="container-fluid">
+  <p><a id="ext-url" target="_blank"></a></p>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+
+model = {{ model|safe }};
+
+const margin = {top: 20, right: 10, bottom: 10, left: 10},
+      contentMargin = 40,
+      thickness = 6,
+      height = 2.5 * thickness,
+      metaNames = {{ names|safe }},
+      timeline = {{ timeline|safe }},
+      maxLength = d3.sum(timeline, d => ( d[2] )),
+      dateParse = d3.timeParse("%Y-%m-%d"),
+      selfTemplate = "{{ url_for('.frame', url_id=0) }}",
+      dataTemplate = "{{ url_for('.data', url_id=0) }}";
+
+var width = window.innerWidth - contentMargin - margin.left - margin.right;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+var xScale = d3.scaleLinear()
+    .domain([0, maxLength])
+    .range([0, width]);
+
+var yScale = d3.scaleLinear()
+    .domain([0, 2])
+    .range([0, height]);
+
+d3.json("{{ url_for('palette.data') }}").then(function (serPalette) {
+    palette = hydratePalette(serPalette);
+
+    var curDay = dateParse(model.iso_day),
+        runningTotal = 0,
+        data = timeline.map(function (d) {
+            var indir = d[1],
+                it = {
+                    'name': metaNames[indir],
+                    'color': curDay ? getColor(indir, curDay) : "#FFF",
+                    'url_id': d[0],
+                    'since': runningTotal
+                };
+
+            runningTotal += d[2];
+            it['until'] = runningTotal;
+
+            return it;
+        });
+
+    svg.append("g")
+        .selectAll('line')
+        .data(data)
+        .enter()
+        .append('line')
+        .attr("stroke", d => ( d.color ))
+        .attr("stroke-width", thickness)
+        .on("click", function (event, d) {
+            if (event.defaultPrevented) return;
+
+            d3.json(dataTemplate.replace("0", d.url_id)).then(function (m) {
+                model = m;
+                window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
+                applyModel();
+            });
+        })
+        .attr('x1', d => ( xScale(d.since) ))
+        .attr('y1', horizLevel)
+        .attr('x2', d => ( xScale(d.until) ))
+        .attr('y2', horizLevel)
+        .append("title").text(d => ( d.name ));
+});
+
+window.history.replaceState(model, model.title, selfTemplate.replace("0", model.cur_id));
+
+$("#prev-link").on("click", function (event) {
+    if (event.defaultPrevented || !model.prev_id) return;
+
+    d3.json(dataTemplate.replace("0", model.prev_id)).then(function (m) {
+        model = m;
+        window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
+        applyModel();
+    });
+
+    return false;
+});
+
+$("#next-link").on("click", function (event) {
+    if (event.defaultPrevented || !model.next_id) return;
+
+    d3.json(dataTemplate.replace("0", model.next_id)).then(function (m) {
+        model = m;
+        window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
+        applyModel();
+    });
+
+    return false;
+});
+
+window.onpopstate = function (event) {
+    model = event.state;
+    applyModel();
+};
+
+window.onresize = function (event) {
+    redraw();
+};
+
+applyModel(false);
+
+function applyModel(r=true) {
+    $("head title").text("Steno " + model.title);
+
+    if (model.prev_id) {
+        $("#prev-link").css("visibility", "visible");
+        $("#prev-link").attr("href", selfTemplate.replace("0", model.prev_id));
+    } else {
+        $("#prev-link").css("visibility", "hidden");
+        $("#prev-link").attr("href", "#");
+    }
+
+    if (model.next_id) {
+        $("#next-link").css("visibility", "visible");
+        $("#next-link").attr("href", selfTemplate.replace("0", model.next_id));
+    } else {
+        $("#next-link").css("visibility", "hidden");
+        $("#next-link").attr("href", "#");
+    }
+
+    if (model.speaker_cards) {
+        model.speaker_cards.forEach(function (card) {
+            $("#main-header").html('<a target="_blank"/>');
+            $("#main-header a").attr("href", card);
+            $("#main-header a").text(model.speaker_name);
+        });
+    } else {
+        $("#main-header").empty();
+        $("#main-header").text(model.speaker_name);
+    }
+
+    $("#model-day").text(model.day);
+
+    var paras = d3.select("#model-text")
+        .selectAll("p")
+        .data(model.paras);
+
+    paras.exit().remove();
+
+    paras.enter()
+        .append("p")
+        .merge(paras)
+        .text(d => ( d ));
+
+    $("#ext-url").text(model.ext_url);
+    $("#ext-url").attr("href", model.ext_url);
+
+    if (r) {
+        redraw();
+    }
+}
+
+function redraw() {
+    var width = window.innerWidth - contentMargin - margin.left - margin.right,
+        svg = d3.select("svg"); // width cannot be set on global variable
+
+    xScale.range([0, width]);
+
+    svg.attr("width", width + margin.left + margin.right);
+
+    svg.selectAll('line')
+        .attr('x1', d => ( xScale(d.since) ))
+        .attr('y1', horizLevel)
+        .attr('x2', d => ( xScale(d.until) ))
+        .attr('y2', horizLevel);
+}
+
+function horizLevel(d, i) {
+    return yScale((i == model.index) ? 0 : 1);
+}
+
+</script>
+{% endblock %}

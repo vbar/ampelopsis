@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block declarations %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css">
+
+<style>
+
+#search-row {
+    margin-top: 4px;
+}
+
+#slider-range {
+    width: 100%;
+    margin-top: 8px;
+}
+
+hr {
+    margin-top: 0;
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid">
+  <div id="search-row" class="row g-4">
+    <div class="col-2">
+      <input class="form-control form-control-sm" type="text" id="present-range" readonly>
+    </div>
+    <div class="col-6">
+      <div class="form-group" id="slider-range"></div>
+    </div>
+    <div class="col-3">
+      <input class="form-control form-control-sm" type="text" id="search-text">
+    </div>
+    <div class="col-1">
+      <button id="search-button" class="btn btn-primary mb-3">Hledat</button>
+    </div>
+  </div>
+</div>
+<div class="container-fluid" id="the_graph"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js" integrity="sha256-hlKLmzaRlE8SCJC1Kw8zoUbU8BxA+8kR3gseuKfMjxA=" crossorigin="anonymous"></script>
+<script>
+
+$("body").css("cursor", "progress");
+
+const margin = {top: 20, right: 10, bottom: 10, left: 10},
+      contentMargin = 40,
+      minThickness = 2,
+      maxThickness = 6,
+      linkTemplate = "{{ url_for('detail.frame', url_id=0) }}",
+      dateFormat = d3.timeFormat('%-d.%-m.%Y'),
+      dateParse = d3.timeParse("%Y-%m-%d");
+
+var dateEnd = new Date(),
+    dateStart = new Date(dateEnd.getTime() - 5 * 365 * 24 * 3600000),
+    searchText = "",
+    fragment = location.hash,
+    rawArray,
+    secondArray,
+    segment;
+
+if (fragment && (fragment[0] == '#')) {
+    rawArray = fragment.slice(1).split('/');
+    if (rawArray.length >= 2) {
+        for (var idx = 0; idx < 2; ++idx) {
+            segment = parseInt(rawArray[idx]);
+            if (!isNaN(segment)) {
+                secondArray.push(segment);
+            }
+        }
+    }
+
+    if (secondArray.length == 2) {
+        dateStart = new Date(1000 * secondArray[0]);
+        dateEnd = new Date(1000 * secondArray[1]);
+    }
+
+    if (rawArray.length >= 3) {
+        searchText = decodeURIComponent(rawArray[2]);
+    }
+}
+
+d3.json("{{ url_for('palette.data') }}").then(function (serPalette) {
+    palette = hydratePalette(serPalette);
+
+    d3.json(getDataUrlFromDates(dateStart, dateEnd, searchText)).then(update);
+});
+
+sliderLastValues = [ null, null ];
+
+$("#slider-range").slider({
+    range: true,
+    min: 0,
+    max: 100,
+    values: [0, 100],
+    slide: function (event, ui) {
+        var preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
+
+        $("#present-range").val(preSel[0] + " - " + preSel[1]);
+    },
+    start: function (event, ui) {
+        $(".ui-slider-handle").tooltip("dispose");
+    },
+    stop: function (event, ui) {
+        var i, moved = [ false, false ],
+            preSel = ui.values.map(d => ( dateFormat(new Date(1000 * d)) ));
+
+        for (i = 0; i < 2; ++i) {
+            moved[i] = sliderLastValues[i] != ui.values[i];
+            sliderLastValues[i] = ui.values[i];
+            $(".ui-slider-handle").eq(i).tooltip({
+                "placement": "bottom",
+                "title": preSel[i]
+            });
+        }
+
+        for (i = 0; i < 2; ++i) {
+            if (moved[i]) {
+                $(".ui-slider-handle").eq(i).tooltip("show");
+            }
+        }
+    }
+});
+
+$("#slider-range").slider("disable");
+
+$("#search-button").on("click", function (e) {
+    var slider = $("#slider-range"),
+        rng = [];
+
+    $("body").css("cursor", "progress");
+
+    e.stopPropagation();
+
+    for (let idx = 0; idx < 2; ++idx) {
+        rng.push(slider.slider("values", idx));
+    }
+
+    slider.slider("disable");
+
+    d3.select("svg").remove();
+    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update);
+});
+
+resizeTimer = null;
+lastWidth = null;
+
+window.onresize = function (event) {
+    if (window.innerWidth == lastWidth) {
+        return;
+    }
+
+    lastWidth = window.innerWidth;
+
+    if (resizeTimer) {
+        clearTimeout(resizeTimer);
+    }
+
+    if (metadata) {
+        resizeTimer = setTimeout(function () {
+            d3.select("svg").remove();
+            draw();
+        }, 100);
+    }
+};
+
+function getDataUrlFromDates(sinceDate, untilDate, searchFilter) {
+    return getDataUrl(Math.floor(sinceDate.getTime() / 1000), Math.floor(untilDate.getTime() / 1000), searchFilter);
+}
+
+function getDataUrl(sinceSec, untilSec, searchFilter) {
+    var daytimeTemplate = "{{ url_for('.data') }}",
+        url = daytimeTemplate + "?ts=" + sinceSec + "&tu=" + untilSec;
+
+    if (searchFilter) {
+        url += "&s=" + encodeURIComponent(searchFilter);
+    }
+
+    return url;
+}
+
+function update(mt) {
+    metadata = mt;
+    maxLength = d3.max(metadata.dayDesc, d => ( d[1] ));
+
+    var runningTotal,
+        data,
+        fragment,
+        searchFilter = $("#search-text").val(),
+        sliderRange = metadata.dateExtent.map(d => ( dateParse(d).getTime() / 1000 )),
+        seconds,
+        sliderSelection,
+        presentationSelection;
+
+    if (metadata.dayDesc.length) {
+        seconds = metadata.dayDesc.map(d => ( dateParse(d[0]).getTime() / 1000 ));
+        sliderSelection = [ d3.min(seconds), d3.max(seconds) ];
+    } else {
+        sliderSelection = sliderRange;
+    }
+
+    presentationSelection = sliderSelection.map(d => ( dateFormat(new Date(1000 * d)) ));
+
+    $("#slider-range").slider("option", {
+        min: sliderRange[0],
+        max: sliderRange[1],
+        values: sliderSelection
+    });
+
+    $("#slider-range").slider("enable");
+
+    $("#present-range").val(presentationSelection[0] + " - " + presentationSelection[1]);
+
+    $(".ui-slider-handle").tooltip("dispose");
+    for (var i = 0; i < 2; ++i) {
+        sliderLastValues[i] = sliderSelection[i];
+        $(".ui-slider-handle").eq(i).tooltip({
+            "placement": "bottom",
+            "title": presentationSelection[i]
+        });
+    }
+
+    matrix = [];
+    for (var idx = 0; idx < metadata.dayDesc.length; ++idx) {
+        let description = metadata.dayDesc[idx],
+            lineDay = dateParse(description[0]);
+
+        runningTotal = 0;
+        data = metadata.dayLines[idx].map(function (d) {
+            var indir = d[0],
+                it = {
+                    'name': metadata.names[indir],
+                    'color': getColor(indir, lineDay),
+                    'url_id': d[2],
+                    'since': runningTotal
+                };
+
+            runningTotal += d[1];
+            it['until'] = runningTotal;
+
+            return it;
+        });
+
+        matrix.push(data);
+    }
+
+    draw();
+
+    fragment = '#' + sliderSelection[0] + "/" + sliderSelection[1];
+    if (searchFilter) {
+        fragment += "/";
+        fragment += encodeURIComponent(searchFilter);
+    }
+
+    location.hash = fragment;
+
+    $("body").css("cursor", "default");
+}
+
+function draw() {
+    var width = window.innerWidth - contentMargin - margin.left - margin.right,
+        thickness = minThickness,
+        minHeight = 800 - margin.top - margin.bottom,
+        height = thickness * metadata.dayDesc.length;
+
+    if (height < minHeight) {
+        height = minHeight;
+        thickness = Math.floor(height / metadata.dayDesc.length);
+        if (thickness > maxThickness) {
+            thickness = maxThickness;
+        }
+    }
+
+    var svg = d3.select("#the_graph").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+              "translate(" + margin.left + "," + margin.top + ")");
+
+    var x = d3.scaleLinear()
+        .domain([0, maxLength])
+        .range([0, width]);
+
+    var y = d3.scaleLinear()
+        .domain([0, metadata.dayDesc.length])
+        .range([0, height]);
+
+    var xAxis = d3.axisTop()
+        .scale(x)
+        .ticks(23);
+
+    for (var idx = 0; idx < metadata.dayDesc.length; ++idx) {
+        var dummy = function (idx) {
+            var description = metadata.dayDesc[idx],
+                lineDate = dateFormat(dateParse(description[0])),
+                data = matrix[idx];
+
+            svg.append("g")
+                .selectAll('line')
+                .data(data)
+                .enter()
+                .append('line')
+                .attr("stroke", function (d) {
+                    return d.color;
+                })
+                .attr("stroke-width", thickness)
+                .on("click", function (event, d) {
+                    if (event.defaultPrevented) return;
+
+                    window.open(linkTemplate.replace("0", d.url_id), "_self");
+                })
+                .attr('x1', function (d) {
+                    return x(d.since);
+                })
+                .attr('y1', function (d) {
+                    return y(idx + 1);
+                })
+                .attr('x2', function (d) {
+                    return x(d.until);
+                })
+                .attr('y2', function (d) {
+                    return y(idx + 1);
+                })
+                .append("title").text(function (d) {
+                    return lineDate + "\n" + d.name;
+                });
+        }(idx);
+    }
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .call(xAxis);
+}
+
+</script>
+{% endblock %}
