@@ -5,12 +5,16 @@
 import os
 import sys
 from common import get_loose_path, get_option, make_connection
+from morphodita_conv import make_tagger, simplify_fulltext
 from show_case import ShowCase
 from token_util import tokenize
 
 class Processor(ShowCase):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
+
+        self.tagger = make_tagger()
+
         self.link2id = {}
         cur.execute("""select url, person_id
 from field
@@ -35,13 +39,24 @@ order by url""")
         if txt:
             lst = tokenize(txt)
             length = len(lst)
+            simple_text = simplify_fulltext(self.tagger, txt)
         else:
             length = 0
+            simple_text = None
 
         self.cur.execute("""insert into ast_speech(speech_id, speaker_id, speech_day, speech_order, word_count)
 values(%s, %s, %s, %s, %s)
 on conflict(speech_id) do update
 set speaker_id=%s, speech_day=%s, speech_order=%s, word_count=%s""", (speech_id, speaker_id, day, speech_order, length, speaker_id, day, speech_order, length))
+
+        if simple_text:
+            self.cur.execute("""update ast_speech
+set content=to_tsvector('ast_config', %s)
+where speech_id=%s""", (simple_text, speech_id))
+        else:
+            self.cur.execute("""update ast_speech
+set content=null
+where speech_id=%s""", (speech_id,))
 
 
 def main():

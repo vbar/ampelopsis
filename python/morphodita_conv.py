@@ -4,6 +4,10 @@ from ufal.morphodita import *
 from common import get_option
 from opt_util import get_cache_path
 
+pos_rx = re.compile('^[ACDINV]$')
+
+segment_rx = re.compile('[-_:;^]')
+
 lemma_tail_rx = re.compile("^([^-]+)-[0-9]+$")
 
 def make_tagger():
@@ -16,6 +20,38 @@ def make_tagger():
         raise Exception("cannot create tagger from %s" % stemmer_data)
 
     return tagger
+
+
+def simplify_fulltext(tagger, txt):
+    forms = Forms()
+    lemmas = TaggedLemmas()
+    tokens = TokenRanges()
+    tokenizer = tagger.newTokenizer()
+    if tokenizer is None:
+        raise Exception("No tokenizer is defined for the supplied model!")
+
+    tokenizer.setText(txt)
+    rect = ""
+    while tokenizer.nextSentence(forms, tokens):
+        tagger.tag(forms, lemmas)
+
+        lst = []
+        for lemma_obj in lemmas:
+            raw_lemma = lemma_obj.lemma
+            tag = lemma_obj.tag
+            if tag and pos_rx.match(tag[0]):
+                sgm = segment_rx.split(raw_lemma)
+                if sgm:
+                    w = sgm[0]
+                    if len(w) > 1:
+                        lst.append(w)
+
+        if len(lst):
+            ln = " ".join(lst)
+            ln += ".\n"
+            rect += ln
+
+    return rect
 
 
 def split_position_name(tagger, txt, strictly_sentence=False):
