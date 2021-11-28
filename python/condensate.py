@@ -201,6 +201,10 @@ values(%s, %s, %s)""", (person_id, party_id, until_date))
         assert from_date
         assert until_date
 
+        if from_date > until_date:
+            print("ignoring statement with switched bounds", file=sys.stderr)
+            return
+
         self.cur.execute("""select id, from_date, until_date
 from ast_party_member
 where person_id=%s and party_id=%s and from_date is not null and until_date is not null
