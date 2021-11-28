@@ -169,11 +169,29 @@ function applyModel(r=true) {
     }
 
     if (model.speaker_cards) {
-        model.speaker_cards.forEach(function (card) {
-            $("#main-header").html('<a target="_blank"/>');
-            $("#main-header a").attr("href", card);
-            $("#main-header a").text(model.speaker_name);
-        });
+        let t;
+        for (let i = 0; i < model.speaker_cards.length; ++i) {
+            let a, card = model.speaker_cards[i];
+
+            if (i == 0) {
+                $("#main-header").html('<a target="_blank"/>');
+            } else {
+                $("#main-header").append('<sup> <a target="_blank"/></sup>');
+            }
+
+            a = $("#main-header a").last();
+            a.attr("href", card);
+
+            if (i == 0) {
+                t = model.speaker_name;
+            } else if (i == 1) {
+                t = "a";
+            } else {
+                t = nextLetterInAlphabet(t);
+            }
+
+            a.text(t);
+        }
     } else {
         $("#main-header").empty();
         $("#main-header").text(model.speaker_name);
@@ -217,6 +235,15 @@ function redraw() {
 
 function horizLevel(d, i) {
     return yScale((i == model.index) ? 0 : 1);
+}
+
+// from https://stackoverflow.com/questions/2256607/how-to-get-the-next-letter-of-the-alphabet-in-javascript
+function nextLetterInAlphabet(letter) {
+    if (letter == "z") {
+        return "a";
+    } else {
+        return String.fromCharCode(letter.charCodeAt(0) + 1);
+    }
 }
 
 </script>
