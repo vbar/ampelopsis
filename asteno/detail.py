@@ -126,7 +126,7 @@ def get_detail_model(cur, url_id, doc):
         'prev_id': get_prev_speech(cur, day, order),
         'next_id': get_next_speech(cur, day, order),
         'index': get_speech_index(cur, day, order),
-        'ext_url': doc.get('url')
+        'ext_url': doc.get('orig_url')
     }
 
     if (speaker_cards is not None) and len(speaker_cards):
