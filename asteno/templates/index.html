@@ -328,7 +328,14 @@ function draw() {
                     return y(idx + 1);
                 })
                 .append("title").text(function (d) {
-                    return lineDate + "\n" + d.name;
+                    var t = lineDate;
+
+                    if (d.name) {
+                        t += "\n";
+                        t += d.name;
+                    }
+
+                    return t;
                 });
         }(idx);
     }
