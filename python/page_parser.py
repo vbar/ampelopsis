@@ -51,6 +51,8 @@ class PageParser:
         self.process_html(fp, segment_rx)
 
     def process_segment(self, fp):
+        self.owner.handle_segment(fp)
+        fp.seek(0)
         self.process_html(fp, speaker_rx)
 
     def process_card(self, fp):

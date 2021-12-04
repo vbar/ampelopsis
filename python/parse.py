@@ -1,13 +1,17 @@
 #!/usr/bin/python3
 
+from lxml import etree
 import re
 import select
 import sys
 from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
+from clean_util import clean_text_node
 from common import get_netloc, get_option, make_connection, normalize_url_component
+from cook import make_speaker_query_urls
 from host_check import get_instance_id, get_parse_notification_name, HostCheck
 from mem_cache import MemCache
+from morphodita_conv import make_tagger, split_position_name
 from page_parser import PageParser
 from param_util import get_param_set
 from preference import BreathPreference, NoveltyPreference
@@ -55,6 +59,9 @@ order by nameval""")
             rows = self.cur.fetchall()
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
+
+        self.html_parser = etree.HTMLParser()
+        self.tagger = make_tagger()
 
     def get_url_state(self, url_id):
         self.cur.execute("""select url, failed
@@ -163,6 +170,34 @@ returning url_id""" % sql_cond)
                 self.cond_notify()
 
         return row
+
+    def handle_segment(self, fp):
+        doc = etree.parse(fp, self.html_parser)
+
+        paras = doc.xpath("//p")
+        for p in paras:
+            self.accumulate(p)
+
+    def accumulate(self, p):
+        pid = p.get('id')
+        if pid in ('breadcrumb', 'logo'):
+            return
+
+        pclass = p.get('class')
+        if pclass in ('no-screen', 'date'):
+            return
+
+        text_nodes = p.xpath('.//text()')
+        if len(text_nodes):
+            speaker_text = clean_text_node(text_nodes[0])
+            pn = split_position_name(self.tagger, speaker_text, False)
+            if pn:
+                self.add_speaker_link(*pn)
+
+    def add_speaker_link(self, position, name):
+        urls = make_speaker_query_urls(position, name)
+        for url in urls:
+            self.add_link(url)
 
     def add_link(self, url):
         pr = urlparse(url.strip())
