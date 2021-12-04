@@ -9,7 +9,6 @@ class PageParser:
         self.owner = owner
         self.orig_url = url
         self.base = url
-        self.found_base = False
 
         schema = (
             ( legislature_index_rx, self.process_legislature ),
@@ -62,15 +61,8 @@ class PageParser:
     def process_html(self, fp, child_rx):
         context = etree.iterparse(fp, events=('end',), tag=('a', 'base'), html=True, recover=True)
         for action, elem in context:
-            if not self.found_base and (elem.tag == 'base'):
-                parent = elem.getparent()[0]
-                if parent is not None and (parent.tag == 'head'):
-                    grandparent = parent.getparent()[0]
-                    if grandparent is not None and (grandparent.tag == 'html'):
-                        self.found_base = True
-                        href = elem.get('href')
-                        if href:
-                            self.base = urljoin(self.base, href)
+            if elem.tag == 'base':
+                raise Exception("source HTML uses explicit base")
             elif elem.tag == 'a':
                 href = elem.get('href')
                 if href:

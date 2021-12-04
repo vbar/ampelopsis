@@ -161,12 +161,9 @@ where url=%s""", (url,))
                 return
 
     def check_base(self, doc):
-        # parser might handle HTML base, but mostly because it's
-        # based on a generic one - it isn't expected for this
-        # project...
         bases = doc.xpath("//base")
         if len(bases):
-            raise Exception("FIXME: process HTML base")
+            raise Exception("source HTML uses explicit base")
 
     def update_day_date(self, doc):
         titles = doc.xpath("/html/head/title")
