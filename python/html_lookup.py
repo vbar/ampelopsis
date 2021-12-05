@@ -67,7 +67,7 @@ class HtmlMinisterLookup:
         return None
 
 
-def make_card_query_urls(url, level, fp):
+def make_card_person(url, fp):
     inner_lookup = None
     m = speaker_mp_rx.match(url)
     if m:
@@ -81,7 +81,11 @@ def make_card_query_urls(url, level, fp):
         raise Exception("%s not a personal card" % url)
 
     doc = etree.parse(fp, inner_lookup.html_parser)
-    person = inner_lookup.make_card_person(doc)
+    return inner_lookup.make_card_person(doc)
+
+
+def make_card_query_urls(url, level, fp):
+    person = make_card_person(url, fp)
     return make_personage_query_urls(person, level) if person else []
 
 

@@ -3,7 +3,9 @@
 import json
 import os
 import sys
+from bench_mixin import BenchMixin
 from common import get_loose_path, get_option, make_connection
+from cook import make_speaker_position_set, make_speaker_query_urls
 from morphodita_conv import make_tagger
 from speech_saw import SpeechSaw
 from url_templates import session_archive_tmpl, session_page_tmpl, synth_url_tmpl
@@ -11,12 +13,39 @@ from url_util import make_url_pattern
 
 synth_url_format = synth_url_tmpl.format('{0:04d}', '{1:03d}', '{2:06d}')
 
-class SpeechInserter(SpeechSaw):
+class SpeechInserter(SpeechSaw, BenchMixin):
     def __init__(self, cur, tagger):
         SpeechSaw.__init__(self, cur, tagger)
+        BenchMixin.__init__(self)
         self.plain_repre = get_option("plain_repre", "plain")
+        self.known = set() # of (str speaker_name, str position_list)
 
     def pass_out(self, out):
+        self.ensure_speaker(out)
+        self.write_document(out)
+
+    def ensure_speaker(self, out):
+        speaker_position = out.get('speaker_position')
+        speaker_name = out.get('speaker_name')
+        if not (speaker_position and speaker_name):
+            return
+
+        position_set = make_speaker_position_set(speaker_position)
+        if not len(position_set):
+            return
+
+        position_list = " ".join(sorted(position_set))
+        kp = (speaker_name, position_list)
+        if kp in self.known:
+            return
+
+        qurls = make_speaker_query_urls(speaker_name, position_set)
+        for qurl in qurls:
+            self.process_query(None, None, position_set, qurl)
+
+        self.known.add(kp)
+
+    def write_document(self, out):
         synth_url = synth_url_format.format(out['legislature'], out['session'], out['order'])
         self.cur.execute("""insert into field(url, checkd, parsed)
 values(%s, localtimestamp, localtimestamp)

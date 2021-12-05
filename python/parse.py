@@ -8,7 +8,7 @@ from urllib.parse import urlparse, urlunparse
 from act_util import act_inc, act_dec
 from clean_util import clean_text_node
 from common import get_netloc, get_option, make_connection, normalize_url_component
-from cook import make_speaker_query_urls
+from cook import make_speaker_position_set, make_speaker_query_urls
 from host_check import get_instance_id, get_parse_notification_name, HostCheck
 from mem_cache import MemCache
 from morphodita_conv import make_tagger, split_position_name
@@ -195,9 +195,11 @@ returning url_id""" % sql_cond)
                 self.add_speaker_link(*pn)
 
     def add_speaker_link(self, position, name):
-        urls = make_speaker_query_urls(position, name)
-        for url in urls:
-            self.add_link(url)
+        position_set = make_speaker_position_set(position)
+        if len(position_set):
+            urls = make_speaker_query_urls(name, position_set)
+            for url in urls:
+                self.add_link(url)
 
     def add_link(self, url):
         pr = urlparse(url.strip())

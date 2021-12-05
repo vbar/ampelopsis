@@ -8,16 +8,13 @@ import yaml
 import zipfile
 from clean_util import clean_text, clean_text_node
 from common import make_connection
-from cursor_wrapper import CursorWrapper
+from json_frame import JsonFrame
 from morphodita_conv import make_tagger, split_position_name
 from url_templates import page_local_rx, segment_local_rx, segment_rx, session_archive_rx, session_folder_tmpl, session_page_rx, speaker_rx
-from volume_holder import VolumeHolder
 
-
-class SpeechSaw(VolumeHolder, CursorWrapper):
+class SpeechSaw(JsonFrame):
     def __init__(self, cur, tagger):
-        VolumeHolder.__init__(self)
-        CursorWrapper.__init__(self, cur)
+        JsonFrame.__init__(self, cur)
         self.html_parser = etree.HTMLParser()
         self.tagger = tagger
         self.orig_url = None

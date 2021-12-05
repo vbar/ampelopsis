@@ -5,6 +5,8 @@ from urlize import create_query_url
 # also matches ministryně; hopefully the input has no ministrants...
 minister_rx = re.compile("\\bministr")
 
+minister_position = 'Q83307'
+
 def make_query(core, query_name):
     query = "select ?w ?l ?b ?o ?p ?t ?c ?z ?f ?u{\n"
     query += core
@@ -24,7 +26,16 @@ def make_query(core, query_name):
     return query
 
 
-def make_speaker_query_urls(position, name):
+def make_speaker_position_set(position):
+    position_set = set()
+    norm_pos = position.lower()
+    if minister_rx.match(norm_pos):
+        position_set.add(minister_position)
+
+    return position_set
+
+
+def make_speaker_query_urls(name, position_set):
     # nationality check is too narrow for guest speakers, but we won't
     # get / really need a party for foreigners anyway...
     pol_tmpl = """?w wdt:P27 wd:Q213;
@@ -36,11 +47,10 @@ def make_speaker_query_urls(position, name):
     optional { ?s pq:P582 ?u. }
 """
 
-    norm_pos = position.lower()
     query_name = normalize_name(name)
     queries = []
-    if minister_rx.match(norm_pos):
-        np = 'wd:Q83307'
+    if minister_position in position_set:
+        np = 'wd:' + minister_position
         pos_clauses = []
 
         # e.g. Q25515749 (Minister for Regional Development) is a
