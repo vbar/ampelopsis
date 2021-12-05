@@ -1,46 +1,40 @@
 // requires d3
 function hydratePalette(serPalette) {
     let dateParse = d3.timeParse("%Y-%m-%d"),
-        palette = [];
+        palette = {};
 
-    for (let i = 0; i < serPalette.length; ++i) {
-        let serPerson = serPalette[i];
+    for (const [key, serPerson] of Object.entries(serPalette)) {
+        let person = {}
 
-        if (serPerson) {
-            let person = {}
+        if (serPerson.timed) {
+            let serTimed = serPerson.timed, timed = [];
 
-            if (serPerson.timed) {
-                let serTimed = serPerson.timed, timed = [];
-
-                for (let j = 0; j < serTimed.length; ++j) {
-                    let serStop = serTimed[j], stop = [ dateParse(serStop[0]) ];
-                    if (serStop.length == 3) {
-                        stop.push(dateParse(serStop[1]));
-                        stop.push(serStop[2]);
-                    }
-
-                    timed.push(stop);
+            for (let j = 0; j < serTimed.length; ++j) {
+                let serStop = serTimed[j], stop = [ dateParse(serStop[0]) ];
+                if (serStop.length == 3) {
+                    stop.push(dateParse(serStop[1]));
+                    stop.push(serStop[2]);
                 }
 
-                person.timed = timed;
+                timed.push(stop);
             }
 
-            if (serPerson.started) {
-                person.started = [ dateParse(serPerson.started[0]), serPerson.started[1] ];
-            }
-
-            if (serPerson.ended) {
-                person.ended = [ dateParse(serPerson.ended[0]), serPerson.ended[1] ];
-            }
-
-            if (serPerson['default']) {
-                person['default'] = serPerson['default'];
-            }
-
-            palette.push(person);
-        } else {
-            palette.push(null);
+            person.timed = timed;
         }
+
+        if (serPerson.started) {
+            person.started = [ dateParse(serPerson.started[0]), serPerson.started[1] ];
+        }
+
+        if (serPerson.ended) {
+            person.ended = [ dateParse(serPerson.ended[0]), serPerson.ended[1] ];
+        }
+
+        if (serPerson['default']) {
+            person['default'] = serPerson['default'];
+        }
+
+        palette[key] = person;
     }
 
     return palette;
@@ -66,7 +60,11 @@ function lowerBound(array, value) {
 
 // requires loaded palette
 function getColor(person_id, day) {
-    let person = palette[person_id];
+    if (!person_id) {
+        return "#FFF";
+    }
+
+    let person = palette[person_id.toString()];
     if (!person) {
         return "#FFF";
     }

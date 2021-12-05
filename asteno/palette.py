@@ -118,11 +118,8 @@ order by ast_party_member.id desc""")
                     if 'default' not in person_obj:
                         person_obj['default'] = color
 
-    palette_list = []
+    palette_out = {}
     for person_id, person_obj in sorted(palette_map.items()):
-        while len(palette_list) < person_id:
-            palette_list.append(None)
+        palette_out[str(person_id)] = serialize_person(person_obj)
 
-        palette_list.append(serialize_person(person_obj))
-
-    return jsonify(palette_list)
+    return jsonify(palette_out)
