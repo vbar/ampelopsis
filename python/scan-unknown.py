@@ -16,7 +16,7 @@ class Scanner(JsonFrame):
         self.unknown = set()
 
     def run(self):
-        speaker_pattern = "^(%s|%s)" % (re.escape(speaker_mp_tmpl), re.escape(speaker_minister_tmpl))
+        speaker_pattern = "^(%s|%s)" % (re.escape(speaker_mp_tmpl), speaker_minister_tmpl)
         self.cur.execute("""select url, id
 from field
 where url ~ '%s'

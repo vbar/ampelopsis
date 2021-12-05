@@ -60,6 +60,8 @@ def make_meta_query_url():
 
 
 def make_personage_query_urls(person, level):
+    assert person.birth_year
+
     # no longer requiring wd:Q82955 - some politicians (that are party
     # members) do not have it...
     kernel_core = """?w wdt:P27 wd:Q213.

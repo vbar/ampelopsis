@@ -19,7 +19,7 @@ segment_tmpl = session_folder_tmpl + segment_local_name
 
 speaker_mp_tmpl = "https://www.psp.cz/sqw/detail.sqw?id="
 
-speaker_minister_tmpl = "https://www.vlada.cz/cz/clenove-vlady/"
+speaker_minister_tmpl = "https?://www.vlada.cz/cz/clenove-vlady/"
 
 synth_url_tmpl = "http://localhost/{0}ps/{1}schuz/{2}"
 
@@ -39,6 +39,7 @@ segment_local_rx = compile_url_pattern(segment_local_name, whole=False, last_grp
 
 speaker_mp_rx = re.compile('^' + re.escape(speaker_mp_tmpl))
 
-speaker_minister_rx = re.compile('^' + re.escape(speaker_minister_tmpl))
+speaker_minister_rx = re.compile('^' + speaker_minister_tmpl)
 
-speaker_rx = re.compile('^(?:' + re.escape(speaker_mp_tmpl) + '|' + re.escape(speaker_minister_tmpl) + ')')
+# MP has literal ?, minister regexp operator
+speaker_rx = re.compile('^(?:' + re.escape(speaker_mp_tmpl) + '|' + speaker_minister_tmpl + ')')

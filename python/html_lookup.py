@@ -1,8 +1,9 @@
 import dateparser
 from lxml import etree
 import re
-from baker import ALL, make_personage_query_urls
+from baker import ALL, make_personage_query_urls, WOOD
 from clean_util import clean_text, clean_text_node, clean_title, clean_title_node
+from cook import make_speaker_query_urls, minister_position
 from personage import make_personage
 from url_templates import speaker_minister_rx, speaker_mp_rx
 
@@ -20,23 +21,18 @@ class HtmlMpLookup:
         if not title:
             return None
 
+        year = None
         captions = card_doc.xpath('//div[@class="figure"]/div[@class="figcaption"]//text()')
         caption = clean_text(captions)
         m = self.born_rx.search(caption)
-        if not m:
-            return None
-
-        raw_date = m.group(1)
-        year = None
-        if raw_date.startswith('v roce'):
-            year = int(m.group(2))
-        else:
-            dt = dateparser.parse(m.group(3), languages=['cs'])
-            if dt:
-                year = dt.year
-
-        if not year:
-            return None
+        if m:
+            raw_date = m.group(1)
+            if raw_date.startswith('v roce'):
+                year = int(m.group(2))
+            else:
+                dt = dateparser.parse(m.group(3), languages=['cs'])
+                if dt:
+                    year = dt.year
 
         return make_personage(title, year)
 
@@ -64,7 +60,7 @@ class HtmlMinisterLookup:
                 year = int(m.group(1))
                 return make_personage(header, year)
 
-        return None
+        return make_personage(header, None)
 
 
 def make_card_person(url, fp):
@@ -85,8 +81,19 @@ def make_card_person(url, fp):
 
 
 def make_card_query_urls(url, level, fp):
+    urls = []
     person = make_card_person(url, fp)
-    return make_personage_query_urls(person, level) if person else []
+    if not person:
+        return urls
+
+    if person.birth_year:
+        urls.extend(make_personage_query_urls(person, level))
+
+    if (level & WOOD) and speaker_minister_rx.match(url):
+        position_set = set((minister_position,))
+        urls.extend(make_speaker_query_urls(person.presentation_name, position_set))
+
+    return urls
 
 
 def make_all_card_query_urls(url, fp):
