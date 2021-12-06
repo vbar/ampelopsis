@@ -18,7 +18,7 @@ class SpeechInserter(SpeechSaw, BenchMixin):
         SpeechSaw.__init__(self, cur, tagger)
         BenchMixin.__init__(self)
         self.plain_repre = get_option("plain_repre", "plain")
-        self.known = set() # of (str speaker_name, str position_list)
+        self.known = set() # of (str speaker_name, str position_list, int card URL id)
 
     def pass_out(self, out):
         self.ensure_speaker(out)
@@ -30,20 +30,25 @@ class SpeechInserter(SpeechSaw, BenchMixin):
         if not (speaker_position and speaker_name):
             return
 
+        speaker_url_id = None
+        speaker_url = out.get('speaker_url')
+        if speaker_url:
+            speaker_url_id = self.get_url_id(speaker_url)
+
         position_set = make_speaker_position_set(speaker_position)
         if not len(position_set):
             return
 
         position_list = " ".join(sorted(position_set))
-        kp = (speaker_name, position_list)
-        if kp in self.known:
+        kt = (speaker_name, position_list, speaker_url_id)
+        if kt in self.known:
             return
 
         qurls = make_speaker_query_urls(speaker_name, position_set)
         for qurl in qurls:
-            self.process_query(None, None, position_set, qurl)
+            self.process_query(speaker_url_id, None, position_set, qurl)
 
-        self.known.add(kp)
+        self.known.add(kt)
 
     def write_document(self, out):
         synth_url = synth_url_format.format(out['legislature'], out['session'], out['order'])

@@ -23,6 +23,22 @@ where url=%s""", (url,))
 
         return row[0]
 
+    def get_redirect_target(self, raw_url_id):
+        self.cur.execute("""select to_id
+from redirect
+where from_id=%s""", (raw_url_id,))
+        rows = self.cur.fetchall()
+        url_id = raw_url_id
+        first = True
+        for row in rows:
+            if first:
+                url_id = row[0]
+                first = False
+            else:
+                raise Exception("%d has multiple redirects" % raw_url_id)
+
+        return url_id
+
     def get_document(self, url_id):
         volume_id = self.get_volume_id(url_id)
         reader = self.open_page(url_id, volume_id)

@@ -15,9 +15,11 @@ class Lookup(JsonFrame):
             print(url + " is not a card", file=sys.stderr)
             return
 
-        url_id = self.get_url_id(url)
-        if not url_id:
+        card_url_id = self.get_url_id(url)
+        if not card_url_id:
             return
+
+        url_id = self.get_redirect_target(card_url_id)
 
         volume_id = self.get_volume_id(url_id)
         reader = self.open_page(url_id, volume_id)
