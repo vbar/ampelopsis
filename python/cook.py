@@ -5,7 +5,12 @@ from urlize import create_query_url
 # also matches ministryně; hopefully the input has no ministrants...
 minister_rx = re.compile("\\bministr")
 
+# also matches senátorka
+senator_rx = re.compile("\\bsenátor")
+
 minister_position = 'Q83307'
+
+senator_position = 'Q18941264'
 
 def make_query(core, query_name):
     query = "select ?w ?l ?b ?o ?p ?t ?c ?z ?f ?u{\n"
@@ -31,6 +36,9 @@ def make_speaker_position_set(position):
     norm_pos = position.lower()
     if minister_rx.match(norm_pos):
         position_set.add(minister_position)
+
+    if senator_rx.match(norm_pos):
+        position_set.add(senator_position)
 
     return position_set
 
@@ -64,5 +72,11 @@ def make_speaker_query_urls(name, position_set):
         minister_clause = "union".join(( "{ %s }" % c for c in pos_clauses ))
         minister_core = pol_tmpl % minister_clause
         queries.append(make_query(minister_core, query_name))
+
+    if senator_position in position_set:
+        np = 'wd:' + senator_position
+        senator_clause = "values ?o { %s }" % np
+        senator_core = pol_tmpl % senator_clause
+        queries.append(make_query(senator_core, query_name))
 
     return [ create_query_url(query) for query in queries ]
