@@ -5,21 +5,35 @@ import sys
 wikidata_rx = re.compile('^http://www.wikidata.org/entity/(Q[0-9]+)$')
 
 class BenchMixin: # expects JsonFrame as another inherited class
+    def process_gov(self, url):
+        url_id = self.get_url_id(url)
+        if not url_id:
+            return
+
+        bindings = self.get_bindings(url_id)
+        if bindings is None:
+            return
+
+        for answer in bindings:
+            if not isinstance(answer, dict):
+                raise Exception("unexpected answer format")
+
+            party_id = self.process_party(answer)
+            person_id = self.process_minister(answer)
+            if person_id and party_id:
+                # we could use the government life span, but a)
+                # minister's tenure might be shorter, and b) just
+                # because a government had ended doesn't mean its
+                # ministers changed party affiliation...
+                self.insert_unbounded(person_id, party_id)
+
     def process_query(self, card_url_id, birth_year, position_set, url):
         url_id = self.get_url_id(url)
         if not url_id:
             return
 
-        doc = self.get_document(url_id)
-        if not doc or not isinstance(doc, dict):
-            return
-
-        results = doc.get('results')
-        if not results or not isinstance(results, dict):
-            return
-
-        bindings = results.get('bindings')
-        if not bindings or not isinstance(bindings, list):
+        bindings = self.get_bindings(url_id)
+        if bindings is None:
             return
 
         for answer in bindings:
@@ -30,6 +44,21 @@ class BenchMixin: # expects JsonFrame as another inherited class
             person_id = self.process_person(card_url_id, birth_year, position_set, answer)
             if person_id and party_id:
                 self.process_membership(person_id, party_id, answer)
+
+    def get_bindings(self, url_id):
+        doc = self.get_document(url_id)
+        if not doc or not isinstance(doc, dict):
+            return None
+
+        results = doc.get('results')
+        if not results or not isinstance(results, dict):
+            return None
+
+        bindings = results.get('bindings')
+        if not bindings or not isinstance(bindings, list):
+            return None
+
+        return bindings
 
     def process_party(self, answer):
         party = self.get_wikidata_id(answer.get('p'))
@@ -125,6 +154,30 @@ where id=%s""", (position_list, person_id))
             self.cur.execute("""insert into ast_identity_card(person_id, link_id)
 values(%s, %s)
 on conflict do nothing""", (person_id, card_url_id))
+
+        return person_id
+
+    def process_minister(self, answer):
+        person = self.get_wikidata_id(answer.get('w'))
+        if not person:
+            return None
+
+        person_name = self.get_literal(answer.get('l'))
+
+        person_id = None
+        self.cur.execute("""insert into ast_person(presentation_name, wikidata_id)
+values(%s, %s)
+on conflict do nothing
+returning id""", (person_name, person))
+        row = self.cur.fetchone()
+        if row:
+            person_id = row[0]
+
+        if person_id is None:
+            self.cur.execute("""select id from ast_person
+where wikidata_id=%s""", (person,))
+            row = self.cur.fetchone()
+            person_id = row[0]
 
         return person_id
 

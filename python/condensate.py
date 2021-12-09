@@ -2,7 +2,7 @@
 
 import re
 import sys
-from baker import make_personage_query_urls, WOOD
+from baker import make_meta_query_url, make_personage_query_urls, WOOD
 from bench_mixin import BenchMixin
 from common import make_connection
 from html_lookup import make_card_person
@@ -15,6 +15,8 @@ class Condensator(JsonFrame, BenchMixin):
         BenchMixin.__init__(self)
 
     def run(self):
+        self.process_gov(make_meta_query_url())
+
         speaker_pattern = "^(%s|%s)" % (re.escape(speaker_mp_tmpl), speaker_minister_tmpl)
         self.cur.execute("""select url, id
 from field
