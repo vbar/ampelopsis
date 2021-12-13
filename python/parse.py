@@ -60,6 +60,7 @@ order by nameval""")
             self.param_blacklist = set((row[0] for row in rows))
         # else param_blacklist isn't used
 
+        self.use_archives = get_option("use_archives", False)
         self.html_parser = etree.HTMLParser()
         self.tagger = make_tagger()
 
@@ -133,7 +134,7 @@ where id=%s""", (url_id,))
         m = session_archive_rx.match(url)
         if m:
             index_url = session_index_tmpl.format(m.group(1), m.group(2))
-            print("switching %s -> %s" % (url, index_url), file=sys.stderr)
+            print("switching %s -> %s on error" % (url, index_url), file=sys.stderr)
             self.add_link(index_url)
 
         self.cur.execute("""update field
@@ -202,6 +203,13 @@ returning url_id""" % sql_cond)
                 self.add_link(url)
 
     def add_link(self, url):
+        if not self.use_archives:
+            m = session_archive_rx.match(url)
+            if m:
+                index_url = session_index_tmpl.format(m.group(1), m.group(2))
+                print("switching %s -> %s unconditionally" % (url, index_url), file=sys.stderr)
+                url = index_url
+
         pr = urlparse(url.strip())
         if pr.hostname: # may not exist even for valid links, e.g. mailto:
             host_id = self.get_host_id(pr.hostname)
