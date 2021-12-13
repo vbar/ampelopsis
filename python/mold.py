@@ -14,8 +14,8 @@ from url_util import make_url_pattern
 synth_url_format = synth_url_tmpl.format('{0:04d}', '{1:03d}', '{2:06d}')
 
 class SpeechInserter(SpeechSaw, BenchMixin):
-    def __init__(self, cur, tagger):
-        SpeechSaw.__init__(self, cur, tagger)
+    def __init__(self, cur, tagger, last_date=None, last_order=0):
+        SpeechSaw.__init__(self, cur, tagger, last_date, last_order)
         BenchMixin.__init__(self)
         self.plain_repre = get_option("plain_repre", "plain")
         self.known = set() # of (str speaker_name, str position_list, int card URL id)
@@ -114,7 +114,9 @@ order by matches[1]::integer, matches[2]::integer, matches[3]::integer, matches[
             builder = SpeechInserter(cur, tagger)
         elif (legislature_id != int(builder.legislature_id)) or (session_id != int(builder.session_id)):
             builder.flush()
-            builder = SpeechInserter(cur, tagger)
+            last_date = builder.current_date
+            last_order = builder.processing_order
+            builder = SpeechInserter(cur, tagger, last_date, last_order)
 
         builder.run(url)
 

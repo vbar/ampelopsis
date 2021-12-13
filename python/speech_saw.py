@@ -13,10 +13,12 @@ from morphodita_conv import make_tagger, split_position_name
 from url_templates import page_local_rx, segment_local_rx, segment_rx, session_archive_rx, session_folder_tmpl, session_page_rx, speaker_rx
 
 class SpeechSaw(JsonFrame):
-    def __init__(self, cur, tagger):
+    def __init__(self, cur, tagger, last_date=None, last_order=0):
         JsonFrame.__init__(self, cur)
         self.html_parser = etree.HTMLParser()
         self.tagger = tagger
+        self.last_date = last_date
+        self.last_order = last_order
         self.orig_url = None
         self.legislature_id = None
         self.session_id = None
@@ -172,6 +174,9 @@ where url=%s""", (url,))
                 if len(sgmt) == 2:
                     dt = dateparser.parse(sgmt[1].strip(), languages=['cs'])
                     if dt:
+                        if (dt == self.last_date) and not self.processing_order:
+                            self.processing_order = self.last_order
+
                         self.current_date = dt
 
     def accumulate(self, p):
