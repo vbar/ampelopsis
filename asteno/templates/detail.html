@@ -11,6 +11,15 @@
     margin-left: 8px;
 }
 
+a.horizontal-arrow {
+    text-decoration: none;
+    vertical-align: text-bottom;
+}
+
+a.vertical-arrow {
+    text-decoration: none;
+    font-size: 20px;
+}
 </style>
 {% endblock %}
 
@@ -20,8 +29,8 @@
   <div class="nav-row">
     Steno <a href="/">index</a>
     <em id="model-day"></em>
-    <a id="prev-link">&lt;&lt;</a>
-    <a id="next-link">&gt;&gt;</a>
+    {% if yesterday %}<a class="vertical-arrow" data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ yesterday.day }}" href="{{ url_for('detail.frame', url_id=yesterday.id) }}">▲</a>{% endif %}<a id="prev-link" class="horizontal-arrow">◀</a>
+    <a id="next-link" class="horizontal-arrow">▶</a>{% if tomorrow %}<a class="vertical-arrow" data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ tomorrow.day }}" href="{{ url_for('detail.frame', url_id=tomorrow.id) }}">▼</a>{% endif %}
   </div>
 </div>
 <div class="container-fluid" id="the_graph"></div>
@@ -68,6 +77,10 @@ var xScale = d3.scaleLinear()
 var yScale = d3.scaleLinear()
     .domain([0, 2])
     .range([0, height]);
+
+$(function () {
+    $("[data-bs-toggle='tooltip']").tooltip();
+});
 
 d3.json("{{ url_for('palette.data') }}").then(function (serPalette) {
     palette = hydratePalette(serPalette);

@@ -87,6 +87,39 @@ order by speech_order""", (dt,))
     return timeline
 
 
+def get_yesterday_tomorrow(cur, dt):
+    cur.execute("""select 'yesterday' k, speech_id, speech_day
+from (
+        select speech_id, speech_day
+        from ast_speech
+        where speech_day = (
+                select max(speech_day)
+                from ast_speech
+                where speech_day<%s )
+        order by speech_order desc limit 1
+) yesterday
+union
+select 'tomorrow' k, speech_id, speech_day
+from (
+        select speech_id, speech_day
+        from ast_speech
+        where speech_day = (
+                select min(speech_day)
+                from ast_speech
+                where speech_day>%s )
+        order by speech_order limit 1
+) tomorrow""", (dt, dt))
+    rows = cur.fetchall()
+    key2obj = {}
+    for key, speech_id, speech_day in rows:
+        key2obj[key] = {
+            'id': speech_id,
+            'day': speech_day.strftime('%-d.%-m.%Y')
+        }
+
+    return (key2obj.get('yesterday'), key2obj.get('tomorrow'))
+
+
 def format_title(doc):
     return "%s_%s_%s" % (doc.get('legislature'), doc.get('session'), doc.get('order'))
 
@@ -153,10 +186,13 @@ def frame(url_id):
 
         if day:
             timeline = list_day_detail(cur, day)
+            yesterday, tomorrow = get_yesterday_tomorrow(cur, day)
         else:
             timeline = None
+            yesterday = None
+            tomorrow = None
 
-        return render_template('detail.html', title=doc.get('Id'), model=json.dumps(model), names=json.dumps(names), timeline=json.dumps(timeline))
+        return render_template('detail.html', title=doc.get('Id'), model=json.dumps(model), yesterday=yesterday, tomorrow=tomorrow, names=json.dumps(names), timeline=json.dumps(timeline))
 
 
 @bp.route('/data/<int:url_id>')
