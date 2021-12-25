@@ -1,7 +1,12 @@
 from datetime import timedelta
 from flask import Blueprint, g, jsonify
+import os
+import sys
 from .database import databased
-from .timeline import add_interval
+
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'python'))
+
+from palette_time import add_interval
 
 bp = Blueprint('palette', __name__, url_prefix='/palette')
 

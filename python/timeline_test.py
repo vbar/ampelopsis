@@ -2,7 +2,7 @@
 
 from datetime import date
 import unittest
-from timeline import add_interval
+from palette_time import add_interval
 
 def make_expected(exp_src):
     expected = []
