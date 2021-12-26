@@ -123,7 +123,7 @@ d3.json("{{ url_for('palette.data') }}").then(function (serPalette) {
         .attr('x2', d => ( xScale(d.until) ))
         .attr('y2', horizLevel)
         .append("title").text(d => ( d.name ));
-});
+}, showError);
 
 window.history.replaceState(model, model.title, selfTemplate.replace("0", model.cur_id));
 
@@ -134,7 +134,7 @@ $("#prev-link").on("click", function (event) {
         model = m;
         window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
         applyModel();
-    });
+    }, showError);
 
     return false;
 });
@@ -146,7 +146,7 @@ $("#next-link").on("click", function (event) {
         model = m;
         window.history.pushState(model, model.title, selfTemplate.replace("0", model.cur_id));
         applyModel();
-    });
+    }, showError);
 
     return false;
 });

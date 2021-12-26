@@ -1,3 +1,15 @@
+// requires jQuery
+function showError(error) {
+    $("#error-overlay").show();
+    $("#error-overlay .toast-body").text(error);
+    $("#error-overlay .toast").show();
+
+    $("#error-overlay .close").one("click", function () {
+        $("#error-overlay .toast").hide();
+        $("#error-overlay").hide();
+    });
+}
+
 // requires d3
 function hydratePalette(serPalette) {
     let dateParse = d3.timeParse("%Y-%m-%d"),

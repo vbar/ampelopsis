@@ -42,6 +42,7 @@ hr {
 <div class="container-fluid" id="the_graph"></div>
 {% endblock %}
 
+
 {% block scripts %}
 <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js" integrity="sha256-hlKLmzaRlE8SCJC1Kw8zoUbU8BxA+8kR3gseuKfMjxA=" crossorigin="anonymous"></script>
 <script>
@@ -88,8 +89,8 @@ if (fragment && (fragment[0] == '#')) {
 d3.json("{{ url_for('palette.data') }}").then(function (serPalette) {
     palette = hydratePalette(serPalette);
 
-    d3.json(getDataUrlFromDates(dateStart, dateEnd, searchText)).then(update);
-});
+    d3.json(getDataUrlFromDates(dateStart, dateEnd, searchText)).then(update, showError);
+}, showError);
 
 sliderLastValues = [ null, null ];
 
@@ -176,7 +177,7 @@ function updateFilter() {
     slider.slider("disable");
 
     d3.select("svg").remove();
-    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update);
+    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update, showError);
 }
 
 function getDataUrlFromDates(sinceDate, untilDate, searchFilter) {
