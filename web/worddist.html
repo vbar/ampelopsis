@@ -1,0 +1,55 @@
+<!-- based on code from d3-graph-gallery.com -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Výskyt slov v dokumentech</title>
+<body>
+<div id="the_graph"></div>
+<div id="footer"></div>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var margin = {top: 20, right: 10, bottom: 10, left: 50},
+    width = 1000 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
+
+var svg = d3.select("#the_graph").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv(
+    "worddist.csv",
+    function (d) {
+        return [ d.word, d.fraction + 0 ];
+    },
+    function (data) {
+        var x = d3.scaleLinear()
+            .domain([0, data.length])
+            .range([ 0, width ]);
+        svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+        var y = d3.scaleLinear()
+            .domain([0, 1])
+            .range([ height, 0]);
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        svg.append('g')
+            .selectAll("dot")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("cx", function (d, i) { return x(i); } )
+            .attr("cy", function (d) { return y(d[1]); } )
+            .attr("r", 1.5)
+            .style("fill", "#69b3a2")
+            .append("title").text(function (d) { return d[0]; });
+    });
+
+</script>
+</body>
