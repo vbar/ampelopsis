@@ -43,7 +43,7 @@ class WordList(ShowCase):
             word_list_file = get_cache_path("wordlist.txt", mkdir=True)
             with open(word_list_file, 'w') as f:
                 for w, c in sorted(self.word2count.items(), key=lambda p: (-1 * p[1], p[0])):
-                    print(w, "\t", c / self.doc_count, file=f)
+                    print("%s\t%s" % (w, c / self.doc_count), file=f)
 
     def tokenize_text(self, et):
         return tokenize(self.cond_case(et['text']), True)

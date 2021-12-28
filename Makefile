@@ -139,16 +139,26 @@ tagvocab:
 emovocab:
 	python/emofreq-graph.py > web/vocab.json
 
+cache/wordlist.txt:
+	python/wordlist.py
+
+worddist: cache/wordlist.txt
+	echo "word,fraction" > web/worddist.csv
+	python/random-filter.py cache/wordlist.txt >> web/worddist.csv
+
 selpos:
 	python/selpos-graph.py > web/selpos.json
 
 relpos:
 	python/relpos-graph.py > web/relpos.json
 
-antlion:
+cache:
+	mkdir $@
+
+antlion: cache
 	python/antlion-graph.py --pit > cache/antlion.csv
 
-maw:
+maw: cache
 	python/antlion-graph.py --maw > cache/maw.csv
 
 purge:
