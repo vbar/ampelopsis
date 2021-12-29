@@ -25,7 +25,7 @@ def make_tagger():
     return tagger
 
 
-def simplify_fulltext(tagger, txt):
+def tokenize_fulltext(tagger, txt):
     forms = Forms()
     lemmas = TaggedLemmas()
     tokens = TokenRanges()
@@ -34,7 +34,7 @@ def simplify_fulltext(tagger, txt):
         raise Exception("No tokenizer is defined for the supplied model!")
 
     tokenizer.setText(txt)
-    rect = ""
+    matrix = []
     while tokenizer.nextSentence(forms, tokens):
         tagger.tag(forms, lemmas)
 
@@ -50,11 +50,39 @@ def simplify_fulltext(tagger, txt):
                         lst.append(w)
 
         if len(lst):
-            ln = " ".join(lst)
-            ln += ".\n"
-            rect += ln
+            matrix.append(lst)
+
+    return matrix
+
+
+def filter_matrix(raw_matrix, stop_set):
+    matrix = []
+    for raw_sentence in raw_matrix:
+        sentence = []
+        for w in raw_sentence:
+            if w.lower() not in stop_set:
+                sentence.append(w)
+
+        if len(sentence):
+            matrix.append(sentence)
+
+    return matrix
+
+
+def collate_matrix(matrix):
+    rect = ""
+    for sentence in matrix:
+        ln = " ".join(sentence)
+        ln += ".\n"
+        rect += ln
 
     return rect
+
+
+def simplify_fulltext(tagger, stop_set, txt):
+    full_matrix = tokenize_fulltext(tagger, txt)
+    matrix = filter_matrix(full_matrix, stop_set)
+    return collate_matrix(matrix)
 
 
 def split_position_name(tagger, txt, strictly_sentence=False):

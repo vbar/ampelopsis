@@ -7,11 +7,10 @@ import numpy as np
 import os
 import sys
 from common import get_loose_path, get_option, make_connection
-from morphodita_conv import make_tagger, simplify_fulltext
+from morphodita_conv import make_tagger, tokenize_fulltext
 from palette_factory import create_palette
 from palette_lookup import get_membership
 from show_case import ShowCase
-from token_util import tokenize
 
 class Payload:
     def __init__(self):
@@ -69,11 +68,10 @@ order by url""")
         self.party_set.add(party_entity)
 
         word_set = set()
-        lst = tokenize(txt)
-        simple_text = simplify_fulltext(self.tagger, txt)
-        for raw_word in simple_text.split():
-            cased = raw_word[:-1] if raw_word.endswith('.') else raw_word
-            word_set.add(cased.lower())
+        text_matrix = tokenize_fulltext(self.tagger, txt)
+        for sentence in text_matrix:
+            for cased in sentence:
+                word_set.add(cased.lower())
 
         for w in word_set:
             payload = self.vocabulary.get(w)

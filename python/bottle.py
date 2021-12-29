@@ -1,12 +1,14 @@
 #!/usr/bin/python3
 
-# requires database filled by running condensate.py
+# requires database filled by running condensate.py & a word list
+# created by running wordlist.py
 
 import os
 import sys
 from common import get_loose_path, get_option, make_connection
 from morphodita_conv import make_tagger, simplify_fulltext
 from show_case import ShowCase
+from stop_util import load_stop_set
 from token_util import tokenize
 
 class Processor(ShowCase):
@@ -14,6 +16,7 @@ class Processor(ShowCase):
         ShowCase.__init__(self, cur)
 
         self.tagger = make_tagger()
+        self.stop_set = load_stop_set()
 
         self.link2id = {}
         cur.execute("""select url, person_id
@@ -39,7 +42,7 @@ order by url""")
         if txt:
             lst = tokenize(txt)
             length = len(lst)
-            simple_text = simplify_fulltext(self.tagger, txt)
+            simple_text = simplify_fulltext(self.tagger, self.stop_set, txt)
         else:
             length = 0
             simple_text = None

@@ -9,8 +9,8 @@ from morphodita_conv import make_tagger, simplify_fulltext
 the_pool = Pool(make_tagger)
 
 def stem_text(txt):
-    if not txt:
+    if (not txt) or (len(txt) < 2):
         return None
 
     with the_pool.get_resource() as tagger:
-        return simplify_fulltext(tagger, txt)
+        return simplify_fulltext(tagger, set(), txt)

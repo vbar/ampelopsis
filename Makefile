@@ -1,4 +1,4 @@
-all: mold condensate bottle
+all: mold condensate wordlist bottle
 
 mold:
 	python/mold.py
@@ -8,6 +8,8 @@ condensate:
 
 bottle:
 	python/bottle.py
+
+wordlist: cache/wordlist.txt
 
 cache/wordlist.txt:
 	python/wordlist.py

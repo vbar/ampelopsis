@@ -3,10 +3,9 @@
 import os
 import sys
 from common import get_option, get_parent_directory, make_connection
-from morphodita_conv import make_tagger, simplify_fulltext
+from morphodita_conv import make_tagger, tokenize_fulltext
 from opt_util import get_cache_path
 from show_case import ShowCase
-from token_util import tokenize
 
 class WordList(ShowCase):
     def __init__(self, cur):
@@ -23,11 +22,10 @@ class WordList(ShowCase):
             return
 
         bag = set()
-        lst = tokenize(txt)
-        simple_text = simplify_fulltext(self.tagger, txt)
-        for raw_word in simple_text.split():
-            cased = raw_word[:-1] if raw_word.endswith('.') else raw_word
-            bag.add(cased.lower())
+        text_matrix = tokenize_fulltext(self.tagger, txt)
+        for sentence in text_matrix:
+            for cased in sentence:
+                bag.add(cased.lower())
 
         for w in bag:
             cnt = self.word2count.get(w, 0)
