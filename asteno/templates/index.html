@@ -165,8 +165,15 @@ window.onresize = function (event) {
 };
 
 function updateFilter() {
-    var slider = $("#slider-range"),
+    var v = $("#search-text").val(),
+        slider = $("#slider-range"),
         rng = [];
+
+    if (v.length == 1) {
+        showError("Jednopísmenná slova nejsou indexována.");
+        $("#search-text").val("");
+        return;
+    }
 
     $("body").css("cursor", "progress");
 
@@ -177,7 +184,7 @@ function updateFilter() {
     slider.slider("disable");
 
     d3.select("svg").remove();
-    d3.json(getDataUrl(rng[0], rng[1], $("#search-text").val())).then(update, showError);
+    d3.json(getDataUrl(rng[0], rng[1], v)).then(update, showError);
 }
 
 function getDataUrlFromDates(sinceDate, untilDate, searchFilter) {
