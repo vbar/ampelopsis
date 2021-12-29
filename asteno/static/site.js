@@ -52,6 +52,23 @@ function hydratePalette(serPalette) {
     return palette;
 }
 
+// JavaScript doesn't compare arrays
+function arrayLessThan(a, b) {
+    let adv = a.length < b.length, i = 0, n = adv ? a.length : b.length;
+
+    while (i < n) {
+        if (a[i] < b[i]) {
+            return true;
+        } else if (b[i] < a[i]) {
+            return false;
+        }
+
+        ++i;
+    }
+
+    return adv;
+}
+
 // ported from https://en.cppreference.com/w/cpp/algorithm/lower_bound
 function lowerBound(array, value) {
     let first = 0, count = array.length;
@@ -59,7 +76,7 @@ function lowerBound(array, value) {
     while (count > 0) {
         let it = first, step = count >>> 1;
         it += step;
-        if (array[it] < value) {
+        if (arrayLessThan(array[it], value)) {
             first = ++it;
             count -= (step + 1);
         } else {
