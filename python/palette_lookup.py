@@ -24,11 +24,14 @@ def get_membership(palette, person_id, day):
 
             if stop[0] == day:
                 if len(stop) == 1:
+                    assert i > 0
                     stop = timed[i - 1]
 
                 assert len(stop) == 3
                 return stop[2]
-            elif (len(stop) == 3) and (stop[0] < stop[1]):
+            elif len(stop) == 1:
+                assert i > 0
+                stop = timed[i - 1]
                 return stop[2]
 
     started = person.get('started')

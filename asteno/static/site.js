@@ -118,10 +118,9 @@ function getColor(person_id, day) {
                 }
 
                 return stop[2];
-            } else {
-                if ((stop.length == 3) && (stop[0] < stop[1])) {
-                    return stop[2];
-                }
+            } else if (stop.length == 1) {
+                stop = timed[i - 1];
+                return stop[2];
             }
         }
     }
