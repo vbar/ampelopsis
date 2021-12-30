@@ -27,6 +27,8 @@ order by url""")
         for link, person_id in rows:
             self.link2id[link] = person_id
 
+        self.simple_repre = get_option("simple_repre", "simple")
+
     def load_item(self, doc):
         day = self.extend_date(doc)
         speech_id = doc['url_id']
@@ -52,11 +54,18 @@ values(%s, %s, %s, %s, %s)
 on conflict(speech_id) do update
 set speaker_id=%s, speech_day=%s, speech_order=%s, word_count=%s""", (speech_id, speaker_id, day, speech_order, length, speaker_id, day, speech_order, length))
 
+        simple_path = get_loose_path(speech_id, alt_repre=self.simple_repre)
         if simple_text:
+            with open(simple_path, 'w') as f:
+                f.write(simple_text)
+
             self.cur.execute("""update ast_speech
 set content=to_tsvector('ast_config', %s)
 where speech_id=%s""", (simple_text, speech_id))
         else:
+            if os.path.exists(simple_path):
+                os.remove(simple_path)
+
             self.cur.execute("""update ast_speech
 set content=null
 where speech_id=%s""", (speech_id,))
