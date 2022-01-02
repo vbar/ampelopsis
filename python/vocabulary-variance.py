@@ -10,6 +10,7 @@ from common import get_loose_path, get_option, make_connection
 from morphodita_conv import make_tagger, tokenize_fulltext
 from palette_factory import create_palette
 from palette_lookup import get_membership
+from person_mixin import PersonMixin
 from show_case import ShowCase
 
 class Payload:
@@ -31,22 +32,14 @@ class Payload:
         self.speaker_set.add(speaker_id)
 
 
-class Processor(ShowCase):
+class Processor(ShowCase, PersonMixin):
     def __init__(self, cur):
         ShowCase.__init__(self, cur)
+        PersonMixin.__init__(self)
 
         self.tagger = make_tagger()
 
         self.palette = create_palette(cur, "ast_party.wikidata_id")
-
-        self.link2id = {}
-        cur.execute("""select url, person_id
-from field
-join ast_identity_card on link_id=field.id
-order by url""")
-        rows = cur.fetchall()
-        for link, person_id in rows:
-            self.link2id[link] = person_id
 
         self.vocabulary = {} # str word -> Payload
         self.party_set = set()
@@ -54,11 +47,7 @@ order by url""")
     def load_item(self, doc):
         day = self.extend_date(doc)
         speech_id = doc['url_id']
-
-        speaker_id = None
-        link = doc.get('speaker_url')
-        if link:
-            speaker_id = self.link2id.get(link)
+        speaker_id = self.get_person(doc)
 
         txt = doc.get('text')
         if not txt:

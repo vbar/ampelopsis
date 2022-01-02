@@ -46,7 +46,7 @@ class SpeechInserter(SpeechSaw, BenchMixin):
 
         qurls = make_speaker_query_urls(speaker_name, position_set)
         for qurl in qurls:
-            self.process_query(speaker_url_id, None, position_set, qurl)
+            self.process_query(None, qurl)
 
         self.known.add(kt)
 

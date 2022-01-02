@@ -13,7 +13,7 @@ minister_position = 'Q83307'
 senator_position = 'Q18941264'
 
 def make_query(core, query_name):
-    query = "select ?w ?l ?b ?o ?p ?t ?c ?z ?f ?u{\n"
+    query = "select ?w ?l ?b ?o ?d ?e ?p ?t ?c ?z ?f ?u{\n"
     query += core
     query += """
     ?w rdfs:label ?l;
@@ -47,10 +47,13 @@ def make_speaker_query_urls(name, position_set):
     # nationality check is too narrow for guest speakers, but we won't
     # get / really need a party for foreigners anyway...
     pol_tmpl = """?w wdt:P27 wd:Q213;
-        wdt:P39 ?o;
+        p:P39 ?r;
         p:P102 ?s.
+    ?r ps:P39 ?o.
     %s
     ?s ps:P102 ?p.
+    optional { ?r pq:P580 ?d. }
+    optional { ?r pq:P582 ?e. }
     optional { ?s pq:P580 ?f. }
     optional { ?s pq:P582 ?u. }
 """

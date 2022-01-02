@@ -17,8 +17,8 @@ def get_speaker(cur, url_id):
     cur.execute("""select presentation_name, field.url
 from ast_speech
 join ast_person on speaker_id=ast_person.id
-left join ast_identity_card on ast_person.id=ast_identity_card.person_id
-left join field on ast_identity_card.link_id=field.id
+left join ast_person_card on ast_person.id=ast_person_card.person_id
+left join field on ast_person_card.link_id=field.id
 where speech_id=%s""", (url_id,))
     rows = cur.fetchall()
     present_name = None

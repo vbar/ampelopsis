@@ -45,7 +45,7 @@ order by url""" % speaker_pattern)
             if person and person.birth_year:
                 qurls = make_personage_query_urls(person, WOOD)
                 for qurl in qurls:
-                    self.process_query(card_url_id, person.birth_year, None, qurl)
+                    self.process_query(person.birth_year, qurl)
         finally:
             reader.close()
 
