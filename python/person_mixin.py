@@ -1,5 +1,5 @@
-from datetime import date
 from dateutil.parser import parse
+import sys
 from cook import make_speaker_position_set
 from html_lookup import make_card_person
 
@@ -11,12 +11,17 @@ from ast_person
 where birth_year is not null
 order by id""")
         rows = self.cur.fetchall()
+        duplicates = set()
         for person_id, presentation_name, birth_year in rows:
             k = (presentation_name, birth_year)
             if k in self.direct_map:
-                raise Exception("repeated %s (%d)" % k)
+                duplicates.add(k)
+            else:
+                self.direct_map[k] = person_id
 
-            self.direct_map[k] = person_id
+        for k in duplicates:
+            print("repeated %s (%d) - ignoring..." % k, file=sys.stderr)
+            del self.direct_map[k]
 
     def get_person(self, doc):
         card_url = doc.get('speaker_url')
