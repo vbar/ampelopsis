@@ -1,4 +1,5 @@
 import dateparser
+import sys
 
 class IntervalInserter:
     def __init__(self, cur, interval_table, secondary_column, from_var, until_var):
