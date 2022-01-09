@@ -11,6 +11,9 @@ bottle:
 
 wordlist: cache/wordlist.txt
 
+volume:
+	python/volume-graph.py > web/volume.json
+
 cache/wordlist.txt:
 	python/wordlist.py
 
