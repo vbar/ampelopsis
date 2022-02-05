@@ -1,11 +1,11 @@
-<!-- based on https://codepen.io/adeveloperdiary/pen/vGxVMz/ -->
+<!-- based on d3-graph-gallery.com -->
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
     <title>Shrnutí</title>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 
     <style>
 
@@ -29,78 +29,84 @@
     <div id="the_graph"></div>
 
     <script>
-var margin = {top: 10, right: 30, bottom: 60, left: 50},
-    width = 1100 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
 
-var x = d3.scale.ordinal()
-    .rangeRoundBands([0, width], .35);
-
-var y = d3.scale.linear()
-    .rangeRound([height, 0]);
-
-var xAxis = d3.svg.axis()
-    .scale(x)
-    .orient("bottom");
+const margin = {top: 10, right: 30, bottom: 60, left: 10},
+      width = 1100 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
 
 var svg = d3.select("#the_graph").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-d3.json("volume.json",
-    function (metadata) {
-        var dataIntermediate = metadata.order.map(function (c) {
-            return metadata.summary.map(function (d) {
-                return { x: d.year, y: d[c] || 0, party: c };
-            });
-        });
+d3.json("volume.json").then(function (metadata) {
+    var xLabels = metadata.summary.map(d => d.year);
 
-        var dataStackLayout = d3.layout.stack()(dataIntermediate);
+    var xValues = [],
+        yValues = [],
+        zValues = [];
+    metadata.summary.forEach(function (compo) {
+        for (var key in compo) {
+            if (!isNaN(parseInt(key, 10))) {
+                xValues.push(compo.year);
+                yValues.push(compo[key]);
+                zValues.push(key);
+            }
+        }
+    });
 
-        x.domain(dataStackLayout[0].map(function (d) {
-            return d.x;
+    var stackGen = d3.stack()
+        .keys(metadata.order)
+        .value(function (d, key) {
+            var z2idx = d[1], // x is in d[0]
+                i = z2idx.get(key);
+
+            return (i == undefined) ? 0 : yValues[i];
+        }),
+        indices = d3.range(xValues.length),
+        stackInput = d3.rollup(indices, ([i]) => i, i => xValues[i], i => zValues[i]),
+        stackOutput = stackGen(stackInput),
+        series = stackOutput.map(s => s.map(function (d) {
+            d.party = s.key;
+            return d;
         }));
 
-        y.domain([0,
-                  d3.max(dataStackLayout[dataStackLayout.length - 1],
-                         function (d) { return d.y0 + d.y;})
-                 ])
-            .nice();
+    var yDomain = d3.extent(series.flat(2)),
+        xScale = d3.scaleBand(xLabels, [margin.left, margin.left + width]).paddingInner(0.1),
+        yScale = d3.scaleLinear(yDomain, [margin.top + height, margin.top]),
+        xAxis = d3.axisBottom(xScale).tickSizeOuter(0);
 
-        var layer = svg.selectAll(".stack")
-            .data(dataStackLayout)
-            .enter().append("g")
-            .attr("class", "stack")
-            .style("fill", function (d, i) {
-                return metadata.legend[d[0].party][1];
-            });
+  svg.append("g")
+      .attr("transform", `translate(${margin.left},0)`)
+      .call(g => g.select(".domain").remove())
+      .call(g => g.selectAll(".tick line").clone()
+          .attr("x2", width)
+          .attr("stroke-opacity", 0.1));
 
-        layer.selectAll("rect")
-            .data(function (d) {
-                return d;
-            })
-            .enter().append("rect")
-            .attr("x", function (d) {
-                return x(d.x);
-            })
-            .attr("y", function (d) {
-                return y(d.y + d.y0);
-            })
-            .attr("height", function (d) {
-                return y(d.y0) - y(d.y + d.y0);
-            })
-            .attr("width", x.rangeBand())
-            .append("title").text(function (d) {
-                return metadata.legend[d.party][0];
-            });
+  var bar = svg.append("g")
+    .selectAll("g")
+    .data(series)
+    .join("g")
+        .attr("fill", ([{party}]) => metadata.legend[party][1])
+    .selectAll("rect")
+    .data(d => d)
+    .join("rect")
+      .attr("x", function (d) {
+          return xScale(d.data[0]);
+      })
+      .attr("y", ([y1, y2]) => Math.min(yScale(y1), yScale(y2)))
+      .attr("height", ([y1, y2]) => Math.abs(yScale(y1) - yScale(y2)))
+      .attr("width", xScale.bandwidth());
 
-        svg.append("g")
-            .attr("class", "axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis);
-    });
+    bar.append("title")
+        .text(({party}) => metadata.legend[party][0]);
+
+    svg.append("g")
+      .attr("class", "axis")
+      .attr("transform", `translate(0,${yScale(0)})`)
+      .call(xAxis);
+});
 
     </script>
   </body>
