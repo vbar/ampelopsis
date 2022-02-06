@@ -1,4 +1,4 @@
-<!-- based on d3-graph-gallery.com -->
+<!-- based on https://observablehq.com/@d3/stacked-bar-chart -->
 <!DOCTYPE html>
 <html>
   <head>
@@ -41,19 +41,25 @@ var svg = d3.select("#the_graph").append("svg")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
 d3.json("volume.json").then(function (metadata) {
-    var xLabels = metadata.summary.map(d => d.year);
-
-    var xValues = [],
+    var xLabels = [],
         yValues = [],
-        zValues = [];
+        zValues = [],
+        stackInput = new d3.InternMap();
+
     metadata.summary.forEach(function (compo) {
+        var year = compo.year,
+            inner = new d3.InternMap();
+
+        xLabels.push(year);
         for (var key in compo) {
             if (!isNaN(parseInt(key, 10))) {
-                xValues.push(compo.year);
+                inner.set(key, yValues.length);
                 yValues.push(compo[key]);
                 zValues.push(key);
             }
         }
+
+        stackInput.set(year, inner);
     });
 
     var stackGen = d3.stack()
@@ -64,8 +70,6 @@ d3.json("volume.json").then(function (metadata) {
 
             return (i == undefined) ? 0 : yValues[i];
         }),
-        indices = d3.range(xValues.length),
-        stackInput = d3.rollup(indices, ([i]) => i, i => xValues[i], i => zValues[i]),
         stackOutput = stackGen(stackInput),
         series = stackOutput.map(s => s.map(function (d) {
             d.party = s.key;
