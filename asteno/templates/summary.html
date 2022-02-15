@@ -1,38 +1,39 @@
-<!-- based on https://observablehq.com/@d3/stacked-bar-chart -->
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Shrnutí</title>
+{% extends "base.html" %}
 
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+{% block declarations %}
+<style>
 
-    <style>
+.axis text {
+    font-family: sans-serif;
+    font-size: 12pt;
+    cursor: default;
+}
 
-      .axis text {
-        font-family: sans-serif;
-        font-size: 12pt;
-      }
-      .axis .label {
-        font-size: 12pt;
-      }
+.axis .label {
+    font-size: 12pt;
+}
 
-      .axis path, .axis line {
-        fill: none;
-        stroke: #000;
-        shape-rendering: crispEdges;
-      }
+.axis path, .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
 
-    </style>
-  </head>
-  <body>
-    <div id="the_graph"></div>
+</style>
+{% endblock %}
 
-    <script>
 
+{% block content %}
+<div class="container-fluid" id="the_graph"></div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
 const margin = {top: 10, right: 30, bottom: 60, left: 10},
       width = 1100 - margin.left - margin.right,
-      height = 500 - margin.top - margin.bottom;
+      height = 500 - margin.top - margin.bottom,
+      dateParse = d3.timeParse("%Y-%m-%d");
 
 var svg = d3.select("#the_graph").append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -40,7 +41,16 @@ var svg = d3.select("#the_graph").append("svg")
     .append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-d3.json("volume.json").then(function (metadata) {
+$('#the_graph').on('click', '.axis text', function () {
+    var year = $(this).text(),
+        textArray = [ year + "-01-01", year + "-12-31" ],
+        secondArray = textArray.map(t => dateParse(t).getTime() / 1000),
+        fragment = '#' + secondArray[0] + '/' + secondArray[1];
+
+    window.open("{{ url_for('overview.frame') }}" + fragment, "_self");
+});
+
+d3.json("{{ url_for('summary.data') }}").then(function (metadata) {
     var xLabels = [],
         yValues = [],
         zValues = [],
@@ -112,6 +122,5 @@ d3.json("volume.json").then(function (metadata) {
       .call(xAxis);
 });
 
-    </script>
-  </body>
-</html>
+</script>
+{% endblock %}

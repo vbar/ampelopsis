@@ -1,3 +1,7 @@
+.top-link {
+    text-align: center;
+}
+
 #error-overlay {
     position: fixed;
     display: none;
