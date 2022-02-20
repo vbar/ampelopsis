@@ -185,15 +185,18 @@ returning url_id""" % sql_cond)
             return
 
         pclass = p.get('class')
-        if pclass in ('no-screen', 'date'):
+        if pclass in ('no-screen', 'date', 'current'):
             return
 
         text_nodes = p.xpath('.//text()')
-        if len(text_nodes):
-            speaker_text = clean_text_node(text_nodes[0])
-            pn = split_position_name(self.tagger, speaker_text, False)
-            if pn:
-                self.add_speaker_link(*pn)
+        for text_node in text_nodes:
+            speaker_text = clean_text_node(text_node)
+            if speaker_text:
+                pn = split_position_name(self.tagger, speaker_text, False)
+                if pn:
+                    self.add_speaker_link(*pn)
+
+                return
 
     def add_speaker_link(self, position, name):
         position_set = make_speaker_position_set(position)

@@ -185,7 +185,7 @@ where url=%s""", (url,))
             return True
 
         pclass = p.get('class')
-        if pclass == 'no-screen':
+        if pclass in ('no-screen', 'current'):
             return True
         elif pclass == 'date':
             date_text = clean_text(p.xpath('.//text()'))
@@ -199,30 +199,40 @@ where url=%s""", (url,))
         anchors = p.xpath('.//a')
         switched = False
         par_nav_count = 0
+        text_nodes = p.xpath('.//text()')
         for a in anchors:
             href = a.get('href')
             if href:
                 link = urljoin(self.base, href)
                 if speaker_rx.match(link):
-                    if switched:
-                        raise Exception("multiple speakers in one paragraph")
+                    # some older HTML has links not just on speaker
+                    # change, but also on their mention - hopefully
+                    # not using their full names...
+                    anchor_text_nodes = a.xpath('.//text()')
+                    speaker_text = clean_text(anchor_text_nodes)
+                    if speaker_text.find(' ') > 0:
+                        if switched:
+                            print("multiple speakers in one paragraph", file=sys.stderr)
+                            tail_idx = self.find_text_index(text_nodes, anchor_text_nodes[0])
+                            if tail_idx > 0:
+                                self.current_text += clean_text(text_nodes[:tail_idx])
+                                text_nodes = text_nodes[tail_idx:]
 
-                    self.flush()
+                        self.flush()
 
-                    self.current_speaker = {
-                        'url': link
-                    }
+                        self.current_speaker = {
+                            'url': link
+                        }
 
-                    speaker_text = clean_text(a.xpath('.//text()'))
-                    if speaker_text:
-                        self.current_speaker['text'] = speaker_text
-                        pn = split_position_name(self.tagger, speaker_text, True)
-                        if pn:
-                            self.current_speaker['position'] = pn[0]
-                            self.current_speaker['name'] = pn[1]
+                        if speaker_text:
+                            self.current_speaker['text'] = speaker_text
+                            pn = split_position_name(self.tagger, speaker_text, True)
+                            if pn:
+                                self.current_speaker['position'] = pn[0]
+                                self.current_speaker['name'] = pn[1]
 
-                    self.current_text = ""
-                    switched = True
+                        self.current_text = ""
+                        switched = True
                 # fragments of this page would match segment; consider
                 # only links to different pages
                 elif (href[0] != '#') and segment_rx.match(link):
@@ -232,29 +242,7 @@ where url=%s""", (url,))
             self.nav_count += 1
             return self.nav_count == 1
 
-        text_nodes = p.xpath('.//text()')
-        if len(text_nodes):
-            speaker_text = clean_text_node(text_nodes[0])
-            if switched: # no reason to parse the name twice...
-                # ...but we should check
-                if self.current_speaker['text'] != speaker_text:
-                    raise Exception("anchor text doesn't match paragraph start")
-
-                text_nodes = text_nodes[1:]
-            else:
-                pn = split_position_name(self.tagger, speaker_text, False)
-                if pn:
-                    self.flush()
-
-                    self.current_speaker = {
-                        'text': speaker_text,
-                        'position': pn[0],
-                        'name': pn[1]
-                    }
-
-                    self.current_text = ""
-                    # not setting switched b/c it isn't used below
-                    text_nodes = text_nodes[1:]
+        text_nodes = self.break_on_speaker(text_nodes, switched)
 
         if not self.current_speaker: # didn't start yet
             return True
@@ -267,6 +255,46 @@ where url=%s""", (url,))
             self.current_text += text
 
         return True
+
+    def find_text_index(self, text_nodes, raw_speaker_text):
+        print("enter find_text_index")
+        for idx, text_node in enumerate(text_nodes):
+            print("text_node", text_node, "raw_speaker_text", raw_speaker_text)
+            if text_node == raw_speaker_text:
+                return idx
+
+        raise Exception("text node not found")
+
+    def break_on_speaker(self, text_nodes, switched):
+        tail_idx = None
+        for idx, text_node in enumerate(text_nodes):
+            speaker_text = clean_text_node(text_node)
+            if speaker_text:
+                if switched: # no reason to parse the name twice...
+                    # ...but we should check
+                    if self.current_speaker['text'] != speaker_text:
+                        print("speaker", self.current_speaker['text'], "///", speaker_text)
+                        raise Exception("anchor text doesn't match paragraph start")
+                    tail_idx = idx + 1
+                else:
+                    pn = split_position_name(self.tagger, speaker_text, False)
+                    if pn:
+                        self.flush()
+
+                        self.current_speaker = {
+                            'text': speaker_text,
+                            'position': pn[0],
+                            'name': pn[1]
+                        }
+
+                        self.current_text = ""
+                        tail_idx = idx + 1
+                break;
+
+        if tail_idx:
+            text_nodes = text_nodes[tail_idx:]
+
+        return text_nodes
 
     def flush(self):
         if not self.current_speaker:
