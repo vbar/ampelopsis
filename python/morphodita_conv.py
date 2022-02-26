@@ -143,9 +143,11 @@ def split_position_name(tagger, txt, strictly_sentence=False):
                     semi_pos = raw_lemma.find("_;")
                     if semi_pos > 0:
                         lemma = raw_lemma[:semi_pos]
-                        lemma_tail = raw_lemma[semi_pos+2:]
-                        # some first names (e.g. Filip) are also last names
-                        if lemma_tail in ('S', 'Y'):
+                        lemma_tail = raw_lemma[semi_pos+2:semi_pos+3]
+                        # some first names (e.g. Filip) are also last
+                        # names; some last names (e.g. Rakušan) are
+                        # classified as nationalities
+                        if lemma_tail in ('S', 'Y', 'E'):
                             matching = True
                             if tailing:
                                 token = tokens[i - 1]
