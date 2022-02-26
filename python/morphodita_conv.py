@@ -11,6 +11,8 @@ pos_rx = re.compile('^[ACDINV]$')
 
 segment_rx = re.compile('[-_:;^]')
 
+tail_rx = re.compile('.([-_:;^].+)$')
+
 name_tag_rx = re.compile("^NN[MF]S1-----A----$")
 
 def make_tagger():
@@ -48,6 +50,36 @@ def tokenize_fulltext(tagger, txt):
                     w = sgm[0]
                     if len(w) > 1:
                         lst.append(w)
+
+        if len(lst):
+            matrix.append(lst)
+
+    return matrix
+
+
+def retrieve_annotations(tagger, txt):
+    forms = Forms()
+    lemmas = TaggedLemmas()
+    tokens = TokenRanges()
+    tokenizer = tagger.newTokenizer()
+    if tokenizer is None:
+        raise Exception("No tokenizer is defined for the supplied model!")
+
+    tokenizer.setText(txt)
+    matrix = []
+    while tokenizer.nextSentence(forms, tokens):
+        tagger.tag(forms, lemmas)
+
+        lst = []
+        for lemma_obj in lemmas:
+            raw_lemma = lemma_obj.lemma
+            tag = lemma_obj.tag
+            if tag:
+                m = tail_rx.search(raw_lemma)
+                if m:
+                    head = raw_lemma[0:m.start(1)]
+                    tail = m.group(1)
+                    lst.append((head, tail))
 
         if len(lst):
             matrix.append(lst)

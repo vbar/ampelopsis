@@ -17,3 +17,6 @@ cache/wordlist.txt:
 worddist: cache/wordlist.txt
 	echo "word,fraction" > web/worddist.csv
 	python/random-filter.py cache/wordlist.txt >> web/worddist.csv
+
+lemmascan:
+	python/lemmascan.py > web/lemmascan.csv
