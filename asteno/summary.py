@@ -1,4 +1,4 @@
-from flask import Blueprint, g, jsonify, render_template
+from flask import Blueprint, g, jsonify, render_template, request
 import os
 import sys
 from .database import databased
@@ -38,13 +38,20 @@ order by ast_party.id, party_name""")
     return legend
 
 
-def make_summary(cur):
+def make_summary(cur, search_text):
     summary = {} # int year -> int party ID -> int count
 
     palette = create_palette(cur, "ast_party.id")
-    cur.execute("""select speaker_id, speech_day, word_count
+    if not search_text:
+        cur.execute("""select speaker_id, speech_day, word_count
 from ast_speech
 order by speech_day, speech_order""")
+    else:
+        cur.execute("""select speaker_id, speech_day, word_count
+from ast_speech
+where content @@ plainto_tsquery('ast_config', %s)
+order by speech_day, speech_order""", (search_text,))
+
     rows = cur.fetchall()
     for speaker_id, speech_day, word_count in rows:
         party_id = get_membership(palette, speaker_id, speech_day)
@@ -96,8 +103,9 @@ def frame():
 @bp.route('/data')
 @databased
 def data():
+    search = request.args.get('s')
     with g.conn.cursor() as cur:
         legend = make_legend(cur)
-        summary = make_summary(cur)
+        summary = make_summary(cur, search)
         data = format_data(legend, summary)
         return jsonify(data)

@@ -3,6 +3,10 @@
 {% block declarations %}
 <style>
 
+#search-row {
+    margin-top: 4px;
+}
+
 .axis text {
     font-family: sans-serif;
     font-size: 12pt;
@@ -24,12 +28,31 @@
 
 
 {% block content %}
+<div class="container-fluid">
+  <div id="search-row" class="row g-4">
+    <div class="col-1">
+      <div class="top-link">
+        <a href="{{ url_for('overview.frame') }}">index</a>
+      </div>
+    </div>
+    <div class="col-8">
+    </div>
+    <div class="col-2">
+      <input class="form-control form-control-sm" type="text" id="search-text">
+    </div>
+    <div class="col-1">
+      <button id="search-button" class="btn btn-primary mb-3">Hledat</button>
+    </div>
+  </div>
+</div>
 <div class="container-fluid" id="the_graph"></div>
 {% endblock %}
 
 
 {% block scripts %}
 <script>
+$("body").css("cursor", "progress");
+
 const margin = {top: 10, right: 30, bottom: 60, left: 10},
       contentMargin = 40,
       height = 500 - margin.top - margin.bottom,
@@ -39,12 +62,30 @@ $('#the_graph').on('click', '.axis text', function () {
     var year = $(this).text(),
         textArray = [ year + "-01-01", year + "-12-31" ],
         secondArray = textArray.map(t => dateParse(t).getTime() / 1000),
-        fragment = '#' + secondArray[0] + '/' + secondArray[1];
+        fragment = '#' + secondArray[0] + '/' + secondArray[1],
+        searchFilter = $("#search-text").val();
+
+    if (searchFilter.length > 1) {
+        fragment += "/";
+        fragment += encodeURIComponent(searchFilter);
+    }
 
     window.open("{{ url_for('overview.frame') }}" + fragment, "_self");
 });
 
-d3.json("{{ url_for('summary.data') }}").then(update, showError);
+d3.json(getDataUrl("")).then(update, showError);
+
+$('#search-text').keyup(function (e) {
+    if (e.keyCode == 13) {
+        e.stopPropagation();
+        updateFilter();
+    }
+});
+
+$("#search-button").on("click", function (e) {
+    e.stopPropagation();
+    updateFilter();
+});
 
 resizeTimer = null;
 lastWidth = null;
@@ -68,10 +109,34 @@ window.onresize = function (event) {
     }
 };
 
+function updateFilter() {
+    var v = $("#search-text").val();
+    if (v.length == 1) {
+        showError("Jednopísmenná slova nejsou indexována.");
+        $("#search-text").val("");
+        return;
+    }
+
+    $("body").css("cursor", "progress");
+
+    d3.select("svg").remove();
+    d3.json(getDataUrl(v)).then(update, showError);
+}
+
+function getDataUrl(searchFilter) {
+    var url = "{{ url_for('.data') }}";
+
+    if (searchFilter) {
+        url += "?s=" + encodeURIComponent(searchFilter);
+    }
+
+    return url;
+}
+
 function update(mt) {
     metadata = mt;
-
     draw();
+    $("body").css("cursor", "default");
 }
 
 function draw() {

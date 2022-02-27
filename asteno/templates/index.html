@@ -88,6 +88,9 @@ if (fragment && (fragment[0] == '#')) {
 
     if (rawArray.length >= 3) {
         searchText = decodeURIComponent(rawArray[2]);
+        if (searchText.length > 1) {
+            $("#search-text").val(searchText);
+        }
     }
 }
 
